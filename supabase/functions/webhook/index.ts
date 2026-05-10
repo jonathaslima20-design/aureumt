@@ -226,11 +226,11 @@ async function sendPresence(creds: Creds, instanceName: string, number: string, 
 }
 
 // Calculates a realistic typing duration based on message length.
-// ~200 chars/min average human typing speed on phone, capped between 1.5s and 12s.
+// ~800 chars/min typing speed, capped between 800ms and 8s.
 function typingDurationForText(text: string): number {
-  const CHARS_PER_MS = 200 / 60000; // ~3.3 chars/ms
+  const CHARS_PER_MS = 800 / 60000; // ~13.3 chars/ms
   const raw = text.length / CHARS_PER_MS;
-  return Math.max(1500, Math.min(12000, raw));
+  return Math.max(800, Math.min(8000, raw));
 }
 
 async function simulateTyping(creds: Creds, instanceName: string, number: string, totalMs: number) {
