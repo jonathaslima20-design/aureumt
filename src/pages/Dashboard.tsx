@@ -11,7 +11,6 @@ import { AgentDetailPage } from './user/AgentDetailPage';
 import { ConnectionsPage } from './user/ConnectionsPage';
 import { KnowledgePage } from './user/KnowledgePage';
 import { ChatPage } from './user/ChatPage';
-import { QuickRepliesPage } from './user/QuickRepliesPage';
 
 const STORAGE_KEY = 'auratalk:lastPage';
 
@@ -26,7 +25,7 @@ export function Dashboard({ onNavAdmin }: { onNavAdmin: () => void }) {
 
   const [page, setPage] = useState<PageKey>(() => {
     const saved = localStorage.getItem(STORAGE_KEY) as PageKey | null;
-    const valid: PageKey[] = ['overview', 'agents', 'connections', 'knowledge', 'chat', 'quick_replies'];
+    const valid: PageKey[] = ['overview', 'agents', 'connections', 'knowledge', 'chat'];
     return saved && valid.includes(saved) ? saved : 'overview';
   });
 
@@ -159,7 +158,7 @@ export function Dashboard({ onNavAdmin }: { onNavAdmin: () => void }) {
         if (instances.length === 0) return <EmptyAgentsPrompt onCreate={() => setShowCreate(true)} />;
         if (!selectedChatInstance) {
           if (instances.length === 1) {
-            return <ChatPage instance={instances[0]} />;
+            return <ChatPage instance={instances[0]} instances={instances} />;
           }
           return (
             <InstancePicker
@@ -170,10 +169,7 @@ export function Dashboard({ onNavAdmin }: { onNavAdmin: () => void }) {
             />
           );
         }
-        return <ChatPage instance={selectedChatInstance} />;
-
-      case 'quick_replies':
-        return <QuickRepliesPage instances={instances} />;
+        return <ChatPage instance={selectedChatInstance} instances={instances} />;
 
       default:
         return null;

@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import {
   Search, Send, Loader2, User, Bot, Hand, MessagesSquare,
-  Zap, X,
+  Zap, X, Plus, Trash2, Save, Check, ChevronDown,
 } from 'lucide-react';
 import { supabase, ChatLog, Instance, QuickReply, ContactLabel, LABEL_COLORS } from '../../lib/supabase';
 import { evolution } from '../../lib/evolution';
@@ -20,7 +20,17 @@ type ContactSummary = {
 
 type ActiveFilter = 'all' | 'manual' | string;
 
-// ─── Quick-reply popover ──────────────────────────────────────────────────────
+type EditState = {
+  id: string | null;
+  shortcut: string;
+  title: string;
+  body: string;
+  instance_id: string | null;
+};
+
+const EMPTY_EDIT: EditState = { id: null, shortcut: '', title: '', body: '', instance_id: null };
+
+// ─── Quick-reply picker popover ───────────────────────────────────────────────
 
 function QuickReplyPicker({
   replies,
@@ -68,6 +78,265 @@ function QuickReplyPicker({
           <p className="text-[11px] text-neutral-500 mt-0.5 line-clamp-1">{r.body}</p>
         </button>
       ))}
+    </div>
+  );
+}
+
+// ─── Quick-replies management panel ──────────────────────────────────────────
+
+function QuickRepliesPanel({
+  instances,
+  replies,
+  onReload,
+  onClose,
+  onInsert,
+}: {
+  instances: Instance[];
+  replies: QuickReply[];
+  onReload: () => void;
+  onClose: () => void;
+  onInsert: (body: string) => void;
+}) {
+  const { profile } = useAuth();
+  const [edit, setEdit] = useState<EditState | null>(null);
+  const [saving, setSaving] = useState(false);
+  const [savedId, setSavedId] = useState<string | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const bodyRef = useRef<HTMLTextAreaElement>(null);
+
+  useEffect(() => {
+    if (edit && bodyRef.current) bodyRef.current.focus();
+  }, [edit?.id]);
+
+  const startCreate = () =>
+    setEdit({ ...EMPTY_EDIT, instance_id: instances.length === 1 ? instances[0].id : null });
+
+  const startEdit = (r: QuickReply) =>
+    setEdit({ id: r.id, shortcut: r.shortcut, title: r.title, body: r.body, instance_id: r.instance_id });
+
+  const cancel = () => setEdit(null);
+
+  const save = async () => {
+    if (!edit || !profile) return;
+    if (!edit.title.trim() || !edit.body.trim()) return;
+    setSaving(true);
+    if (edit.id) {
+      await supabase.from('quick_replies').update({
+        shortcut: edit.shortcut.trim(),
+        title: edit.title.trim(),
+        body: edit.body.trim(),
+        instance_id: edit.instance_id,
+      }).eq('id', edit.id);
+      setSavedId(edit.id);
+      setTimeout(() => setSavedId(null), 1500);
+    } else {
+      await supabase.from('quick_replies').insert({
+        user_id: profile.id,
+        shortcut: edit.shortcut.trim(),
+        title: edit.title.trim(),
+        body: edit.body.trim(),
+        instance_id: edit.instance_id,
+        sort_order: replies.length,
+      });
+    }
+    setSaving(false);
+    setEdit(null);
+    onReload();
+  };
+
+  const remove = async (id: string) => {
+    setDeletingId(id);
+    await supabase.from('quick_replies').delete().eq('id', id);
+    setDeletingId(null);
+    onReload();
+    if (edit?.id === id) setEdit(null);
+  };
+
+  const instanceLabel = (id: string | null) => {
+    if (!id) return 'Todos';
+    const inst = instances.find((i) => i.id === id);
+    return inst?.display_name || inst?.instance_name || 'Agente';
+  };
+
+  return (
+    <div className="flex flex-col border-l border-[#242424] bg-[#0a0a0a] w-72 shrink-0 overflow-hidden">
+      {/* Header */}
+      <div className="px-4 py-3 border-b border-[#1a1a1a] flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <Zap size={13} className="text-neutral-400" />
+          <span className="text-xs font-medium text-white">Respostas Rápidas</span>
+        </div>
+        <div className="flex items-center gap-1">
+          {!edit && (
+            <button
+              onClick={startCreate}
+              className="text-neutral-500 hover:text-white transition-colors p-1"
+              title="Nova resposta"
+            >
+              <Plus size={13} />
+            </button>
+          )}
+          <button
+            onClick={onClose}
+            className="text-neutral-500 hover:text-white transition-colors p-1"
+          >
+            <X size={13} />
+          </button>
+        </div>
+      </div>
+
+      <div className="flex-1 overflow-y-auto scrollbar-thin">
+        {/* Create / edit form */}
+        {edit && (
+          <div className="p-3 border-b border-[#1a1a1a] space-y-3">
+            <div className="text-[11px] uppercase tracking-wider text-neutral-500">
+              {edit.id ? 'Editar resposta' : 'Nova resposta'}
+            </div>
+
+            <div>
+              <label className="text-[10px] uppercase tracking-wider text-neutral-600 mb-1 block">Atalho</label>
+              <div className="relative">
+                <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-neutral-500 text-xs font-mono">/</span>
+                <input
+                  type="text"
+                  value={edit.shortcut}
+                  onChange={(e) => setEdit({ ...edit, shortcut: e.target.value.replace(/\s/g, '_').toLowerCase() })}
+                  placeholder="saudacao"
+                  className="w-full bg-[#050505] border border-[#1a1a1a] rounded-lg pl-6 pr-2.5 py-2 text-xs text-white font-mono placeholder:text-neutral-700 focus:outline-none focus:border-neutral-600 transition-colors"
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="text-[10px] uppercase tracking-wider text-neutral-600 mb-1 block">
+                Título <span className="text-red-400">*</span>
+              </label>
+              <input
+                type="text"
+                value={edit.title}
+                onChange={(e) => setEdit({ ...edit, title: e.target.value })}
+                placeholder="Nome no seletor"
+                className="w-full bg-[#050505] border border-[#1a1a1a] rounded-lg px-2.5 py-2 text-xs text-white placeholder:text-neutral-700 focus:outline-none focus:border-neutral-600 transition-colors"
+              />
+            </div>
+
+            <div>
+              <label className="text-[10px] uppercase tracking-wider text-neutral-600 mb-1 block">
+                Mensagem <span className="text-red-400">*</span>
+              </label>
+              <textarea
+                ref={bodyRef}
+                value={edit.body}
+                onChange={(e) => setEdit({ ...edit, body: e.target.value })}
+                placeholder="Texto da mensagem..."
+                rows={3}
+                className="w-full bg-[#050505] border border-[#1a1a1a] rounded-lg px-2.5 py-2 text-xs text-white placeholder:text-neutral-700 focus:outline-none focus:border-neutral-600 transition-colors resize-none"
+              />
+            </div>
+
+            {instances.length > 1 && (
+              <div>
+                <label className="text-[10px] uppercase tracking-wider text-neutral-600 mb-1 block">Disponível em</label>
+                <div className="relative">
+                  <select
+                    value={edit.instance_id || ''}
+                    onChange={(e) => setEdit({ ...edit, instance_id: e.target.value || null })}
+                    className="w-full appearance-none bg-[#050505] border border-[#1a1a1a] rounded-lg px-2.5 py-2 text-xs text-white focus:outline-none focus:border-neutral-600 transition-colors pr-7"
+                  >
+                    <option value="">Todos os agentes</option>
+                    {instances.map((inst) => (
+                      <option key={inst.id} value={inst.id}>
+                        {inst.display_name || inst.instance_name}
+                      </option>
+                    ))}
+                  </select>
+                  <ChevronDown size={11} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-neutral-500 pointer-events-none" />
+                </div>
+              </div>
+            )}
+
+            <div className="flex items-center gap-2">
+              <button
+                onClick={save}
+                disabled={saving || !edit.title.trim() || !edit.body.trim()}
+                className="flex items-center gap-1.5 bg-white text-black rounded-lg px-3 py-1.5 text-xs font-medium hover:bg-neutral-200 transition-colors disabled:opacity-40"
+              >
+                {saving ? <Loader2 size={11} className="animate-spin" /> : <Save size={11} />}
+                Salvar
+              </button>
+              <button
+                onClick={cancel}
+                className="text-xs text-neutral-500 hover:text-white px-2 py-1.5 transition-colors"
+              >
+                Cancelar
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* List */}
+        {replies.length === 0 && !edit ? (
+          <div className="flex flex-col items-center justify-center py-16 px-4 text-center">
+            <Zap size={18} className="text-neutral-700 mb-3" strokeWidth={1.5} />
+            <p className="text-xs text-neutral-600 mb-3">Nenhuma resposta ainda.</p>
+            <button
+              onClick={startCreate}
+              className="text-xs bg-white text-black rounded-lg px-3 py-1.5 font-medium hover:bg-neutral-200 transition-colors flex items-center gap-1.5"
+            >
+              <Plus size={11} /> Criar
+            </button>
+          </div>
+        ) : (
+          <div className="divide-y divide-[#111]">
+            {replies.map((r) => {
+              const isSaved = savedId === r.id;
+              return (
+                <div key={r.id} className="group px-3 py-3 hover:bg-[#0d0d0d] transition-colors">
+                  <div className="flex items-start justify-between gap-2">
+                    <button
+                      onClick={() => onInsert(r.body)}
+                      className="min-w-0 flex-1 text-left"
+                      title="Clique para inserir no chat"
+                    >
+                      <div className="flex items-center gap-1.5 mb-0.5 flex-wrap">
+                        <span className="text-xs text-white font-medium truncate">{r.title}</span>
+                        {r.shortcut && (
+                          <span className="text-[9px] font-mono bg-[#1a1a1a] border border-[#2a2a2a] text-neutral-500 px-1 py-0.5 rounded shrink-0">
+                            /{r.shortcut}
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-[11px] text-neutral-600 leading-relaxed line-clamp-2">{r.body}</p>
+                      <span className="text-[9px] text-neutral-700 mt-0.5 block">{instanceLabel(r.instance_id)}</span>
+                    </button>
+                    <div className="flex items-center gap-0.5 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
+                      {isSaved ? (
+                        <Check size={11} className="text-emerald-400" />
+                      ) : (
+                        <button
+                          onClick={() => startEdit(r)}
+                          className="text-[10px] text-neutral-500 hover:text-white px-1.5 py-1 rounded border border-[#1a1a1a] hover:border-[#2a2a2a] transition-colors"
+                        >
+                          Editar
+                        </button>
+                      )}
+                      <button
+                        onClick={() => remove(r.id)}
+                        disabled={deletingId === r.id}
+                        className="p-1 text-neutral-600 hover:text-red-400 transition-colors"
+                      >
+                        {deletingId === r.id
+                          ? <Loader2 size={11} className="animate-spin" />
+                          : <Trash2 size={11} />}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
     </div>
   );
 }
@@ -145,7 +414,7 @@ function FilterPill({
 
 // ─── Main ChatPage ────────────────────────────────────────────────────────────
 
-export function ChatPage({ instance }: { instance: Instance }) {
+export function ChatPage({ instance, instances }: { instance: Instance; instances: Instance[] }) {
   const { profile } = useAuth();
 
   const [contacts, setContacts] = useState<ContactSummary[]>([]);
@@ -159,6 +428,7 @@ export function ChatPage({ instance }: { instance: Instance }) {
   const [quickReplies, setQuickReplies] = useState<QuickReply[]>([]);
   const [showQR, setShowQR] = useState(false);
   const [qrQuery, setQrQuery] = useState('');
+  const [showQRPanel, setShowQRPanel] = useState(false);
 
   const threadRef = useRef<HTMLDivElement>(null);
   const composeRef = useRef<HTMLTextAreaElement>(null);
@@ -317,7 +587,14 @@ export function ChatPage({ instance }: { instance: Instance }) {
     setDraft(body);
     setShowQR(false);
     setQrQuery('');
+    setShowQRPanel(false);
     setTimeout(() => composeRef.current?.focus(), 50);
+  };
+
+  const toggleQRPanel = () => {
+    setShowQRPanel((v) => !v);
+    setShowQR(false);
+    setQrQuery('');
   };
 
   const selectedContact = contacts.find((c) => c.number === selected);
@@ -339,7 +616,7 @@ export function ChatPage({ instance }: { instance: Instance }) {
 
   const manualCount = contacts.filter((c) => c.manual).length;
 
-  // LABEL_COLORS kept in import to avoid unused-var; referenced via allLabels color data
+  // keep LABEL_COLORS import alive (used by ContactLabel color logic in future)
   void LABEL_COLORS;
 
   return (
@@ -356,7 +633,7 @@ export function ChatPage({ instance }: { instance: Instance }) {
         style={{
           height: 'calc(100vh - 200px)',
           display: 'grid',
-          gridTemplateColumns: '240px 1fr',
+          gridTemplateColumns: showQRPanel ? '240px 1fr 288px' : '240px 1fr',
         }}
       >
         {/* ── LEFT: contacts ── */}
@@ -540,10 +817,10 @@ export function ChatPage({ instance }: { instance: Instance }) {
                     />
                   )}
                   <button
-                    onClick={() => { setShowQR((v) => !v); setQrQuery(''); }}
+                    onClick={toggleQRPanel}
                     title="Respostas rápidas"
                     className={`mb-0.5 p-2 rounded-lg border transition-colors shrink-0 ${
-                      showQR
+                      showQRPanel
                         ? 'bg-white/10 border-white/20 text-white'
                         : 'border-[#1c1c1c] text-neutral-500 hover:text-white hover:border-[#2a2a2a]'
                     }`}
@@ -577,7 +854,21 @@ export function ChatPage({ instance }: { instance: Instance }) {
             </>
           )}
         </div>
+
+        {/* ── RIGHT: quick replies panel ── */}
+        {showQRPanel && (
+          <QuickRepliesPanel
+            instances={instances}
+            replies={quickReplies}
+            onReload={loadQuickReplies}
+            onClose={() => setShowQRPanel(false)}
+            onInsert={applyQuickReply}
+          />
+        )}
       </div>
     </div>
   );
 }
+
+
+export { ChatPage }
