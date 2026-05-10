@@ -1,0 +1,300 @@
+import "jsr:@supabase/functions-js/edge-runtime.d.ts";
+import { createClient } from "npm:@supabase/supabase-js@2";
+
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
+  "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Client-Info, Apikey",
+};
+
+function jsonResponse(data: unknown, status = 200) {
+  return new Response(JSON.stringify(data), {
+    status,
+    headers: { ...corsHeaders, "Content-Type": "application/json" },
+  });
+}
+
+async function getGeminiKey(admin: ReturnType<typeof createClient>, userId: string): Promise<string> {
+  const { data: own } = await admin
+    .from("api_configs")
+    .select("gemini_key")
+    .eq("user_id", userId)
+    .eq("is_active", true)
+    .maybeSingle();
+
+  if (own?.gemini_key) return own.gemini_key;
+
+  const { data: global } = await admin
+    .from("api_configs")
+    .select("gemini_key")
+    .is("user_id", null)
+    .eq("is_active", true)
+    .maybeSingle();
+
+  return global?.gemini_key || "";
+}
+
+async function extractTextWithGemini(apiKey: string, base64Data: string, mimeType: string, instruction: string): Promise<string> {
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
+
+  const body = {
+    contents: [{
+      parts: [
+        { inlineData: { mimeType, data: base64Data } },
+        { text: instruction },
+      ],
+    }],
+    generationConfig: { temperature: 0.1, maxOutputTokens: 8000 },
+  };
+
+  const res = await fetch(url, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+
+  const data = await res.json();
+  if (!res.ok) throw new Error(`Gemini error: ${res.status} ${JSON.stringify(data).slice(0, 200)}`);
+
+  return data?.candidates?.[0]?.content?.parts?.[0]?.text || "";
+}
+
+async function scrapeUrl(sourceUrl: string): Promise<string> {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 15000);
+
+  try {
+    const res = await fetch(sourceUrl, {
+      headers: {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,text/plain;q=0.8,*/*;q=0.7",
+        "Accept-Language": "pt-BR,pt;q=0.9,en-US;q=0.8,en;q=0.7",
+      },
+      signal: controller.signal,
+      redirect: "follow",
+    });
+
+    if (!res.ok) throw new Error(`Nao foi possivel acessar a URL (status ${res.status})`);
+
+    const contentType = res.headers.get("content-type") || "";
+    if (contentType.includes("application/pdf")) {
+      throw new Error("URLs de PDF nao sao suportadas. Faca upload do arquivo na aba Arquivo.");
+    }
+
+    const html = await res.text();
+
+    if (!html || html.length < 50) {
+      throw new Error("A pagina retornou conteudo vazio");
+    }
+
+    const stripped = html
+      .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, "")
+      .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, "")
+      .replace(/<nav[^>]*>[\s\S]*?<\/nav>/gi, "")
+      .replace(/<footer[^>]*>[\s\S]*?<\/footer>/gi, "")
+      .replace(/<header[^>]*>[\s\S]*?<\/header>/gi, "")
+      .replace(/<aside[^>]*>[\s\S]*?<\/aside>/gi, "")
+      .replace(/<noscript[^>]*>[\s\S]*?<\/noscript>/gi, "")
+      .replace(/<[^>]+>/g, " ")
+      .replace(/&nbsp;/g, " ")
+      .replace(/&amp;/g, "&")
+      .replace(/&lt;/g, "<")
+      .replace(/&gt;/g, ">")
+      .replace(/&quot;/g, '"')
+      .replace(/&#39;/g, "'")
+      .replace(/\s+/g, " ")
+      .trim();
+
+    return stripped.slice(0, 50000);
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
+Deno.serve(async (req: Request) => {
+  if (req.method === "OPTIONS") {
+    return new Response(null, { status: 200, headers: corsHeaders });
+  }
+
+  try {
+    const authHeader = req.headers.get("Authorization") || "";
+    const token = authHeader.replace("Bearer ", "");
+
+    const admin = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+    );
+
+    const { data: { user }, error: authErr } = await admin.auth.getUser(token);
+    if (authErr || !user) return jsonResponse({ error: "unauthorized" }, 401);
+
+    const url = new URL(req.url);
+    const action = url.searchParams.get("action");
+
+    if (action === "scrape_url") {
+      const { instance_id, source_url, title } = await req.json();
+
+      if (!source_url || typeof source_url !== "string") {
+        return jsonResponse({ error: "URL e obrigatoria" }, 400);
+      }
+
+      if (!source_url.startsWith("http://") && !source_url.startsWith("https://")) {
+        return jsonResponse({ error: "URL deve comecar com http:// ou https://" }, 400);
+      }
+
+      if (!instance_id) {
+        return jsonResponse({ error: "instance_id e obrigatorio" }, 400);
+      }
+
+      const { data: instance } = await admin
+        .from("instances")
+        .select("user_id")
+        .eq("id", instance_id)
+        .maybeSingle();
+
+      if (!instance || instance.user_id !== user.id) {
+        return jsonResponse({ error: "forbidden" }, 403);
+      }
+
+      console.log("[knowledge] scraping URL:", source_url);
+      const content = await scrapeUrl(source_url);
+
+      if (!content || content.length < 20) {
+        return jsonResponse({ error: "Nao foi possivel extrair conteudo significativo desta URL. Verifique se a pagina possui conteudo de texto." }, 400);
+      }
+
+      console.log("[knowledge] scraped", content.length, "chars from", source_url);
+
+      const { data: source, error: insertErr } = await admin
+        .from("knowledge_sources")
+        .insert({
+          instance_id,
+          type: "url",
+          title: title || source_url,
+          content,
+          metadata: { url: source_url, char_count: content.length },
+        })
+        .select()
+        .single();
+
+      if (insertErr) return jsonResponse({ error: insertErr.message }, 500);
+      return jsonResponse({ ok: true, source });
+    }
+
+    if (action === "process_file") {
+      const formData = await req.formData();
+      const file = formData.get("file") as File | null;
+      const instanceId = formData.get("instance_id") as string;
+      const title = formData.get("title") as string;
+
+      if (!file || !instanceId) return jsonResponse({ error: "missing file or instance_id" }, 400);
+
+      const { data: instance } = await admin
+        .from("instances")
+        .select("user_id")
+        .eq("id", instanceId)
+        .maybeSingle();
+
+      if (!instance || instance.user_id !== user.id) {
+        return jsonResponse({ error: "forbidden" }, 403);
+      }
+
+      const geminiKey = await getGeminiKey(admin, user.id);
+      if (!geminiKey) return jsonResponse({ error: "No Gemini API key configured" }, 400);
+
+      const buffer = await file.arrayBuffer();
+      const base64 = btoa(String.fromCharCode(...new Uint8Array(buffer)));
+
+      let content: string;
+      const mime = file.type || "application/octet-stream";
+
+      if (mime === "text/plain") {
+        content = new TextDecoder().decode(buffer);
+      } else {
+        content = await extractTextWithGemini(
+          geminiKey,
+          base64,
+          mime,
+          "Extract ALL text content from this document. Return only the raw text, preserving structure with line breaks. Do not add commentary or summaries."
+        );
+      }
+
+      if (!content || content.length < 10) {
+        return jsonResponse({ error: "Could not extract text from file" }, 400);
+      }
+
+      const { data: source, error: insertErr } = await admin
+        .from("knowledge_sources")
+        .insert({
+          instance_id: instanceId,
+          type: "file",
+          title: title || file.name,
+          content: content.slice(0, 100000),
+          metadata: { filename: file.name, mime_type: mime, size_bytes: buffer.byteLength, char_count: content.length },
+        })
+        .select()
+        .single();
+
+      if (insertErr) return jsonResponse({ error: insertErr.message }, 500);
+      return jsonResponse({ ok: true, source });
+    }
+
+    if (action === "transcribe_audio") {
+      const formData = await req.formData();
+      const audio = formData.get("audio") as File | null;
+      const instanceId = formData.get("instance_id") as string;
+      const title = formData.get("title") as string;
+
+      if (!audio || !instanceId) return jsonResponse({ error: "missing audio or instance_id" }, 400);
+
+      const { data: instance } = await admin
+        .from("instances")
+        .select("user_id")
+        .eq("id", instanceId)
+        .maybeSingle();
+
+      if (!instance || instance.user_id !== user.id) {
+        return jsonResponse({ error: "forbidden" }, 403);
+      }
+
+      const geminiKey = await getGeminiKey(admin, user.id);
+      if (!geminiKey) return jsonResponse({ error: "No Gemini API key configured" }, 400);
+
+      const buffer = await audio.arrayBuffer();
+      const base64 = btoa(String.fromCharCode(...new Uint8Array(buffer)));
+      const mime = audio.type || "audio/webm";
+
+      const content = await extractTextWithGemini(
+        geminiKey,
+        base64,
+        mime,
+        "Transcribe this audio completely in the original language spoken. Return only the transcription text, no timestamps or speaker labels."
+      );
+
+      if (!content || content.length < 5) {
+        return jsonResponse({ error: "Could not transcribe audio" }, 400);
+      }
+
+      const { data: source, error: insertErr } = await admin
+        .from("knowledge_sources")
+        .insert({
+          instance_id: instanceId,
+          type: "audio",
+          title: title || "Gravacao de voz",
+          content,
+          metadata: { mime_type: mime, size_bytes: buffer.byteLength, char_count: content.length },
+        })
+        .select()
+        .single();
+
+      if (insertErr) return jsonResponse({ error: insertErr.message }, 500);
+      return jsonResponse({ ok: true, source });
+    }
+
+    return jsonResponse({ error: "invalid action" }, 400);
+  } catch (e) {
+    const message = e instanceof Error ? e.message : "internal error";
+    console.error("Knowledge function error:", message);
+    return jsonResponse({ error: message }, 500);
+  }
+});
