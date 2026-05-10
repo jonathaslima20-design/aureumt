@@ -909,6 +909,3 @@ export function ChatPage({ instance }: { instance: Instance }) {
     </div>
   );
 }
-
-
-export { ChatPage }
