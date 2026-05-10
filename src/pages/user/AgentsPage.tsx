@@ -88,10 +88,24 @@ function AgentCard({
   const isConnected = instance.status === 'open';
   const isActive = instance.flow_status === 'active';
 
+  const color = instance.color || '#3b82f6';
+  const glowColor = `${color}22`;
+  const glowBorder = `${color}40`;
+
   return (
     <button
       onClick={onClick}
-      className="group text-left bg-[#0a0a0a] border border-[#1a1a1a] rounded-2xl p-5 hover:border-[#2a2a2a] hover:bg-[#0d0d0d] transition-all duration-200 flex flex-col gap-4"
+      className="group text-left bg-[#0a0a0a] border border-[#1a1a1a] rounded-2xl p-5 transition-all duration-300 flex flex-col gap-4"
+      onMouseEnter={(e) => {
+        (e.currentTarget as HTMLButtonElement).style.boxShadow = `0 0 0 1px ${glowBorder}, 0 0 28px 0 ${glowColor}, 0 6px 32px 0 rgba(0,0,0,0.5)`;
+        (e.currentTarget as HTMLButtonElement).style.borderColor = glowBorder;
+        (e.currentTarget as HTMLButtonElement).style.background = '#0d0d0d';
+      }}
+      onMouseLeave={(e) => {
+        (e.currentTarget as HTMLButtonElement).style.boxShadow = '';
+        (e.currentTarget as HTMLButtonElement).style.borderColor = '';
+        (e.currentTarget as HTMLButtonElement).style.background = '';
+      }}
     >
       <div className="flex items-start justify-between gap-3">
         <div className="flex items-center gap-3 min-w-0">

@@ -26,12 +26,26 @@ export function Sidebar({
   const [openMobile, setOpenMobile] = useState(false);
 
   const content = (
-    <div className="flex flex-col h-full">
-      <div className="px-5 py-5 border-b border-[#1a1a1a]">
+    <div className="flex flex-col h-full relative">
+      {/* Aura light trail emanating from logo area */}
+      <div
+        className="absolute pointer-events-none"
+        style={{
+          top: 0,
+          left: 0,
+          right: 0,
+          height: 220,
+          background:
+            'radial-gradient(ellipse 80% 60% at 40% 0%, rgba(6,182,212,0.09) 0%, transparent 70%)',
+          zIndex: 0,
+        }}
+        aria-hidden="true"
+      />
+      <div className="px-5 py-5 border-b border-[#1a1a1a] relative z-10">
         <Logo />
       </div>
 
-      <nav className="flex-1 py-4 px-3 space-y-1">
+      <nav className="flex-1 py-4 px-3 space-y-1 relative z-10">
         {ITEMS.map((it) => {
           const Icon = it.icon;
           const active = current === it.key;
@@ -49,7 +63,13 @@ export function Sidebar({
               }`}
             >
               {active && (
-                <div className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-5 bg-white rounded-r" />
+                <div
+                  className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-5 rounded-r"
+                  style={{
+                    background: 'linear-gradient(to bottom, #67e8f9, #06b6d4)',
+                    boxShadow: '0 0 8px 1px rgba(6,182,212,0.5)',
+                  }}
+                />
               )}
               <Icon size={15} strokeWidth={1.8} />
               <span>{it.label}</span>

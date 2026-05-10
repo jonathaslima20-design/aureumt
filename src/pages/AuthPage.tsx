@@ -21,12 +21,48 @@ export function AuthPage() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center px-4 bg-[#050505]">
-      <div className="absolute top-8 left-8">
+    <div className="min-h-screen flex flex-col items-center justify-center px-4 bg-[#050505] relative overflow-hidden">
+      {/* Amplified auth-page aura — cyan top-center */}
+      <div
+        className="absolute pointer-events-none animate-aura-breathe"
+        style={{
+          top: '-10%',
+          left: '50%',
+          transform: 'translateX(-50%)',
+          width: '80vw',
+          height: '80vw',
+          maxWidth: 640,
+          maxHeight: 640,
+          background:
+            'radial-gradient(circle, rgba(6,182,212,0.14) 0%, rgba(6,182,212,0.05) 45%, transparent 68%)',
+          filter: 'blur(48px)',
+          borderRadius: '50%',
+        }}
+        aria-hidden="true"
+      />
+      {/* Blue bottom-right */}
+      <div
+        className="absolute pointer-events-none animate-aura-breathe-alt"
+        style={{
+          bottom: '-8%',
+          right: '-6%',
+          width: '55vw',
+          height: '55vw',
+          maxWidth: 500,
+          maxHeight: 500,
+          background:
+            'radial-gradient(circle, rgba(59,130,246,0.11) 0%, rgba(59,130,246,0.03) 50%, transparent 70%)',
+          filter: 'blur(56px)',
+          borderRadius: '50%',
+        }}
+        aria-hidden="true"
+      />
+
+      <div className="absolute top-8 left-8 z-10">
         <Logo />
       </div>
 
-      <div className="w-full max-w-sm animate-fade-in">
+      <div className="w-full max-w-sm animate-fade-in relative z-10">
         <div className="mb-10">
           <h1 className="text-3xl font-semibold text-white tracking-tight leading-tight">
             {mode === 'signin' ? 'Bem-vindo de volta' : 'Criar conta'}
@@ -46,7 +82,7 @@ export function AuthPage() {
               required
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="w-full bg-[#0a0a0a] border border-[#1a1a1a] rounded-lg px-4 py-3 text-sm text-white focus:outline-none focus:border-neutral-600 transition-colors"
+              className="w-full bg-[#0a0a0a] border border-[#1a1a1a] rounded-lg px-4 py-3 text-sm text-white focus:outline-none focus:border-cyan-800/60 transition-colors"
               placeholder="voce@empresa.com"
             />
           </div>
@@ -59,7 +95,7 @@ export function AuthPage() {
               minLength={6}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full bg-[#0a0a0a] border border-[#1a1a1a] rounded-lg px-4 py-3 text-sm text-white focus:outline-none focus:border-neutral-600 transition-colors"
+              className="w-full bg-[#0a0a0a] border border-[#1a1a1a] rounded-lg px-4 py-3 text-sm text-white focus:outline-none focus:border-cyan-800/60 transition-colors"
               placeholder="Mínimo de 6 caracteres"
             />
           </div>

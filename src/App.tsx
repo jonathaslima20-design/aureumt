@@ -32,9 +32,62 @@ function Shell() {
   return <Dashboard onNavAdmin={() => setView('admin')} />;
 }
 
+function AuraBackground() {
+  return (
+    <div className="fixed inset-0 pointer-events-none overflow-hidden z-0" aria-hidden="true">
+      {/* Top-right cyan orb */}
+      <div
+        className="absolute animate-aura-breathe"
+        style={{
+          top: '-15%',
+          right: '-10%',
+          width: '55vw',
+          height: '55vw',
+          maxWidth: 700,
+          maxHeight: 700,
+          background: 'radial-gradient(circle, rgba(6,182,212,0.11) 0%, rgba(6,182,212,0.04) 45%, transparent 70%)',
+          filter: 'blur(40px)',
+          borderRadius: '50%',
+        }}
+      />
+      {/* Bottom-left blue orb */}
+      <div
+        className="absolute animate-aura-breathe-alt"
+        style={{
+          bottom: '-20%',
+          left: '-12%',
+          width: '60vw',
+          height: '60vw',
+          maxWidth: 760,
+          maxHeight: 760,
+          background: 'radial-gradient(circle, rgba(59,130,246,0.09) 0%, rgba(59,130,246,0.03) 50%, transparent 72%)',
+          filter: 'blur(50px)',
+          borderRadius: '50%',
+        }}
+      />
+      {/* Centre-right subtle white depth orb */}
+      <div
+        className="absolute animate-aura-drift"
+        style={{
+          top: '35%',
+          right: '20%',
+          width: '30vw',
+          height: '30vw',
+          maxWidth: 360,
+          maxHeight: 360,
+          background: 'radial-gradient(circle, rgba(255,255,255,0.025) 0%, transparent 65%)',
+          filter: 'blur(60px)',
+          borderRadius: '50%',
+        }}
+      />
+    </div>
+  );
+}
+
 function App() {
   return (
     <AuthProvider>
+      <AuraBackground />
       <Shell />
     </AuthProvider>
   );

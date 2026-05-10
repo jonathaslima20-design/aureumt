@@ -126,7 +126,7 @@ export function KnowledgePage() {
             <button
               key={base.id}
               onClick={() => setSelectedBase(base)}
-              className="group text-left bg-[#0a0a0a] border border-[#1a1a1a] rounded-2xl p-5 hover:border-[#2a2a2a] hover:bg-[#0d0d0d] transition-all duration-200 flex flex-col gap-3"
+              className="group text-left bg-[#0a0a0a] border border-[#1a1a1a] rounded-2xl p-5 transition-all duration-300 flex flex-col gap-3 aura-card"
             >
               <div className="flex items-start justify-between gap-2">
                 <div className="w-9 h-9 rounded-xl bg-[#111] border border-[#1a1a1a] flex items-center justify-center shrink-0">
