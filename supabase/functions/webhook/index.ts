@@ -121,7 +121,7 @@ async function processMediaWithGemini(apiKey: string, base64: string, mimetype: 
         { text: instruction },
       ],
     }],
-    generationConfig: { temperature: 0.1, maxOutputTokens: 2000 },
+    generationConfig: { temperature: 0.1, maxOutputTokens: 300 },
   };
 
   console.log("[processMediaWithGemini] sending", gemMime, "base64 length:", base64.length);
@@ -138,15 +138,15 @@ async function processMediaWithGemini(apiKey: string, base64: string, mimetype: 
     return "";
   }
 
-  const result = data?.candidates?.[0]?.content?.parts?.[0]?.text || "";
+  const result = (data?.candidates?.[0]?.content?.parts?.[0]?.text || "").slice(0, 500);
   console.log("[processMediaWithGemini] result:", result.slice(0, 200));
   return result;
 }
 
 async function callGemini(apiKey: string, systemPrompt: string, history: { role: string; text: string }[]) {
-  const models = ["gemini-2.5-flash", "gemini-2.0-flash", "gemini-1.5-flash"];
+  // Use only gemini-2.0-flash with gemini-1.5-flash as single fallback to avoid token waste on retries
+  const models = ["gemini-2.0-flash", "gemini-1.5-flash"];
 
-  // Build contents ensuring: starts with "user", no consecutive same roles
   const rawContents = history.map((h) => ({
     role: h.role === "assistant" ? "model" : "user",
     parts: [{ text: h.text }],
@@ -164,7 +164,6 @@ async function callGemini(apiKey: string, systemPrompt: string, history: { role:
     }
   }
 
-  // Ensure it doesn't end with "user" followed by nothing (valid) but at least has content
   if (contents.length === 0) {
     contents.push({ role: "user", parts: [{ text: "oi" }] });
   }
@@ -225,17 +224,14 @@ async function sendPresence(creds: Creds, instanceName: string, number: string, 
   }
 }
 
-// Calculates a realistic typing duration based on message length.
 // ~800 chars/min typing speed, capped between 800ms and 8s.
 function typingDurationForText(text: string): number {
-  const CHARS_PER_MS = 800 / 60000; // ~13.3 chars/ms
+  const CHARS_PER_MS = 800 / 60000;
   const raw = text.length / CHARS_PER_MS;
   return Math.max(800, Math.min(8000, raw));
 }
 
 async function simulateTyping(creds: Creds, instanceName: string, number: string, totalMs: number) {
-  // Send presence once with the full duration — Evolution will display "composing" for that period.
-  // Refresh every 4s in case Evolution resets early, keeping the indicator stable.
   const REFRESH_INTERVAL = 3800;
   await sendPresence(creds, instanceName, number, totalMs);
   let elapsed = 0;
@@ -244,7 +240,6 @@ async function simulateTyping(creds: Creds, instanceName: string, number: string
     elapsed += REFRESH_INTERVAL;
     await sendPresence(creds, instanceName, number, totalMs - elapsed);
   }
-  // Wait out the remaining time
   const remaining = totalMs - elapsed;
   if (remaining > 0) await new Promise((r) => setTimeout(r, remaining));
 }
@@ -316,15 +311,12 @@ Deno.serve(async (req) => {
     }
   }
 
-  // Evolution v2.3 payload: data.message contains the message content
-  // data.messageType can be "audioMessage", "imageMessage", "conversation", etc.
   const msgObj = data?.message as Record<string, unknown> | null | undefined;
   const messageType = (data?.messageType as string) || "";
 
   console.log("[webhook] event:", event, "instance:", instanceName, "messageType:", messageType, "dataKeys:", Object.keys(data), "msgKeys:", msgObj ? Object.keys(msgObj) : "null");
 
   const text = extractText(msgObj);
-  // Use messageType as fallback for media detection
   let media = extractMedia(msgObj);
   if (!media && (messageType === "audioMessage" || messageType === "pttMessage")) {
     media = { type: "audio", mimetype: "audio/ogg; codecs=opus" };
@@ -386,10 +378,9 @@ Deno.serve(async (req) => {
       const creds = await loadCreds(admin, instance.user_id);
       if (!creds.gemini || !creds.url || !creds.key) return;
 
-      // Handle media: transcribe audio or describe image
+      // Handle media: transcribe audio or describe image (max 300 output tokens, truncated to 500 chars)
       let mediaContext = "";
       if (media && instance.is_multimodal_active !== false) {
-        // Use the raw key from the webhook payload exactly as Evolution sent it
         const rawKey = key as Record<string, unknown>;
         console.log("[webhook] media detected:", media.type, "rawKey:", JSON.stringify(rawKey));
         const downloaded = await downloadMedia(creds.url, creds.key, instanceName, rawKey);
@@ -398,209 +389,114 @@ Deno.serve(async (req) => {
           if (media.type === "audio") {
             mediaContext = await processMediaWithGemini(
               creds.gemini, downloaded.base64, downloaded.mimetype || "audio/ogg",
-              "Transcribe this audio completely in the original language. Return only the transcription."
+              "Transcribe this audio in the original language. Return only the transcription, no commentary."
             );
           } else if (media.type === "image") {
             mediaContext = await processMediaWithGemini(
               creds.gemini, downloaded.base64, downloaded.mimetype || "image/jpeg",
-              "Describe this image in detail. What do you see?"
+              "Describe this image briefly."
             );
           }
           console.log("[webhook] mediaContext length:", mediaContext.length, "preview:", mediaContext.slice(0, 100));
         } else {
-          console.log("[webhook] downloadMedia returned null - could not fetch base64 from Evolution");
+          console.log("[webhook] downloadMedia returned null");
         }
       }
 
-      // Fetch knowledge base context
-      const { data: knowledgeSources } = await admin
-        .from("knowledge_sources")
-        .select("content, title, type")
-        .eq("instance_id", instance.id)
-        .eq("is_active", true)
-        .limit(20);
-
+      // Knowledge base: only fetch sources whose content matches keywords from the user message.
+      // Limited to top 4 relevant results, capped at 8k chars total.
       let knowledgeContext = "";
-      if (knowledgeSources && knowledgeSources.length > 0) {
-        const chunks = knowledgeSources.map((s: { title: string; type: string; content: string }) =>
-          `[${s.type.toUpperCase()}: ${s.title}]\n${s.content}`
-        );
-        const joined = chunks.join("\n\n---\n\n");
-        knowledgeContext = joined.slice(0, 30000);
+      if (text) {
+        const { data: knowledgeSources } = await admin
+          .from("knowledge_sources")
+          .select("content, title, type")
+          .eq("instance_id", instance.id)
+          .eq("is_active", true)
+          .limit(10);
+
+        if (knowledgeSources && knowledgeSources.length > 0) {
+          const userWords = text.toLowerCase().split(/\s+/).filter((w: string) => w.length > 3);
+          const scored = knowledgeSources
+            .map((s: { title: string; type: string; content: string }) => {
+              const haystack = (s.title + " " + s.content).toLowerCase();
+              const hits = userWords.filter((w: string) => haystack.includes(w)).length;
+              return { ...s, hits };
+            })
+            .filter((s: { hits: number }) => s.hits > 0)
+            .sort((a: { hits: number }, b: { hits: number }) => b.hits - a.hits)
+            .slice(0, 4);
+
+          if (scored.length > 0) {
+            const chunks = scored.map((s: { title: string; type: string; content: string }) =>
+              `[${s.type.toUpperCase()}: ${s.title}]\n${s.content}`
+            );
+            knowledgeContext = chunks.join("\n\n---\n\n").slice(0, 8000);
+          }
+        }
       }
 
+      // Last 8 messages, each body truncated to 400 chars to keep history tokens low
       const { data: history } = await admin
         .from("chat_logs")
         .select("direction, message_body")
         .eq("instance_id", instance.id)
         .eq("customer_number", customerNumber)
         .order("created_at", { ascending: false })
-        .limit(12);
+        .limit(8);
 
       const ordered = (history || []).reverse().map((h: { direction: string; message_body: string }) => ({
         role: h.direction === "in" ? "user" : "assistant",
-        text: h.message_body,
+        text: h.message_body.slice(0, 400),
       }));
 
-      // If media was transcribed, append to the last user message
+      // If media was transcribed, replace the last user message with the media context
       if (mediaContext) {
         const lastMsg = ordered[ordered.length - 1];
         if (lastMsg && lastMsg.role === "user") {
-          const prefix = media!.type === "audio" ? "[Transcricao do audio]" : "[Descricao da imagem]";
-          lastMsg.text = `${lastMsg.text === "[audio]" || lastMsg.text === "[imagem]" ? "" : lastMsg.text + "\n"}${prefix}: ${mediaContext}`;
+          const prefix = media!.type === "audio" ? "[audio]" : "[imagem]";
+          lastMsg.text = `${prefix}: ${mediaContext}`;
         }
       }
 
       const lang = (instance.language || "pt-BR") as "pt-BR" | "en-US" | "es";
 
-      const i18n: Record<string, {
-        youAre: (p: string, c: string) => string;
-        tone: (t: string) => string;
-        emoji: Record<string, string>;
-        signature: (s: string) => string;
-        langName: string;
-        langLock: string;
-        fallbackBase: string;
-        ragInstruction: string;
-        tones: Record<string, string>;
-      }> = {
-        "pt-BR": {
-          youAre: (p, c) => `Você é ${p || "um assistente"}${c ? `, da empresa ${c}` : ""}.`,
-          tone: (t) => `Mantenha um tom ${t}.`,
-          emoji: {
-            none: "Não utilize emojis.",
-            moderate: "Use emojis com moderação.",
-            expressive: "Use emojis de forma expressiva.",
-          },
-          signature: (s) => `Encerre suas mensagens com: "${s}".`,
-          langName: "português do Brasil",
-          langLock:
-            "IMPORTANTE: Responda SEMPRE em português do Brasil, independentemente do idioma em que o cliente escrever. Nunca responda em outro idioma.",
-          fallbackBase: "Você é um assistente prestativo.",
-          ragInstruction: "Sua ÚNICA fonte de verdade é o CONTEXTO abaixo. Se a informação não estiver no contexto, diga que não possui essa informação e sugira falar com um atendente humano.",
-          tones: {
-            friendly: "amigável",
-            professional: "profissional",
-            casual: "descontraído",
-            technical: "técnico",
-            warm: "acolhedor",
-          },
-        },
-        "en-US": {
-          youAre: (p, c) => `You are ${p || "an assistant"}${c ? `, from ${c}` : ""}.`,
-          tone: (t) => `Keep a ${t} tone.`,
-          emoji: {
-            none: "Do not use emojis.",
-            moderate: "Use emojis sparingly.",
-            expressive: "Use emojis expressively.",
-          },
-          signature: (s) => `Always end your messages with: "${s}".`,
-          langName: "English (US)",
-          langLock:
-            "IMPORTANT: ALWAYS reply in English (US), regardless of the language the customer writes in. Never reply in another language.",
-          fallbackBase: "You are a helpful assistant.",
-          ragInstruction: "Your ONLY source of truth is the CONTEXT below. If the information is not in the context, say you don't have that information and suggest speaking with a human agent.",
-          tones: {
-            friendly: "friendly",
-            professional: "professional",
-            casual: "casual",
-            technical: "technical",
-            warm: "warm",
-          },
-        },
-        es: {
-          youAre: (p, c) => `Eres ${p || "un asistente"}${c ? `, de la empresa ${c}` : ""}.`,
-          tone: (t) => `Mantén un tono ${t}.`,
-          emoji: {
-            none: "No uses emojis.",
-            moderate: "Usa emojis con moderación.",
-            expressive: "Usa emojis de forma expresiva.",
-          },
-          signature: (s) => `Termina siempre tus mensajes con: "${s}".`,
-          langName: "español",
-          langLock:
-            "IMPORTANTE: Responde SIEMPRE en español, sin importar en qué idioma escriba el cliente. Nunca respondas en otro idioma.",
-          fallbackBase: "Eres un asistente servicial.",
-          ragInstruction: "Tu UNICA fuente de verdad es el CONTEXTO a continuacion. Si la informacion no esta en el contexto, di que no tienes esa informacion y sugiere hablar con un agente humano.",
-          tones: {
-            friendly: "amigable",
-            professional: "profesional",
-            casual: "relajado",
-            technical: "técnico",
-            warm: "acogedor",
-          },
-        },
+      // Compact per-language strings — replaces the verbose i18n block
+      const langLock: Record<string, string> = {
+        "pt-BR": "Responda SEMPRE em português do Brasil.",
+        "en-US": "ALWAYS reply in English (US).",
+        "es": "Responde SIEMPRE en español.",
+      };
+      const ragInstruction: Record<string, string> = {
+        "pt-BR": "Use APENAS o CONTEXTO abaixo. Se não souber, diga que não tem essa informação.",
+        "en-US": "Use ONLY the CONTEXT below. If unknown, say you don't have that info.",
+        "es": "Usa SOLO el CONTEXTO abajo. Si no sabes, di que no tienes esa información.",
+      };
+      const formatRule: Record<string, string> = {
+        "pt-BR": "Regras: sem Markdown; texto puro; respostas curtas e diretas; saudacao simples na primeira msg; use | so para ideias distintas; sem frases genericas.",
+        "en-US": "Rules: no Markdown; plain text; short direct answers; simple greeting on first msg; use | only for distinct ideas; no generic phrases.",
+        "es": "Reglas: sin Markdown; texto puro; respuestas cortas y directas; saludo simple en primer msg; usa | solo para ideas distintas; sin frases genéricas.",
       };
 
-      const t = i18n[lang] || i18n["pt-BR"];
-
-      // The user's system_prompt is the PRIMARY instruction - it takes absolute priority
       const userPrompt = (instance.system_prompt || "").trim();
 
-      // Build supplementary context (only adds what user didn't explicitly define)
-      const supplementLines: string[] = [];
-      if (!userPrompt) {
-        supplementLines.push(t.fallbackBase);
-        if (instance.persona_name || instance.company_name) {
-          supplementLines.push(t.youAre(instance.persona_name || "", instance.company_name || ""));
-        }
-        supplementLines.push(t.tone(t.tones[instance.tone] || t.tones.friendly));
-        supplementLines.push(t.emoji[instance.emoji_usage] || t.emoji.moderate);
-      }
-      if (instance.signature) {
-        supplementLines.push(t.signature(instance.signature));
-      }
-      supplementLines.push(t.langLock);
-
-      // Anti-markdown, minimalist behavior, greeting control, and anti-repetition rules
-      const formatRule = lang === "pt-BR"
-        ? `REGRAS DE COMPORTAMENTO OBRIGATORIAS:
-1. FORMATO: NUNCA use Markdown (nada de **, ##, -, *, listas). Escreva texto puro.
-2. MINIMALISMO: Seja extremamente breve. Responda APENAS o que foi perguntado. Nao explique o que nao foi pedido. Nao ofereca informacoes extras. Economize palavras como um atendente real no celular.
-3. SAUDACAO: Se o cliente enviar apenas uma saudacao (oi, ola, bom dia, boa tarde, boa noite, e ai, hey), responda SOMENTE com uma saudacao curta + uma pergunta simples de disponibilidade. Exemplo: "oi! como posso te ajudar?" NUNCA apresente a empresa, servicos ou resumos na primeira mensagem.
-4. FRAGMENTACAO: Use | APENAS se tiver duas ideias realmente distintas. Nao fragmente uma unica ideia em varios baloes.
-5. ANTI-REPETICAO: Nunca repita a mesma informacao em baloes diferentes. Cada parte deve ter conteudo novo e unico.
-6. PROIBIDO: Nao diga "estou aqui para ajudar", "fico a disposicao", "fique a vontade" ou frases genericas de atendimento. Va direto ao ponto.`
-        : lang === "es"
-          ? `REGLAS DE COMPORTAMIENTO OBLIGATORIAS:
-1. FORMATO: NUNCA uses Markdown (nada de **, ##, -, *, listas). Solo texto puro.
-2. MINIMALISMO: Se extremadamente breve. Responde SOLO lo que se pregunto. No expliques lo que no se pidio. No ofrezcas info extra. Economiza palabras como un atendente real en el celular.
-3. SALUDO: Si el cliente envia solo un saludo (hola, buenas, buen dia, buenas tardes), responde SOLAMENTE con un saludo corto + una pregunta simple. Ejemplo: "hola! en que te puedo ayudar?" NUNCA presentes la empresa o servicios en el primer mensaje.
-4. FRAGMENTACION: Usa | SOLO si tienes dos ideas realmente distintas. No fragmentes una sola idea.
-5. ANTI-REPETICION: Nunca repitas la misma info en diferentes mensajes. Cada parte debe tener contenido nuevo.
-6. PROHIBIDO: No digas "estoy aqui para ayudarte", "quedo a tu disposicion" o frases genericas. Ve directo al punto.`
-          : `MANDATORY BEHAVIOR RULES:
-1. FORMAT: NEVER use Markdown (no **, ##, -, *, lists). Plain text only.
-2. MINIMALISM: Be extremely brief. Answer ONLY what was asked. Do not explain what was not requested. Do not offer extra info. Save words like a real person texting on a phone.
-3. GREETING: If the customer sends only a greeting (hi, hello, good morning, hey), reply ONLY with a short greeting + a simple availability question. Example: "hey! how can I help?" NEVER introduce the company or services in the first message.
-4. FRAGMENTATION: Use | ONLY if you have two truly distinct ideas. Do not fragment a single idea into multiple bubbles.
-5. ANTI-REPETITION: Never repeat the same info in different messages. Each part must have unique new content.
-6. FORBIDDEN: Do not say "I'm here to help", "feel free to ask", or generic support phrases. Get to the point.`;
-      supplementLines.push(formatRule);
-
-      let finalPrompt: string;
+      const parts: string[] = [];
       if (userPrompt) {
-        // User prompt is the absolute authority - place it first and reinforce obedience
-        const obey = lang === "pt-BR"
-          ? "INSTRUCAO CRITICA: Voce DEVE obedecer fielmente a TODAS as instrucoes abaixo. Nao ignore nenhuma regra."
-          : lang === "es"
-            ? "INSTRUCCION CRITICA: DEBES obedecer fielmente TODAS las instrucciones a continuacion. No ignores ninguna regla."
-            : "CRITICAL INSTRUCTION: You MUST faithfully obey ALL instructions below. Do not ignore any rule.";
-
-        if (knowledgeContext) {
-          finalPrompt = `${obey}\n\n${userPrompt}\n\n${supplementLines.join("\n")}\n\n${t.ragInstruction}\n\nCONTEXTO:\n${knowledgeContext}`;
-        } else {
-          finalPrompt = `${obey}\n\n${userPrompt}\n\n${supplementLines.join("\n")}`;
-        }
+        parts.push(userPrompt);
       } else {
-        if (knowledgeContext) {
-          finalPrompt = `${supplementLines.join("\n")}\n\n${t.ragInstruction}\n\nCONTEXTO:\n${knowledgeContext}`;
-        } else {
-          finalPrompt = supplementLines.join("\n");
-        }
+        const who = instance.persona_name || "assistente";
+        const co = instance.company_name ? `, ${instance.company_name}` : "";
+        parts.push(`Você é ${who}${co}.`);
+      }
+      if (instance.signature) parts.push(`Assine: "${instance.signature}".`);
+      parts.push(langLock[lang] || langLock["pt-BR"]);
+      parts.push(formatRule[lang] || formatRule["pt-BR"]);
+      if (knowledgeContext) {
+        parts.push(`${ragInstruction[lang] || ragInstruction["pt-BR"]}\n\nCONTEXTO:\n${knowledgeContext}`);
       }
 
-      // Wait the configured response_delay BEFORE calling Gemini — simulates the agent reading the message
+      const finalPrompt = parts.join("\n");
+
+      // Wait the configured response_delay before calling Gemini — simulates the agent reading the message
       const rawDelay = (instance.response_delay as number) || 3000;
       const readDelayMs = rawDelay > 100 ? Math.round(rawDelay) : Math.round(rawDelay * 1000);
       await new Promise((r) => setTimeout(r, readDelayMs));
