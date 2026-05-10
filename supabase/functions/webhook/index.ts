@@ -144,8 +144,7 @@ async function processMediaWithGemini(apiKey: string, base64: string, mimetype: 
 }
 
 async function callGemini(apiKey: string, systemPrompt: string, history: { role: string; text: string }[]) {
-  // Use only gemini-2.0-flash with gemini-1.5-flash as single fallback to avoid token waste on retries
-  const models = ["gemini-2.0-flash", "gemini-1.5-flash"];
+  const models = ["gemini-2.5-flash", "gemini-2.0-flash", "gemini-1.5-flash"];
 
   const rawContents = history.map((h) => ({
     role: h.role === "assistant" ? "model" : "user",
