@@ -376,22 +376,45 @@ Deno.serve(async (req) => {
         Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
       );
 
-      const { data: instance } = await admin
-        .from("instances")
-        .select("*")
-        .eq("instance_name", instanceName)
+      // Look up the whatsapp_connection by evolution_instance_id (instanceName from webhook)
+      const { data: connection } = await admin
+        .from("whatsapp_connections")
+        .select("*, instances(*)")
+        .eq("evolution_instance_id", instanceName)
         .maybeSingle();
 
-      if (!instance) return;
+      // Fall back to legacy instances lookup by instance_name
+      let instance: Record<string, unknown> | null = null;
+      let connectionId: string | null = null;
+
+      if (connection) {
+        connectionId = connection.id;
+        instance = connection.agent_id ? (connection.instances as Record<string, unknown>) : null;
+        // Update connection status if needed
+        await admin.from("whatsapp_connections").update({ status: "open" }).eq("id", connection.id);
+      } else {
+        const { data: legacyInstance } = await admin
+          .from("instances")
+          .select("*")
+          .eq("instance_name", instanceName)
+          .maybeSingle();
+        instance = legacyInstance;
+      }
+
+      if (!instance && !connectionId) return;
 
       await admin.from("chat_logs").insert({
-        instance_id: instance.id,
+        instance_id: instance?.id || null,
+        whatsapp_connection_id: connectionId,
         customer_number: customerNumber,
         direction: "in",
         message_body: text,
       });
 
-      const overflow = (instance.overflow_keyword || "").trim().toLowerCase();
+      // If no agent is assigned to this connection, stop here
+      if (!instance) return;
+
+      const overflow = ((instance.overflow_keyword as string) || "").trim().toLowerCase();
       if (overflow && text.toLowerCase().includes(overflow)) {
         await admin.from("instances").update({ flow_status: "paused" }).eq("id", instance.id);
         return;
@@ -408,7 +431,7 @@ Deno.serve(async (req) => {
 
       if (convState?.manual_override === true) return;
 
-      const creds = await loadCreds(admin, instance.user_id);
+      const creds = await loadCreds(admin, instance.user_id as string);
       if (!creds.gemini || !creds.url || !creds.key) return;
 
       // Handle media: transcribe audio or describe image
@@ -430,6 +453,7 @@ Deno.serve(async (req) => {
           await sendText(creds, instanceName, remoteJid, retryMsg);
           await admin.from("chat_logs").insert({
             instance_id: instance.id,
+            whatsapp_connection_id: connectionId,
             customer_number: customerNumber,
             direction: "out",
             message_body: retryMsg,
@@ -461,6 +485,7 @@ Deno.serve(async (req) => {
           await sendText(creds, instanceName, remoteJid, retryMsg);
           await admin.from("chat_logs").insert({
             instance_id: instance.id,
+            whatsapp_connection_id: connectionId,
             customer_number: customerNumber,
             direction: "out",
             message_body: retryMsg,
@@ -527,7 +552,7 @@ Deno.serve(async (req) => {
         }
       }
 
-      const lang = (instance.language || "pt-BR") as "pt-BR" | "en-US" | "es";
+      const lang = ((instance.language as string) || "pt-BR") as "pt-BR" | "en-US" | "es";
 
       // Compact per-language strings — replaces the verbose i18n block
       const langLock: Record<string, string> = {
@@ -546,13 +571,13 @@ Deno.serve(async (req) => {
         "es": "Reglas: sin Markdown; texto puro; respuestas cortas y directas; saludo simple en primer msg; usa | solo para ideas distintas; sin frases genéricas.",
       };
 
-      const userPrompt = (instance.system_prompt || "").trim();
+      const userPrompt = ((instance.system_prompt as string) || "").trim();
 
       const parts: string[] = [];
       if (userPrompt) {
         parts.push(userPrompt);
       } else {
-        const who = instance.persona_name || "assistente";
+        const who = (instance.persona_name as string) || "assistente";
         const co = instance.company_name ? `, ${instance.company_name}` : "";
         parts.push(`Você é ${who}${co}.`);
       }
@@ -591,6 +616,7 @@ Deno.serve(async (req) => {
 
       await admin.from("chat_logs").insert({
         instance_id: instance.id,
+        whatsapp_connection_id: connectionId,
         customer_number: customerNumber,
         direction: "out",
         message_body: reply,

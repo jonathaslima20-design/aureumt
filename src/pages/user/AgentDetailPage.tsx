@@ -1,16 +1,16 @@
 import { useEffect, useState } from 'react';
 import {
   ArrowLeft, Loader2, Upload, Sparkles, Check, Trash2,
-  Save, Pause, Play, Database, Link2, X, Plus,
+  Save, Pause, Play, Database, Link2, X, Plus, Wifi, WifiOff, ExternalLink,
 } from 'lucide-react';
 import {
-  supabase, Instance, KnowledgeBase,
+  supabase, Instance, KnowledgeBase, WhatsappConnection,
   AGENT_COLORS, TONE_OPTIONS, EMOJI_OPTIONS, LANGUAGE_OPTIONS,
   buildSystemPrompt,
 } from '../../lib/supabase';
 import { AgentAvatar } from '../../components/AgentAvatar';
 
-type Tab = 'profile' | 'settings' | 'knowledge';
+type Tab = 'profile' | 'settings' | 'knowledge' | 'connections';
 
 type Props = {
   instance: Instance;
@@ -45,6 +45,7 @@ export function AgentDetailPage({ instance, onBack, onUpdate, onDelete }: Props)
     { key: 'profile', label: 'Perfil' },
     { key: 'settings', label: 'Ajustes' },
     { key: 'knowledge', label: 'Bases de Conhecimento' },
+    { key: 'connections', label: 'Conexões WhatsApp' },
   ];
 
   return (
@@ -97,6 +98,9 @@ export function AgentDetailPage({ instance, onBack, onUpdate, onDelete }: Props)
       )}
       {tab === 'knowledge' && (
         <KnowledgeTab instance={instance} onUpdate={onUpdate} />
+      )}
+      {tab === 'connections' && (
+        <ConnectionsTab instance={instance} onNavConnections={onUpdate} />
       )}
     </div>
   );
@@ -691,6 +695,119 @@ function KnowledgeTab({ instance, onUpdate }: { instance: Instance; onUpdate: ()
               ))}
             </div>
           </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function ConnectionsTab({
+  instance,
+  onNavConnections,
+}: {
+  instance: Instance;
+  onNavConnections: () => void;
+}) {
+  const [connections, setConnections] = useState<WhatsappConnection[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [unlinking, setUnlinking] = useState<string | null>(null);
+
+  const fetchConnections = async () => {
+    setLoading(true);
+    const { data } = await supabase
+      .from('whatsapp_connections')
+      .select('*')
+      .eq('agent_id', instance.id)
+      .order('created_at', { ascending: true });
+    setConnections(data || []);
+    setLoading(false);
+  };
+
+  useEffect(() => {
+    fetchConnections();
+  }, [instance.id]);
+
+  const handleUnlink = async (connId: string) => {
+    setUnlinking(connId);
+    await supabase
+      .from('whatsapp_connections')
+      .update({ agent_id: null })
+      .eq('id', connId);
+    setConnections((prev) => prev.filter((c) => c.id !== connId));
+    onNavConnections();
+    setUnlinking(null);
+  };
+
+  if (loading) {
+    return (
+      <div className="flex justify-center py-12">
+        <Loader2 size={18} className="animate-spin text-neutral-600" />
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <div className="text-sm text-white font-medium">Conexões vinculadas</div>
+          <div className="text-xs text-neutral-500 mt-0.5">
+            Números de WhatsApp que usam este agente.
+          </div>
+        </div>
+        <button
+          onClick={onNavConnections}
+          className="text-xs text-neutral-400 hover:text-white border border-[#242424] hover:border-[#2e2e2e] rounded-lg px-3 py-1.5 flex items-center gap-1.5 transition-colors shrink-0"
+        >
+          <ExternalLink size={11} /> Gerenciar conexões
+        </button>
+      </div>
+
+      {connections.length === 0 ? (
+        <div className="border border-dashed border-[#242424] rounded-xl py-10 text-center bg-[#0d0d0d]">
+          <Wifi size={20} className="text-neutral-700 mx-auto mb-3" strokeWidth={1.5} />
+          <p className="text-xs text-neutral-500 mb-1">Nenhuma conexão vinculada</p>
+          <p className="text-[11px] text-neutral-700">
+            Acesse Conexões WhatsApp para criar e vincular um número a este agente.
+          </p>
+        </div>
+      ) : (
+        <div className="space-y-2">
+          {connections.map((conn) => {
+            const isConnected = conn.status === 'open';
+            return (
+              <div
+                key={conn.id}
+                className="flex items-center gap-3 px-4 py-3.5 rounded-xl bg-[#141414] border border-[#242424]"
+              >
+                <div className="shrink-0">
+                  {isConnected ? (
+                    <Wifi size={16} className="text-emerald-400" />
+                  ) : (
+                    <WifiOff size={16} className="text-neutral-600" />
+                  )}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="text-sm text-white font-medium truncate">{conn.display_name}</div>
+                  <div className={`text-[11px] mt-0.5 ${isConnected ? 'text-emerald-400' : 'text-neutral-600'}`}>
+                    {isConnected ? 'Conectado' : 'Desconectado'}
+                  </div>
+                </div>
+                <button
+                  onClick={() => handleUnlink(conn.id)}
+                  disabled={unlinking === conn.id}
+                  className="text-neutral-600 hover:text-red-400 transition-colors shrink-0"
+                  title="Desvincular"
+                >
+                  {unlinking === conn.id ? (
+                    <Loader2 size={14} className="animate-spin" />
+                  ) : (
+                    <X size={14} />
+                  )}
+                </button>
+              </div>
+            );
+          })}
         </div>
       )}
     </div>

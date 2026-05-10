@@ -1,4 +1,4 @@
-import { Plus, Link2, Wifi, WifiOff, Play, Pause, ChevronRight, Bot, Database } from 'lucide-react';
+import { Plus, Link2, Play, Pause, ChevronRight, Bot, Database } from 'lucide-react';
 import { Instance } from '../../lib/supabase';
 import { AgentAvatar } from '../../components/AgentAvatar';
 
@@ -85,7 +85,6 @@ function AgentCard({
   onClick: () => void;
 }) {
   const name = instance.display_name || instance.instance_name;
-  const isConnected = instance.status === 'open';
   const isActive = instance.flow_status === 'active';
 
   const color = instance.color || '#3b82f6';
@@ -136,17 +135,6 @@ function AgentCard({
       />
 
       <div className="flex items-center justify-between gap-2 flex-wrap">
-        <div className="flex items-center gap-1.5">
-          {isConnected ? (
-            <Wifi size={12} className="text-emerald-400" />
-          ) : (
-            <WifiOff size={12} className="text-neutral-600" />
-          )}
-          <span className={`text-[11px] ${isConnected ? 'text-emerald-400' : 'text-neutral-600'}`}>
-            {isConnected ? 'Conectado' : 'Desconectado'}
-          </span>
-        </div>
-
         <div className="flex items-center gap-1.5">
           {isActive ? (
             <Play size={11} className="text-blue-400" />

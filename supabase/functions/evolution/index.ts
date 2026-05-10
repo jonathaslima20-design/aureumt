@@ -80,30 +80,74 @@ Deno.serve(async (req) => {
     if (!user) return json({ error: "Unauthorized" }, 401);
 
     const body = await req.json();
-    const { action, instanceId, number, text } = body;
+    const { action, connectionId, instanceId, number, text } = body;
 
-    if (!action || !instanceId) return json({ error: "Missing action or instanceId" }, 400);
+    if (!action) return json({ error: "Missing action" }, 400);
 
-    const { data: instance } = await admin
-      .from("instances")
-      .select("*")
-      .eq("id", instanceId)
-      .maybeSingle();
+    // Support both connectionId (new: whatsapp_connections.id) and instanceId (legacy: instances.id)
+    let evoName: string;
+    let userId: string;
+    let connectionUuid: string | null = null;
+    let agentInstanceId: string | null = null;
 
-    if (!instance) return json({ error: "Instance not found" }, 404);
-    if (instance.user_id !== user.id) {
-      const { data: prof } = await admin
-        .from("profiles")
-        .select("role")
-        .eq("id", user.id)
+    if (connectionId) {
+      // New model: look up whatsapp_connections by UUID
+      const { data: conn } = await admin
+        .from("whatsapp_connections")
+        .select("*")
+        .eq("id", connectionId)
         .maybeSingle();
-      if (prof?.role !== "admin") return json({ error: "Forbidden" }, 403);
+
+      if (!conn) return json({ error: "Connection not found" }, 404);
+      if (conn.user_id !== user.id) {
+        const { data: prof } = await admin
+          .from("profiles")
+          .select("role")
+          .eq("id", user.id)
+          .maybeSingle();
+        if (prof?.role !== "admin") return json({ error: "Forbidden" }, 403);
+      }
+
+      evoName = conn.evolution_instance_id;
+      userId = conn.user_id;
+      connectionUuid = conn.id;
+      agentInstanceId = conn.agent_id || null;
+    } else if (instanceId) {
+      // Legacy model: look up instances by UUID
+      const { data: instance } = await admin
+        .from("instances")
+        .select("*")
+        .eq("id", instanceId)
+        .maybeSingle();
+
+      if (!instance) return json({ error: "Instance not found" }, 404);
+      if (instance.user_id !== user.id) {
+        const { data: prof } = await admin
+          .from("profiles")
+          .select("role")
+          .eq("id", user.id)
+          .maybeSingle();
+        if (prof?.role !== "admin") return json({ error: "Forbidden" }, 403);
+      }
+
+      evoName = instance.instance_name;
+      userId = instance.user_id;
+      agentInstanceId = instance.id;
+
+      // Find matching whatsapp_connection for this instance (agent)
+      const { data: conn } = await admin
+        .from("whatsapp_connections")
+        .select("id")
+        .eq("agent_id", instance.id)
+        .maybeSingle();
+      connectionUuid = conn?.id || null;
+    } else {
+      return json({ error: "Missing connectionId or instanceId" }, 400);
     }
 
-    const creds = await loadCreds(admin, instance.user_id);
+    const creds = await loadCreds(admin, userId);
     if (!creds) return json({ error: "Evolution credentials not configured" }, 400);
 
-    const evoName = instance.instance_name;
     const webhookUrl = `${Deno.env.get("SUPABASE_URL")}/functions/v1/webhook`;
 
     switch (action) {
@@ -121,14 +165,6 @@ Deno.serve(async (req) => {
             },
           }),
         });
-
-        if (res.ok) {
-          await admin
-            .from("instances")
-            .update({ evolution_instance_id: evoName })
-            .eq("id", instance.id);
-        }
-
         return json(res.json, res.ok ? 200 : 200);
       }
 
@@ -163,22 +199,26 @@ Deno.serve(async (req) => {
         if (res.ok) {
           const clean = String(number).replace(/@.*/, "");
           await admin.from("chat_logs").insert({
-            instance_id: instance.id,
+            instance_id: agentInstanceId,
+            whatsapp_connection_id: connectionUuid,
             customer_number: clean,
             direction: "out",
             message_body: text,
           });
-          await admin
-            .from("conversation_states")
-            .upsert(
-              {
-                instance_id: instance.id,
-                customer_number: clean,
-                manual_override: true,
-                updated_at: new Date().toISOString(),
-              },
-              { onConflict: "instance_id,customer_number" }
-            );
+          if (agentInstanceId) {
+            await admin
+              .from("conversation_states")
+              .upsert(
+                {
+                  instance_id: agentInstanceId,
+                  whatsapp_connection_id: connectionUuid,
+                  customer_number: clean,
+                  manual_override: true,
+                  updated_at: new Date().toISOString(),
+                },
+                { onConflict: "instance_id,customer_number" }
+              );
+          }
         }
         return json(res.json, 200);
       }
@@ -187,17 +227,20 @@ Deno.serve(async (req) => {
         if (!number) return json({ error: "Missing number" }, 400);
         const clean = String(number).replace(/@.*/, "");
         const manual = Boolean(body.manual);
-        await admin
-          .from("conversation_states")
-          .upsert(
-            {
-              instance_id: instance.id,
-              customer_number: clean,
-              manual_override: manual,
-              updated_at: new Date().toISOString(),
-            },
-            { onConflict: "instance_id,customer_number" }
-          );
+        if (agentInstanceId) {
+          await admin
+            .from("conversation_states")
+            .upsert(
+              {
+                instance_id: agentInstanceId,
+                whatsapp_connection_id: connectionUuid,
+                customer_number: clean,
+                manual_override: manual,
+                updated_at: new Date().toISOString(),
+              },
+              { onConflict: "instance_id,customer_number" }
+            );
+        }
         return json({ ok: true, manual_override: manual });
       }
 

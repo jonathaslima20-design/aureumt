@@ -44,9 +44,7 @@ export type Instance = {
   id: string;
   user_id: string;
   instance_name: string;
-  evolution_instance_id: string;
   system_prompt: string;
-  status: string;
   response_delay: number;
   flow_status: string;
   overflow_keyword: string;
@@ -61,6 +59,16 @@ export type Instance = {
   emoji_usage: string;
   signature: string;
   is_multimodal_active: boolean;
+};
+
+export type WhatsappConnection = {
+  id: string;
+  user_id: string;
+  display_name: string;
+  evolution_instance_id: string;
+  status: string;
+  agent_id: string | null;
+  created_at: string;
 };
 
 export const AGENT_COLORS = [
@@ -173,7 +181,8 @@ export type ApiConfig = {
 
 export type ChatLog = {
   id: string;
-  instance_id: string;
+  instance_id: string | null;
+  whatsapp_connection_id: string | null;
   customer_number: string;
   direction: 'in' | 'out';
   message_body: string;

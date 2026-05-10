@@ -3,7 +3,6 @@ import { Loader2, Trash2, AlertTriangle, X } from 'lucide-react';
 import { Sidebar, PageKey } from '../components/Sidebar';
 import { supabase, Instance } from '../lib/supabase';
 import { useAuth } from '../context/AuthContext';
-import { evolution } from '../lib/evolution';
 import { CreateAgentModal } from '../components/CreateAgentModal';
 import { OverviewPage } from './user/OverviewPage';
 import { AgentsPage } from './user/AgentsPage';
@@ -31,7 +30,6 @@ export function Dashboard({ onNavAdmin }: { onNavAdmin: () => void }) {
 
   const [selectedAgent, setSelectedAgent] = useState<Instance | null>(null);
   const [selectedChatInstance, setSelectedChatInstance] = useState<Instance | null>(null);
-  const [selectedConnectionInstance, setSelectedConnectionInstance] = useState<Instance | null>(null);
 
   useEffect(() => {
     localStorage.setItem(STORAGE_KEY, page);
@@ -74,12 +72,10 @@ export function Dashboard({ onNavAdmin }: { onNavAdmin: () => void }) {
     if (!confirmDelete) return;
     setDeleting(true);
     try {
-      try { await evolution.deleteInstance(confirmDelete.id); } catch { /* ignore */ }
       await supabase.from('instances').delete().eq('id', confirmDelete.id);
       setInstances((prev) => prev.filter((i) => i.id !== confirmDelete.id));
       if (selectedAgent?.id === confirmDelete.id) setSelectedAgent(null);
       if (selectedChatInstance?.id === confirmDelete.id) setSelectedChatInstance(null);
-      if (selectedConnectionInstance?.id === confirmDelete.id) setSelectedConnectionInstance(null);
       setConfirmDelete(null);
     } finally {
       setDeleting(false);
@@ -125,28 +121,9 @@ export function Dashboard({ onNavAdmin }: { onNavAdmin: () => void }) {
         );
 
       case 'connections':
-        if (instances.length === 0) return <EmptyAgentsPrompt onCreate={() => setShowCreate(true)} />;
-        if (!selectedConnectionInstance && instances.length > 0) {
-          if (instances.length === 1) {
-            return (
-              <ConnectionsPage
-                instance={instances[0]}
-                onUpdate={fetchInstances}
-              />
-            );
-          }
-          return (
-            <InstancePicker
-              instances={instances}
-              title="Conexões"
-              description="Selecione um agente para gerenciar a conexão WhatsApp."
-              onSelect={(inst) => setSelectedConnectionInstance(inst)}
-            />
-          );
-        }
         return (
           <ConnectionsPage
-            instance={selectedConnectionInstance || instances[0]}
+            instances={instances}
             onUpdate={fetchInstances}
           />
         );
@@ -211,7 +188,7 @@ export function Dashboard({ onNavAdmin }: { onNavAdmin: () => void }) {
               <span className="text-white font-medium">
                 {confirmDelete.display_name || confirmDelete.instance_name}
               </span>{' '}
-              será removido permanentemente, junto com suas conexões e histórico de conversas.
+              será removido permanentemente. As conexões WhatsApp vinculadas serão desvinculadas mas não excluídas.
             </p>
             <div className="flex gap-2 mt-6">
               <button

@@ -22,11 +22,13 @@ async function call(action: string, payload: Record<string, unknown> = {}) {
 }
 
 export const evolution = {
-  createInstance: (instanceId: string) => call('createInstance', { instanceId }),
-  connectInstance: (instanceId: string) => call('connectInstance', { instanceId }),
-  instanceStatus: (instanceId: string) => call('instanceStatus', { instanceId }),
-  logoutInstance: (instanceId: string) => call('logoutInstance', { instanceId }),
-  deleteInstance: (instanceId: string) => call('deleteInstance', { instanceId }),
+  // Connection-based operations (new model)
+  createInstance: (connectionId: string) => call('createInstance', { connectionId }),
+  connectInstance: (connectionId: string) => call('connectInstance', { connectionId }),
+  instanceStatus: (connectionId: string) => call('instanceStatus', { connectionId }),
+  logoutInstance: (connectionId: string) => call('logoutInstance', { connectionId }),
+  deleteInstance: (connectionId: string) => call('deleteInstance', { connectionId }),
+  // Agent-based send (uses instanceId for legacy chat routing)
   sendMessage: (instanceId: string, number: string, text: string) =>
     call('sendMessage', { instanceId, number, text }),
   setManualOverride: (instanceId: string, number: string, manual: boolean) =>
