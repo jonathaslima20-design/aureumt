@@ -69,19 +69,19 @@ export function AgentDetailPage({ instance, onBack, onUpdate, onDelete }: Props)
         </div>
         <button
           onClick={() => onDelete(instance)}
-          className="ml-auto text-neutral-500 hover:text-red-400 border border-[#1a1a1a] hover:border-red-900/60 rounded-lg px-3 py-1.5 text-xs flex items-center gap-1.5 transition-colors"
+          className="ml-auto text-neutral-500 hover:text-red-400 border border-[#252530] hover:border-red-900/60 rounded-lg px-3 py-1.5 text-xs flex items-center gap-1.5 transition-colors"
         >
           <Trash2 size={12} /> Excluir agente
         </button>
       </div>
 
-      <div className="flex gap-1 bg-[#0a0a0a] border border-[#1a1a1a] rounded-lg p-1 w-fit">
+      <div className="flex gap-1 bg-[#111116] border border-[#252530] rounded-lg p-1 w-fit">
         {tabs.map((t) => (
           <button
             key={t.key}
             onClick={() => setTab(t.key)}
             className={`px-4 py-2 rounded-md text-xs font-medium transition-colors ${
-              tab === t.key ? 'bg-[#151515] text-white' : 'text-neutral-500 hover:text-neutral-300'
+              tab === t.key ? 'bg-[#1c1c24] text-white' : 'text-neutral-500 hover:text-neutral-300'
             }`}
           >
             {t.label}
@@ -197,7 +197,7 @@ function ProfileTab({ instance, onUpdate }: { instance: Instance; onUpdate: () =
 
   return (
     <div className="max-w-4xl space-y-6">
-      <div className="bg-[#0a0a0a] border border-[#1a1a1a] rounded-2xl p-6">
+      <div className="bg-[#111116] border border-[#252530] rounded-2xl p-6">
         <div className="flex items-center gap-5">
           <AgentAvatar name={displayName} url={avatarUrl} color={color} size={96} />
           <div className="flex-1 space-y-2">
@@ -206,7 +206,7 @@ function ProfileTab({ instance, onUpdate }: { instance: Instance; onUpdate: () =
               <div className="text-xs text-neutral-500">Apresenta-se como {personaName}</div>
             )}
             <div className="flex gap-2">
-              <label className="flex items-center gap-2 cursor-pointer border border-[#1a1a1a] hover:border-[#262626] rounded-lg px-3 py-1.5 text-[11px] text-neutral-300 transition-colors w-fit">
+              <label className="flex items-center gap-2 cursor-pointer border border-[#252530] hover:border-[#32323e] rounded-lg px-3 py-1.5 text-[11px] text-neutral-300 transition-colors w-fit">
                 {uploading ? <Loader2 size={11} className="animate-spin" /> : <Upload size={11} />}
                 {avatarUrl ? 'Trocar foto' : 'Enviar foto'}
                 <input
@@ -222,7 +222,7 @@ function ProfileTab({ instance, onUpdate }: { instance: Instance; onUpdate: () =
               {avatarUrl && (
                 <button
                   onClick={() => setAvatarUrl('')}
-                  className="border border-[#1a1a1a] hover:border-red-900/60 hover:text-red-400 rounded-lg px-3 py-1.5 text-[11px] text-neutral-500 transition-colors flex items-center gap-1.5"
+                  className="border border-[#252530] hover:border-red-900/60 hover:text-red-400 rounded-lg px-3 py-1.5 text-[11px] text-neutral-500 transition-colors flex items-center gap-1.5"
                 >
                   <Trash2 size={11} /> Remover
                 </button>
@@ -232,14 +232,14 @@ function ProfileTab({ instance, onUpdate }: { instance: Instance; onUpdate: () =
         </div>
       </div>
 
-      <div className="bg-[#0a0a0a] border border-[#1a1a1a] rounded-2xl p-6 space-y-5">
+      <div className="bg-[#111116] border border-[#252530] rounded-2xl p-6 space-y-5">
         <div className="text-sm text-white font-medium">Identidade</div>
         <div>
           <label className="block text-xs text-neutral-400 mb-1.5">Nome de exibição</label>
           <input
             value={displayName}
             onChange={(e) => setDisplayName(e.target.value)}
-            className="w-full bg-[#0d0d0d] border border-[#1a1a1a] rounded-lg px-3 py-2.5 text-sm text-white focus:border-[#2a2a2a] outline-none"
+            className="w-full bg-[#0d0d12] border border-[#1e1e28] rounded-lg px-3 py-2.5 text-sm text-white focus:border-[#3a3a48] outline-none transition-colors"
           />
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -249,7 +249,7 @@ function ProfileTab({ instance, onUpdate }: { instance: Instance; onUpdate: () =
               value={personaName}
               onChange={(e) => setPersonaName(e.target.value)}
               placeholder="Como ele se apresenta"
-              className="w-full bg-[#0d0d0d] border border-[#1a1a1a] rounded-lg px-3 py-2.5 text-sm text-white placeholder-neutral-600 focus:border-[#2a2a2a] outline-none"
+              className="w-full bg-[#0d0d12] border border-[#1e1e28] rounded-lg px-3 py-2.5 text-sm text-white placeholder-neutral-600 focus:border-[#3a3a48] outline-none transition-colors"
             />
           </div>
           <div>
@@ -258,7 +258,7 @@ function ProfileTab({ instance, onUpdate }: { instance: Instance; onUpdate: () =
               value={companyName}
               onChange={(e) => setCompanyName(e.target.value)}
               placeholder="Empresa representada"
-              className="w-full bg-[#0d0d0d] border border-[#1a1a1a] rounded-lg px-3 py-2.5 text-sm text-white placeholder-neutral-600 focus:border-[#2a2a2a] outline-none"
+              className="w-full bg-[#0d0d12] border border-[#1e1e28] rounded-lg px-3 py-2.5 text-sm text-white placeholder-neutral-600 focus:border-[#3a3a48] outline-none transition-colors"
             />
           </div>
         </div>
@@ -279,7 +279,7 @@ function ProfileTab({ instance, onUpdate }: { instance: Instance; onUpdate: () =
         </div>
       </div>
 
-      <div className="bg-[#0a0a0a] border border-[#1a1a1a] rounded-2xl p-6 space-y-5">
+      <div className="bg-[#111116] border border-[#252530] rounded-2xl p-6 space-y-5">
         <div className="text-sm text-white font-medium">Personalidade</div>
         <div>
           <label className="block text-xs text-neutral-400 mb-2">Tom de voz</label>
@@ -291,7 +291,7 @@ function ProfileTab({ instance, onUpdate }: { instance: Instance; onUpdate: () =
                 className={`px-3 py-2.5 rounded-lg text-xs border transition-colors ${
                   tone === t.value
                     ? 'bg-white text-black border-white'
-                    : 'border-[#1a1a1a] text-neutral-400 hover:text-white hover:border-[#262626]'
+                    : 'border-[#252530] text-neutral-400 hover:text-white hover:border-[#32323e]'
                 }`}
               >
                 {t.label}
@@ -310,7 +310,7 @@ function ProfileTab({ instance, onUpdate }: { instance: Instance; onUpdate: () =
                   className={`px-3 py-2.5 rounded-lg text-xs border transition-colors ${
                     emojiUsage === e.value
                       ? 'bg-white text-black border-white'
-                      : 'border-[#1a1a1a] text-neutral-400 hover:text-white hover:border-[#262626]'
+                      : 'border-[#252530] text-neutral-400 hover:text-white hover:border-[#32323e]'
                   }`}
                 >
                   {e.label}
@@ -328,7 +328,7 @@ function ProfileTab({ instance, onUpdate }: { instance: Instance; onUpdate: () =
                   className={`px-3 py-2.5 rounded-lg text-xs border transition-colors ${
                     language === l.value
                       ? 'bg-white text-black border-white'
-                      : 'border-[#1a1a1a] text-neutral-400 hover:text-white hover:border-[#262626]'
+                      : 'border-[#252530] text-neutral-400 hover:text-white hover:border-[#32323e]'
                   }`}
                 >
                   {l.label}
@@ -343,7 +343,7 @@ function ProfileTab({ instance, onUpdate }: { instance: Instance; onUpdate: () =
             value={signature}
             onChange={(e) => setSignature(e.target.value)}
             placeholder='Ex: "— Júlia, equipe Aura"'
-            className="w-full bg-[#0d0d0d] border border-[#1a1a1a] rounded-lg px-3 py-2.5 text-sm text-white placeholder-neutral-600 focus:border-[#2a2a2a] outline-none"
+            className="w-full bg-[#0d0d12] border border-[#1e1e28] rounded-lg px-3 py-2.5 text-sm text-white placeholder-neutral-600 focus:border-[#3a3a48] outline-none transition-colors"
           />
         </div>
       </div>
@@ -365,7 +365,7 @@ function ProfileTab({ instance, onUpdate }: { instance: Instance; onUpdate: () =
         </button>
         <button
           onClick={regeneratePrompt}
-          className="border border-[#1a1a1a] hover:border-[#262626] text-neutral-300 hover:text-white rounded-lg px-4 py-2.5 text-sm flex items-center gap-2 transition-colors"
+          className="border border-[#252530] hover:border-[#32323e] text-neutral-300 hover:text-white rounded-lg px-4 py-2.5 text-sm flex items-center gap-2 transition-colors"
         >
           <Sparkles size={13} /> Regenerar prompt
         </button>
@@ -428,7 +428,7 @@ function SettingsTab({ instance, onUpdate }: { instance: Instance; onUpdate: () 
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2 space-y-5 border border-[#1a1a1a] rounded-xl bg-[#0a0a0a] p-6">
+        <div className="lg:col-span-2 space-y-5 border border-[#252530] rounded-xl bg-[#111116] p-6">
           <div>
             <div className="flex items-center justify-between mb-2">
               <label className="text-xs uppercase tracking-wider text-neutral-500">Prompt do Sistema</label>
@@ -439,7 +439,7 @@ function SettingsTab({ instance, onUpdate }: { instance: Instance; onUpdate: () 
               onChange={(e) => setPrompt(e.target.value)}
               rows={12}
               placeholder="Descreva como o agente deve se comportar..."
-              className="w-full bg-[#050505] border border-[#1a1a1a] rounded-lg px-4 py-3 text-sm text-white focus:outline-none focus:border-neutral-600 transition-colors resize-none font-mono leading-relaxed"
+              className="w-full bg-[#0d0d12] border border-[#1e1e28] rounded-lg px-4 py-3 text-sm text-white focus:outline-none focus:border-[#3a3a48] transition-colors resize-none font-mono leading-relaxed"
             />
           </div>
 
@@ -472,7 +472,7 @@ function SettingsTab({ instance, onUpdate }: { instance: Instance; onUpdate: () 
               value={keyword}
               onChange={(e) => setKeyword(e.target.value)}
               placeholder="ex: humano, atendente, ajuda"
-              className="w-full bg-[#050505] border border-[#1a1a1a] rounded-lg px-4 py-3 text-sm text-white focus:outline-none focus:border-neutral-600 transition-colors"
+              className="w-full bg-[#0d0d12] border border-[#1e1e28] rounded-lg px-4 py-3 text-sm text-white focus:outline-none focus:border-[#3a3a48] transition-colors"
             />
             <p className="text-[11px] text-neutral-600 mt-1.5 leading-relaxed">
               Quando o cliente mencionar esta palavra, o fluxo do agente é pausado automaticamente.
@@ -494,7 +494,7 @@ function SettingsTab({ instance, onUpdate }: { instance: Instance; onUpdate: () 
           </button>
         </div>
 
-        <div className="border border-[#1a1a1a] rounded-xl bg-[#0a0a0a] p-6 h-fit">
+        <div className="border border-[#252530] rounded-xl bg-[#111116] p-6 h-fit">
           <div className="flex items-center gap-2 mb-4">
             <Sparkles size={14} className="text-neutral-400" />
             <div className="text-xs uppercase tracking-wider text-neutral-500">Templates prontos</div>
@@ -504,7 +504,7 @@ function SettingsTab({ instance, onUpdate }: { instance: Instance; onUpdate: () 
               <button
                 key={t.name}
                 onClick={() => setPrompt(t.prompt)}
-                className="w-full text-left border border-[#151515] rounded-lg px-3 py-3 hover:bg-[#0d0d0d] hover:border-[#262626] transition-colors"
+                className="w-full text-left border border-[#1e1e28] rounded-lg px-3 py-3 hover:bg-[#16161e] hover:border-[#32323e] transition-colors"
               >
                 <div className="text-sm text-white font-medium mb-1">{t.name}</div>
                 <div className="text-[11px] text-neutral-500 line-clamp-2 leading-relaxed">{t.prompt}</div>
@@ -599,7 +599,7 @@ function KnowledgeTab({ instance }: { instance: Instance }) {
       </div>
 
       {linkedBases.length === 0 ? (
-        <div className="border border-dashed border-[#1a1a1a] rounded-xl p-10 text-center">
+        <div className="border border-dashed border-[#252530] rounded-xl p-10 text-center bg-[#0d0d12]">
           <Database size={24} className="mx-auto text-neutral-700 mb-3" strokeWidth={1.5} />
           <p className="text-sm text-neutral-500 mb-1">Nenhuma base vinculada</p>
           <p className="text-xs text-neutral-600 mb-4">
@@ -623,9 +623,9 @@ function KnowledgeTab({ instance }: { instance: Instance }) {
           {linkedBases.map((base) => (
             <div
               key={base.id}
-              className="flex items-center gap-3 px-4 py-3.5 rounded-xl bg-[#0a0a0a] border border-[#1a1a1a]"
+              className="flex items-center gap-3 px-4 py-3.5 rounded-xl bg-[#111116] border border-[#252530]"
             >
-              <div className="w-8 h-8 rounded-lg bg-[#111] border border-[#1a1a1a] flex items-center justify-center shrink-0">
+              <div className="w-8 h-8 rounded-lg bg-[#141418] border border-[#252530] flex items-center justify-center shrink-0">
                 <Database size={14} className="text-neutral-400" />
               </div>
               <div className="flex-1 min-w-0">
@@ -653,8 +653,8 @@ function KnowledgeTab({ instance }: { instance: Instance }) {
 
       {showPicker && availableBases.length > 0 && (
         <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-[#0a0a0a] border border-[#1a1a1a] rounded-2xl w-full max-w-sm">
-            <div className="flex items-center justify-between px-5 py-4 border-b border-[#1a1a1a]">
+          <div className="bg-[#111116] border border-[#252530] rounded-2xl w-full max-w-sm">
+            <div className="flex items-center justify-between px-5 py-4 border-b border-[#252530]">
               <span className="text-sm text-white font-medium">Vincular base de conhecimento</span>
               <button
                 onClick={() => setShowPicker(false)}
@@ -669,9 +669,9 @@ function KnowledgeTab({ instance }: { instance: Instance }) {
                   key={base.id}
                   onClick={() => linkBase(base.id)}
                   disabled={linking === base.id}
-                  className="w-full text-left flex items-center gap-3 px-3 py-3 rounded-lg border border-[#1a1a1a] hover:border-[#262626] hover:bg-[#0d0d0d] transition-colors"
+                  className="w-full text-left flex items-center gap-3 px-3 py-3 rounded-lg border border-[#252530] hover:border-[#32323e] hover:bg-[#16161e] transition-colors"
                 >
-                  <div className="w-7 h-7 rounded-md bg-[#111] border border-[#1a1a1a] flex items-center justify-center shrink-0">
+                  <div className="w-7 h-7 rounded-md bg-[#141418] border border-[#252530] flex items-center justify-center shrink-0">
                     {linking === base.id ? (
                       <Loader2 size={12} className="animate-spin text-neutral-400" />
                     ) : (

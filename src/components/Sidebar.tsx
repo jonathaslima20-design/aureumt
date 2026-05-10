@@ -41,7 +41,7 @@ export function Sidebar({
         }}
         aria-hidden="true"
       />
-      <div className="px-5 py-5 border-b border-[#1a1a1a] relative z-10">
+      <div className="px-5 py-5 border-b border-[#1e1e24] relative z-10">
         <Logo />
       </div>
 
@@ -58,8 +58,8 @@ export function Sidebar({
               }}
               className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-colors relative ${
                 active
-                  ? 'bg-[#111] text-white'
-                  : 'text-neutral-500 hover:text-white hover:bg-[#0d0d0d]'
+                  ? 'bg-[#161620] text-white'
+                  : 'text-neutral-500 hover:text-neutral-200 hover:bg-[#13131a]'
               }`}
             >
               {active && (
@@ -78,11 +78,11 @@ export function Sidebar({
         })}
       </nav>
 
-      <div className="border-t border-[#1a1a1a] p-3 space-y-1">
+      <div className="border-t border-[#1e1e24] p-3 space-y-1">
         {profile?.role === 'admin' && onNavAdmin && (
           <button
             onClick={onNavAdmin}
-            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-neutral-400 hover:text-white hover:bg-[#0d0d0d] transition-colors"
+            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-neutral-400 hover:text-white hover:bg-[#13131a] transition-colors"
           >
             <Shield size={15} strokeWidth={1.8} />
             Painel Admin
@@ -93,7 +93,7 @@ export function Sidebar({
         </div>
         <button
           onClick={signOut}
-          className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-neutral-500 hover:text-white hover:bg-[#0d0d0d] transition-colors"
+          className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-neutral-500 hover:text-white hover:bg-[#13131a] transition-colors"
         >
           <LogOut size={15} strokeWidth={1.8} />
           Sair
@@ -111,7 +111,7 @@ export function Sidebar({
         <Menu size={16} />
       </button>
 
-      <aside className="hidden lg:flex w-60 flex-col bg-[#070707] border-r border-[#1a1a1a] fixed inset-y-0 left-0 z-20">
+      <aside className="hidden lg:flex w-60 flex-col bg-[#0c0c10] border-r border-[#1e1e24] fixed inset-y-0 left-0 z-20 shadow-[4px_0_24px_0_rgba(0,0,0,0.4)]">
         {content}
       </aside>
 
@@ -121,7 +121,7 @@ export function Sidebar({
             className="absolute inset-0 bg-black/70 backdrop-blur-sm"
             onClick={() => setOpenMobile(false)}
           />
-          <aside className="relative w-64 bg-[#070707] border-r border-[#1a1a1a] flex flex-col">
+          <aside className="relative w-64 bg-[#0c0c10] border-r border-[#1e1e24] flex flex-col shadow-[4px_0_24px_0_rgba(0,0,0,0.4)]">
             <button
               onClick={() => setOpenMobile(false)}
               className="absolute top-4 right-4 text-neutral-500 hover:text-white"

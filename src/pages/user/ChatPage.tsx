@@ -146,9 +146,9 @@ export function ChatPage({ instance }: { instance: Instance }) {
         </p>
       </div>
 
-      <div className="border border-[#1a1a1a] rounded-xl bg-[#0a0a0a] overflow-hidden grid grid-cols-1 md:grid-cols-3 h-[calc(100vh-220px)]">
-        <div className="border-r border-[#1a1a1a] flex flex-col">
-          <div className="p-3 border-b border-[#1a1a1a]">
+      <div className="border border-[#252530] rounded-xl bg-[#111116] overflow-hidden grid grid-cols-1 md:grid-cols-3 h-[calc(100vh-220px)]">
+        <div className="border-r border-[#252530] flex flex-col">
+          <div className="p-3 border-b border-[#252530]">
             <div className="relative">
               <Search size={12} className="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-600" />
               <input
@@ -156,7 +156,7 @@ export function ChatPage({ instance }: { instance: Instance }) {
                 placeholder="Buscar contato"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className="w-full bg-[#050505] border border-[#1a1a1a] rounded-lg pl-8 pr-3 py-2 text-xs text-white placeholder:text-neutral-600 focus:outline-none focus:border-neutral-600"
+                className="w-full bg-[#0d0d12] border border-[#1e1e28] rounded-lg pl-8 pr-3 py-2 text-xs text-white placeholder:text-neutral-600 focus:outline-none focus:border-[#3a3a48] transition-colors"
               />
             </div>
           </div>
@@ -173,8 +173,8 @@ export function ChatPage({ instance }: { instance: Instance }) {
                   <button
                     key={c.number}
                     onClick={() => setSelected(c.number)}
-                    className={`w-full text-left px-4 py-3 border-b border-[#111] transition-colors ${
-                      active ? 'bg-[#111]' : 'hover:bg-[#0d0d0d]'
+                    className={`w-full text-left px-4 py-3 border-b border-[#1a1a22] transition-colors ${
+                      active ? 'bg-[#161620]' : 'hover:bg-[#14141c]'
                     }`}
                   >
                     <div className="flex items-center justify-between mb-1">
@@ -205,7 +205,7 @@ export function ChatPage({ instance }: { instance: Instance }) {
             </div>
           ) : (
             <>
-              <div className="p-4 border-b border-[#1a1a1a] flex items-center justify-between">
+              <div className="p-4 border-b border-[#252530] flex items-center justify-between">
                 <div>
                   <div className="text-sm text-white font-mono">{selected}</div>
                   <div className="text-[11px] text-neutral-500 mt-0.5">
@@ -219,7 +219,7 @@ export function ChatPage({ instance }: { instance: Instance }) {
                   className={`text-[11px] px-3 py-1.5 rounded-lg border flex items-center gap-1.5 transition-colors ${
                     selectedContact?.manual
                       ? 'bg-amber-950/30 border-amber-900/40 text-amber-400 hover:bg-amber-950/50'
-                      : 'border-[#1a1a1a] text-neutral-400 hover:text-white hover:border-[#262626]'
+                      : 'border-[#252530] text-neutral-400 hover:text-white hover:border-[#32323e]'
                   }`}
                 >
                   <Hand size={11} />
@@ -229,7 +229,7 @@ export function ChatPage({ instance }: { instance: Instance }) {
 
               <div
                 ref={threadRef}
-                className="flex-1 overflow-y-auto scrollbar-thin p-4 space-y-3 bg-[#050505]"
+                className="flex-1 overflow-y-auto scrollbar-thin p-4 space-y-3 bg-[#0a0a0e]"
               >
                 {loadingThread ? (
                   <div className="flex items-center justify-center py-10">
@@ -241,14 +241,14 @@ export function ChatPage({ instance }: { instance: Instance }) {
                     return (
                       <div key={m.id} className={`flex gap-2 ${isIn ? 'justify-start' : 'justify-end'}`}>
                         {isIn && (
-                          <div className="w-6 h-6 rounded-full bg-[#0a0a0a] border border-[#1a1a1a] flex items-center justify-center shrink-0">
+                          <div className="w-6 h-6 rounded-full bg-[#141418] border border-[#252530] flex items-center justify-center shrink-0">
                             <User size={11} className="text-neutral-500" />
                           </div>
                         )}
                         <div
                           className={`max-w-[75%] rounded-2xl px-3.5 py-2 text-[13px] leading-relaxed ${
                             isIn
-                              ? 'bg-[#0d0d0d] border border-[#1a1a1a] text-neutral-200 rounded-tl-sm'
+                              ? 'bg-[#161620] border border-[#252530] text-neutral-200 rounded-tl-sm'
                               : 'bg-white text-black rounded-tr-sm'
                           }`}
                         >
@@ -268,7 +268,7 @@ export function ChatPage({ instance }: { instance: Instance }) {
                 )}
               </div>
 
-              <div className="p-3 border-t border-[#1a1a1a] bg-[#0a0a0a]">
+              <div className="p-3 border-t border-[#252530] bg-[#111116]">
                 <div className="flex items-end gap-2">
                   <textarea
                     value={draft}
@@ -278,7 +278,7 @@ export function ChatPage({ instance }: { instance: Instance }) {
                     }}
                     placeholder="Escreva uma resposta manual..."
                     rows={1}
-                    className="flex-1 bg-[#050505] border border-[#1a1a1a] rounded-lg px-3 py-2.5 text-sm text-white placeholder:text-neutral-600 focus:outline-none focus:border-neutral-600 resize-none max-h-32"
+                    className="flex-1 bg-[#0d0d12] border border-[#1e1e28] rounded-lg px-3 py-2.5 text-sm text-white placeholder:text-neutral-600 focus:outline-none focus:border-[#3a3a48] resize-none max-h-32 transition-colors"
                   />
                   <button
                     onClick={sendReply}

@@ -105,8 +105,8 @@ export function KnowledgePage() {
           <Loader2 size={20} className="animate-spin text-neutral-600" />
         </div>
       ) : bases.length === 0 ? (
-        <div className="border border-dashed border-[#1a1a1a] rounded-xl p-16 text-center">
-          <div className="w-14 h-14 rounded-2xl bg-[#0d0d0d] border border-[#1a1a1a] flex items-center justify-center mx-auto mb-4">
+        <div className="border border-dashed border-[#252530] rounded-xl p-16 text-center bg-[#0d0d12]">
+          <div className="w-14 h-14 rounded-2xl bg-[#141418] border border-[#252530] flex items-center justify-center mx-auto mb-4">
             <Database size={24} className="text-neutral-600" strokeWidth={1.5} />
           </div>
           <p className="text-sm text-neutral-400 mb-1">Nenhuma base criada ainda</p>
@@ -126,10 +126,10 @@ export function KnowledgePage() {
             <button
               key={base.id}
               onClick={() => setSelectedBase(base)}
-              className="group text-left bg-[#0a0a0a] border border-[#1a1a1a] rounded-2xl p-5 transition-all duration-300 flex flex-col gap-3 aura-card"
+              className="group text-left bg-[#111116] border border-[#252530] rounded-2xl p-5 transition-all duration-300 flex flex-col gap-3 aura-card"
             >
               <div className="flex items-start justify-between gap-2">
-                <div className="w-9 h-9 rounded-xl bg-[#111] border border-[#1a1a1a] flex items-center justify-center shrink-0">
+                <div className="w-9 h-9 rounded-xl bg-[#141418] border border-[#252530] flex items-center justify-center shrink-0">
                   <Database size={15} className="text-neutral-400" />
                 </div>
                 <button
@@ -159,8 +159,8 @@ export function KnowledgePage() {
 
       {showCreate && (
         <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-[#0a0a0a] border border-[#1a1a1a] rounded-2xl w-full max-w-sm">
-            <div className="flex items-center justify-between px-5 py-4 border-b border-[#1a1a1a]">
+          <div className="bg-[#111116] border border-[#252530] rounded-2xl w-full max-w-sm">
+            <div className="flex items-center justify-between px-5 py-4 border-b border-[#252530]">
               <span className="text-sm text-white font-medium">Nova base de conhecimento</span>
               <button
                 onClick={() => { setShowCreate(false); setNewName(''); setNewDesc(''); }}
@@ -176,7 +176,7 @@ export function KnowledgePage() {
                   value={newName}
                   onChange={(e) => setNewName(e.target.value)}
                   placeholder="Ex: Loja Principal, Clínica Norte..."
-                  className="w-full bg-[#0d0d0d] border border-[#1a1a1a] rounded-lg px-3 py-2.5 text-sm text-white placeholder-neutral-600 focus:border-[#2a2a2a] outline-none"
+                  className="w-full bg-[#141418] border border-[#252530] rounded-lg px-3 py-2.5 text-sm text-white placeholder-neutral-600 focus:border-[#3a3a48] outline-none"
                   autoFocus
                   onKeyDown={(e) => { if (e.key === 'Enter') createBase(); }}
                 />
@@ -187,13 +187,13 @@ export function KnowledgePage() {
                   value={newDesc}
                   onChange={(e) => setNewDesc(e.target.value)}
                   placeholder="Breve descrição do negócio ou contexto"
-                  className="w-full bg-[#0d0d0d] border border-[#1a1a1a] rounded-lg px-3 py-2.5 text-sm text-white placeholder-neutral-600 focus:border-[#2a2a2a] outline-none"
+                  className="w-full bg-[#141418] border border-[#252530] rounded-lg px-3 py-2.5 text-sm text-white placeholder-neutral-600 focus:border-[#3a3a48] outline-none"
                 />
               </div>
               <div className="flex gap-2 pt-1">
                 <button
                   onClick={() => { setShowCreate(false); setNewName(''); setNewDesc(''); }}
-                  className="flex-1 border border-[#1a1a1a] text-neutral-400 hover:text-white rounded-lg py-2.5 text-sm transition-colors"
+                  className="flex-1 border border-[#252530] text-neutral-400 hover:text-white rounded-lg py-2.5 text-sm transition-colors"
                 >
                   Cancelar
                 </button>
@@ -277,7 +277,7 @@ function KnowledgeBaseDetail({
           <ArrowLeft size={14} /> Base de Conhecimento
         </button>
         <div className="flex items-center gap-3 min-w-0">
-          <div className="w-7 h-7 rounded-lg bg-[#111] border border-[#1a1a1a] flex items-center justify-center shrink-0">
+          <div className="w-7 h-7 rounded-lg bg-[#141418] border border-[#252530] flex items-center justify-center shrink-0">
             <Database size={13} className="text-neutral-400" />
           </div>
           <div className="min-w-0">
@@ -289,7 +289,7 @@ function KnowledgeBaseDetail({
         </div>
         <button
           onClick={onDelete}
-          className="ml-auto text-neutral-500 hover:text-red-400 border border-[#1a1a1a] hover:border-red-900/60 rounded-lg px-3 py-1.5 text-xs flex items-center gap-1.5 transition-colors"
+          className="ml-auto text-neutral-500 hover:text-red-400 border border-[#252530] hover:border-red-900/60 rounded-lg px-3 py-1.5 text-xs flex items-center gap-1.5 transition-colors"
         >
           <Trash2 size={12} /> Excluir base
         </button>
@@ -308,7 +308,7 @@ function KnowledgeBaseDetail({
         </div>
       )}
 
-      <div className="flex gap-1 bg-[#0a0a0a] border border-[#1a1a1a] rounded-lg p-1">
+      <div className="flex gap-1 bg-[#111116] border border-[#252530] rounded-lg p-1">
         {([
           { key: 'sources', label: 'Fontes', icon: Database },
           { key: 'upload', label: 'Arquivo', icon: UploadCloud },
@@ -321,7 +321,7 @@ function KnowledgeBaseDetail({
               key={t.key}
               onClick={() => setTab(t.key)}
               className={`flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-md text-xs font-medium transition-colors ${
-                tab === t.key ? 'bg-[#151515] text-white' : 'text-neutral-500 hover:text-neutral-300'
+                tab === t.key ? 'bg-[#1c1c24] text-white' : 'text-neutral-500 hover:text-neutral-300'
               }`}
             >
               <Icon size={13} />
@@ -384,7 +384,7 @@ function SourcesList({
 
   if (sources.length === 0) {
     return (
-      <div className="border border-dashed border-[#1a1a1a] rounded-xl p-12 text-center">
+      <div className="border border-dashed border-[#252530] rounded-xl p-12 text-center">
         <Database size={28} className="mx-auto text-neutral-700 mb-3" />
         <p className="text-sm text-neutral-500">Nenhuma fonte de conhecimento ainda</p>
         <p className="text-xs text-neutral-600 mt-1">
@@ -400,7 +400,7 @@ function SourcesList({
         <div
           key={s.id}
           className={`flex items-center gap-3 px-4 py-3 rounded-lg border transition-colors ${
-            s.is_active ? 'bg-[#0a0a0a] border-[#1a1a1a]' : 'bg-[#080808] border-[#141414] opacity-60'
+            s.is_active ? 'bg-[#111116] border-[#252530]' : 'bg-[#0a0a0e] border-[#1a1a22] opacity-60'
           }`}
         >
           {typeIcon(s.type)}
@@ -504,7 +504,7 @@ function FileUpload({
         onDrop={handleDrop}
         onClick={() => inputRef.current?.click()}
         className={`border-2 border-dashed rounded-xl p-10 text-center cursor-pointer transition-colors ${
-          dragOver ? 'border-blue-500/50 bg-blue-950/10' : 'border-[#1a1a1a] hover:border-[#2a2a2a] bg-[#080808]'
+          dragOver ? 'border-blue-500/50 bg-blue-950/10' : 'border-[#252530] hover:border-[#32323e] bg-[#080808]'
         }`}
       >
         {uploading ? (
@@ -515,7 +515,7 @@ function FileUpload({
           </div>
         ) : (
           <div className="flex flex-col items-center gap-3">
-            <div className="w-12 h-12 rounded-full bg-[#111] border border-[#1a1a1a] flex items-center justify-center">
+            <div className="w-12 h-12 rounded-full bg-[#141418] border border-[#252530] flex items-center justify-center">
               <UploadCloud size={20} className="text-neutral-400" />
             </div>
             <div>
@@ -584,7 +584,7 @@ function UrlScrape({
 
   return (
     <div className="space-y-4">
-      <div className="bg-[#0a0a0a] border border-[#1a1a1a] rounded-xl p-5 space-y-4">
+      <div className="bg-[#111116] border border-[#252530] rounded-xl p-5 space-y-4">
         <div>
           <label className="block text-xs text-neutral-400 mb-1.5">URL do site</label>
           <input
@@ -592,7 +592,7 @@ function UrlScrape({
             value={url}
             onChange={(e) => setUrl(e.target.value)}
             placeholder="https://suaempresa.com/sobre"
-            className="w-full bg-[#080808] border border-[#1a1a1a] rounded-lg px-3 py-2.5 text-sm text-white placeholder:text-neutral-600 focus:outline-none focus:border-[#2a2a2a] transition-colors"
+            className="w-full bg-[#0d0d12] border border-[#1e1e28] rounded-lg px-3 py-2.5 text-sm text-white placeholder:text-neutral-600 focus:outline-none focus:border-[#3a3a48] transition-colors"
           />
         </div>
         <div>
@@ -602,7 +602,7 @@ function UrlScrape({
             value={title}
             onChange={(e) => setTitle(e.target.value)}
             placeholder="Página Sobre Nós"
-            className="w-full bg-[#080808] border border-[#1a1a1a] rounded-lg px-3 py-2.5 text-sm text-white placeholder:text-neutral-600 focus:outline-none focus:border-[#2a2a2a] transition-colors"
+            className="w-full bg-[#0d0d12] border border-[#1e1e28] rounded-lg px-3 py-2.5 text-sm text-white placeholder:text-neutral-600 focus:outline-none focus:border-[#3a3a48] transition-colors"
           />
         </div>
         <button
@@ -712,7 +712,7 @@ function AudioRecorder({
 
   return (
     <div className="space-y-4">
-      <div className="bg-[#0a0a0a] border border-[#1a1a1a] rounded-xl p-5 space-y-4">
+      <div className="bg-[#111116] border border-[#252530] rounded-xl p-5 space-y-4">
         <div>
           <label className="block text-xs text-neutral-400 mb-1.5">Título da gravação (opcional)</label>
           <input
@@ -721,7 +721,7 @@ function AudioRecorder({
             onChange={(e) => setTitle(e.target.value)}
             placeholder="Explicação sobre a empresa"
             disabled={recording || processing}
-            className="w-full bg-[#080808] border border-[#1a1a1a] rounded-lg px-3 py-2.5 text-sm text-white placeholder:text-neutral-600 focus:outline-none focus:border-[#2a2a2a] transition-colors disabled:opacity-50"
+            className="w-full bg-[#0d0d12] border border-[#1e1e28] rounded-lg px-3 py-2.5 text-sm text-white placeholder:text-neutral-600 focus:outline-none focus:border-[#3a3a48] transition-colors disabled:opacity-50"
           />
         </div>
         <div className="flex flex-col items-center gap-4 py-4">
@@ -746,7 +746,7 @@ function AudioRecorder({
             </>
           ) : (
             <>
-              <div className="w-16 h-16 rounded-full bg-[#111] border border-[#1a1a1a] flex items-center justify-center">
+              <div className="w-16 h-16 rounded-full bg-[#141418] border border-[#252530] flex items-center justify-center">
                 <Mic size={24} className="text-neutral-500" />
               </div>
               <p className="text-xs text-neutral-500 text-center max-w-xs">
