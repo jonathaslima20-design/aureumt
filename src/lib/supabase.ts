@@ -181,6 +181,47 @@ export type ChatLog = {
   created_at: string;
 };
 
+export type QuickReply = {
+  id: string;
+  user_id: string;
+  instance_id: string | null;
+  shortcut: string;
+  title: string;
+  body: string;
+  sort_order: number;
+  created_at: string;
+};
+
+export type ContactNote = {
+  id: string;
+  instance_id: string;
+  customer_number: string;
+  content: string;
+  created_at: string;
+};
+
+export type ContactLabel = {
+  id: string;
+  instance_id: string;
+  customer_number: string;
+  label: string;
+  color: string;
+  created_at: string;
+};
+
+export const LABEL_COLORS = [
+  '#3b82f6',
+  '#10b981',
+  '#f59e0b',
+  '#ef4444',
+  '#06b6d4',
+  '#ec4899',
+  '#14b8a6',
+  '#f97316',
+  '#8b5cf6',
+  '#84cc16',
+];
+
 export type KnowledgeBase = {
   id: string;
   user_id: string;

@@ -1,9 +1,9 @@
 import { useState } from 'react';
-import { LayoutDashboard, Link2, MessagesSquare, LogOut, Shield, Menu, X, Bot, Database } from 'lucide-react';
+import { LayoutDashboard, Link2, MessagesSquare, LogOut, Shield, Menu, X, Bot, Database, Zap } from 'lucide-react';
 import { Logo } from './Logo';
 import { useAuth } from '../context/AuthContext';
 
-export type PageKey = 'overview' | 'agents' | 'connections' | 'knowledge' | 'chat';
+export type PageKey = 'overview' | 'agents' | 'connections' | 'knowledge' | 'chat' | 'quick_replies';
 
 const ITEMS: { key: PageKey; label: string; icon: typeof LayoutDashboard }[] = [
   { key: 'overview', label: 'Visão Geral', icon: LayoutDashboard },
@@ -11,6 +11,7 @@ const ITEMS: { key: PageKey; label: string; icon: typeof LayoutDashboard }[] = [
   { key: 'connections', label: 'Conexões', icon: Link2 },
   { key: 'knowledge', label: 'Base de Conhecimento', icon: Database },
   { key: 'chat', label: 'Chat', icon: MessagesSquare },
+  { key: 'quick_replies', label: 'Respostas Rápidas', icon: Zap },
 ];
 
 export function Sidebar({
