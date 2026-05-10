@@ -27,8 +27,8 @@ export function AgentsPage({ instances, onCreateAgent, onSelectAgent, linkedBase
             <p className="text-sm text-neutral-500 mt-1">Crie e gerencie seus agentes de IA.</p>
           </div>
         </div>
-        <div className="border border-dashed border-[#252530] rounded-xl p-16 text-center bg-[#0d0d12]">
-          <div className="w-14 h-14 rounded-2xl bg-[#141418] border border-[#252530] flex items-center justify-center mx-auto mb-4">
+        <div className="border border-dashed border-[#242424] rounded-xl p-16 text-center bg-[#0d0d0d]">
+          <div className="w-14 h-14 rounded-2xl bg-[#141414] border border-[#242424] flex items-center justify-center mx-auto mb-4">
             <Bot size={24} className="text-neutral-600" strokeWidth={1.5} />
           </div>
           <p className="text-sm text-neutral-400 mb-1">Nenhum agente ainda</p>
@@ -95,11 +95,11 @@ function AgentCard({
   return (
     <button
       onClick={onClick}
-      className="group text-left bg-[#111116] border border-[#252530] rounded-2xl p-5 transition-all duration-300 flex flex-col gap-4"
+      className="group text-left bg-[#141414] border border-[#242424] rounded-2xl p-5 transition-all duration-300 flex flex-col gap-4"
       onMouseEnter={(e) => {
         (e.currentTarget as HTMLButtonElement).style.boxShadow = `0 0 0 1px ${glowBorder}, 0 0 32px 0 ${glowColor}, 0 8px 40px 0 rgba(0,0,0,0.6)`;
         (e.currentTarget as HTMLButtonElement).style.borderColor = glowBorder;
-        (e.currentTarget as HTMLButtonElement).style.background = '#16161e';
+        (e.currentTarget as HTMLButtonElement).style.background = '#1a1a1a';
       }}
       onMouseLeave={(e) => {
         (e.currentTarget as HTMLButtonElement).style.boxShadow = '';

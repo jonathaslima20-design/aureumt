@@ -79,7 +79,7 @@ export function ConnectionsPage({
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
-        <div className="lg:col-span-3 border border-[#252530] rounded-xl bg-[#111116] p-6">
+        <div className="lg:col-span-3 border border-[#242424] rounded-xl bg-[#141414] p-6">
           <div className="flex items-center justify-between mb-6">
             <div className="flex items-center gap-4">
               <div className="relative">
@@ -96,7 +96,7 @@ export function ConnectionsPage({
             </div>
             <button
               onClick={refreshStatus}
-              className="text-neutral-500 hover:text-white transition-colors p-2 rounded-lg border border-[#252530] hover:border-[#32323e]"
+              className="text-neutral-500 hover:text-white transition-colors p-2 rounded-lg border border-[#242424] hover:border-[#2e2e2e]"
               title="Atualizar status"
             >
               <RefreshCw size={14} />
@@ -129,7 +129,7 @@ export function ConnectionsPage({
               <button
                 onClick={handleDisconnect}
                 disabled={loading}
-                className="flex-1 bg-[#111116] border border-[#252530] text-white rounded-lg py-2.5 text-sm font-medium flex items-center justify-center gap-2 hover:bg-[#16161e] transition-colors disabled:opacity-50"
+                className="flex-1 bg-[#141414] border border-[#242424] text-white rounded-lg py-2.5 text-sm font-medium flex items-center justify-center gap-2 hover:bg-[#1a1a1a] transition-colors disabled:opacity-50"
               >
                 {loading ? <Loader2 size={14} className="animate-spin" /> : <LogOut size={14} />}
                 Desconectar
@@ -138,7 +138,7 @@ export function ConnectionsPage({
           </div>
         </div>
 
-        <div className="lg:col-span-2 border border-[#252530] rounded-xl bg-[#111116] p-6">
+        <div className="lg:col-span-2 border border-[#242424] rounded-xl bg-[#141414] p-6">
           <div className="text-xs uppercase tracking-wider text-neutral-500 mb-4">Como parear</div>
           <ol className="space-y-4 text-sm text-neutral-300">
             {[
@@ -148,7 +148,7 @@ export function ConnectionsPage({
               'Aponte a câmera para o QR Code ao lado',
             ].map((step, idx) => (
               <li key={idx} className="flex gap-3">
-                <span className="shrink-0 w-6 h-6 rounded-full border border-[#32323e] flex items-center justify-center text-[11px] text-neutral-400 font-medium">
+                <span className="shrink-0 w-6 h-6 rounded-full border border-[#2e2e2e] flex items-center justify-center text-[11px] text-neutral-400 font-medium">
                   {idx + 1}
                 </span>
                 <span className="leading-relaxed">{step}</span>

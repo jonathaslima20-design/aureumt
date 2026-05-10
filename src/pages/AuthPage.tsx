@@ -34,7 +34,7 @@ export function AuthPage() {
           maxWidth: 640,
           maxHeight: 640,
           background:
-            'radial-gradient(circle, rgba(6,182,212,0.14) 0%, rgba(6,182,212,0.05) 45%, transparent 68%)',
+            'radial-gradient(circle, rgba(255,255,255,0.05) 0%, rgba(255,255,255,0.02) 45%, transparent 68%)',
           filter: 'blur(48px)',
           borderRadius: '50%',
         }}
@@ -51,7 +51,7 @@ export function AuthPage() {
           maxWidth: 500,
           maxHeight: 500,
           background:
-            'radial-gradient(circle, rgba(59,130,246,0.11) 0%, rgba(59,130,246,0.03) 50%, transparent 70%)',
+            'radial-gradient(circle, rgba(255,255,255,0.04) 0%, rgba(255,255,255,0.01) 50%, transparent 70%)',
           filter: 'blur(56px)',
           borderRadius: '50%',
         }}
@@ -82,7 +82,7 @@ export function AuthPage() {
               required
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="w-full bg-[#0a0a0a] border border-[#1a1a1a] rounded-lg px-4 py-3 text-sm text-white focus:outline-none focus:border-cyan-800/60 transition-colors"
+              className="w-full bg-[#0a0a0a] border border-[#1a1a1a] rounded-lg px-4 py-3 text-sm text-white focus:outline-none focus:border-neutral-600 transition-colors"
               placeholder="voce@empresa.com"
             />
           </div>
@@ -95,7 +95,7 @@ export function AuthPage() {
               minLength={6}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full bg-[#0a0a0a] border border-[#1a1a1a] rounded-lg px-4 py-3 text-sm text-white focus:outline-none focus:border-cyan-800/60 transition-colors"
+              className="w-full bg-[#0a0a0a] border border-[#1a1a1a] rounded-lg px-4 py-3 text-sm text-white focus:outline-none focus:border-neutral-600 transition-colors"
               placeholder="Mínimo de 6 caracteres"
             />
           </div>

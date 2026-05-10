@@ -35,7 +35,7 @@ function Shell() {
 function AuraBackground() {
   return (
     <div className="fixed inset-0 pointer-events-none overflow-hidden z-0" aria-hidden="true">
-      {/* Top-right cyan orb */}
+      {/* Top-right white orb */}
       <div
         className="absolute animate-aura-breathe"
         style={{
@@ -45,12 +45,12 @@ function AuraBackground() {
           height: '55vw',
           maxWidth: 700,
           maxHeight: 700,
-          background: 'radial-gradient(circle, rgba(6,182,212,0.11) 0%, rgba(6,182,212,0.04) 45%, transparent 70%)',
+          background: 'radial-gradient(circle, rgba(255,255,255,0.05) 0%, rgba(255,255,255,0.015) 45%, transparent 70%)',
           filter: 'blur(40px)',
           borderRadius: '50%',
         }}
       />
-      {/* Bottom-left blue orb */}
+      {/* Bottom-left white orb */}
       <div
         className="absolute animate-aura-breathe-alt"
         style={{
@@ -60,7 +60,7 @@ function AuraBackground() {
           height: '60vw',
           maxWidth: 760,
           maxHeight: 760,
-          background: 'radial-gradient(circle, rgba(59,130,246,0.09) 0%, rgba(59,130,246,0.03) 50%, transparent 72%)',
+          background: 'radial-gradient(circle, rgba(255,255,255,0.04) 0%, rgba(255,255,255,0.01) 50%, transparent 72%)',
           filter: 'blur(50px)',
           borderRadius: '50%',
         }}

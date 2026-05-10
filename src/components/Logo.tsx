@@ -6,8 +6,8 @@ export function Logo({ size = 24 }: { size?: number }) {
       <Circle
         size={size}
         strokeWidth={1.5}
-        className="text-cyan-300"
-        style={{ filter: 'drop-shadow(0 0 6px rgba(6, 182, 212, 0.6))' }}
+        className="text-white"
+        style={{ filter: 'drop-shadow(0 0 6px rgba(255, 255, 255, 0.35))' }}
       />
       <div className="text-[15px] tracking-tight">
         <span className="font-semibold text-white">Aura</span>

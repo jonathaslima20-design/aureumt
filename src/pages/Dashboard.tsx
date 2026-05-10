@@ -188,7 +188,7 @@ export function Dashboard({ onNavAdmin }: { onNavAdmin: () => void }) {
 
       {confirmDelete && (
         <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 animate-fade-in">
-          <div className="bg-[#111116] border border-[#252530] rounded-2xl p-6 max-w-sm w-full">
+          <div className="bg-[#141414] border border-[#242424] rounded-2xl p-6 max-w-sm w-full">
             <div className="flex items-start justify-between mb-4">
               <div className="flex items-center gap-3">
                 <div className="w-9 h-9 rounded-full bg-red-950/40 border border-red-900/40 flex items-center justify-center">
@@ -217,7 +217,7 @@ export function Dashboard({ onNavAdmin }: { onNavAdmin: () => void }) {
               <button
                 onClick={() => setConfirmDelete(null)}
                 disabled={deleting}
-                className="flex-1 border border-[#1a1a1a] text-neutral-300 hover:text-white hover:border-[#32323e] rounded-lg py-2.5 text-sm transition-colors disabled:opacity-50"
+                className="flex-1 border border-[#1a1a1a] text-neutral-300 hover:text-white hover:border-[#2e2e2e] rounded-lg py-2.5 text-sm transition-colors disabled:opacity-50"
               >
                 Cancelar
               </button>
@@ -247,7 +247,7 @@ export function Dashboard({ onNavAdmin }: { onNavAdmin: () => void }) {
 
 function EmptyAgentsPrompt({ onCreate }: { onCreate: () => void }) {
   return (
-    <div className="border border-dashed border-[#252530] rounded-xl p-16 text-center bg-[#0d0d12]">
+    <div className="border border-dashed border-[#242424] rounded-xl p-16 text-center bg-[#0d0d0d]">
       <p className="text-sm text-neutral-500 mb-4">Nenhum agente ainda. Crie o primeiro.</p>
       <button
         onClick={onCreate}
@@ -281,7 +281,7 @@ function InstancePicker({
           <button
             key={inst.id}
             onClick={() => onSelect(inst)}
-            className="text-left bg-[#111116] border border-[#252530] rounded-xl p-4 hover:border-[#32323e] hover:bg-[#16161e] transition-colors flex items-center gap-3"
+            className="text-left bg-[#141414] border border-[#242424] rounded-xl p-4 hover:border-[#2e2e2e] hover:bg-[#1a1a1a] transition-colors flex items-center gap-3"
           >
             <div
               className="w-8 h-8 rounded-full shrink-0 flex items-center justify-center text-white text-xs font-semibold"

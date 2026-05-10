@@ -94,7 +94,7 @@ export function OverviewPage({ instance }: { instance: Instance }) {
         <MetricCard icon={AlertTriangle} label="Taxa transbordo" value={`${metrics.overflowRate}%`} />
       </div>
 
-      <div className="border border-[#252530] rounded-xl bg-[#111116] p-6">
+      <div className="border border-[#242424] rounded-xl bg-[#141414] p-6">
         <div className="text-xs uppercase tracking-wider text-neutral-500 mb-4">Mensagens nos últimos 7 dias</div>
         <div className="flex items-end gap-2 h-40">
           {series.map((s) => (
@@ -113,7 +113,7 @@ export function OverviewPage({ instance }: { instance: Instance }) {
         </div>
       </div>
 
-      <div className="border border-[#252530] rounded-xl bg-[#111116] p-6">
+      <div className="border border-[#242424] rounded-xl bg-[#141414] p-6">
         <div className="text-xs uppercase tracking-wider text-neutral-500 mb-4">Últimas mensagens</div>
         {last.length === 0 ? (
           <p className="text-xs text-neutral-600 py-6 text-center">Nenhuma mensagem ainda</p>
@@ -122,7 +122,7 @@ export function OverviewPage({ instance }: { instance: Instance }) {
             {last.map((log) => (
               <div
                 key={log.id}
-                className="border border-[#1e1e28] rounded-lg px-3 py-2.5 flex items-center gap-3 bg-[#0d0d12]"
+                className="border border-[#1c1c1c] rounded-lg px-3 py-2.5 flex items-center gap-3 bg-[#0d0d0d]"
               >
                 {log.direction === 'in' ? (
                   <ArrowDownLeft size={12} className="text-blue-400 shrink-0" />
@@ -158,7 +158,7 @@ function MetricCard({
   value: string;
 }) {
   return (
-    <div className="border border-[#252530] rounded-xl bg-[#111116] p-4 hover:border-[#32323e] transition-colors">
+    <div className="border border-[#242424] rounded-xl bg-[#141414] p-4 hover:border-[#2e2e2e] transition-colors">
       <div className="flex items-center gap-2 text-neutral-500 mb-3">
         <Icon size={13} strokeWidth={1.8} />
         <span className="text-[11px] uppercase tracking-wider">{label}</span>

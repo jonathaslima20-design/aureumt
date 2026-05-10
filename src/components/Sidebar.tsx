@@ -36,12 +36,12 @@ export function Sidebar({
           right: 0,
           height: 220,
           background:
-            'radial-gradient(ellipse 80% 60% at 40% 0%, rgba(6,182,212,0.09) 0%, transparent 70%)',
+            'radial-gradient(ellipse 80% 60% at 40% 0%, rgba(255,255,255,0.04) 0%, transparent 70%)',
           zIndex: 0,
         }}
         aria-hidden="true"
       />
-      <div className="px-5 py-5 border-b border-[#1e1e24] relative z-10">
+      <div className="px-5 py-5 border-b border-[#202020] relative z-10">
         <Logo />
       </div>
 
@@ -58,16 +58,16 @@ export function Sidebar({
               }}
               className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-colors relative ${
                 active
-                  ? 'bg-[#161620] text-white'
-                  : 'text-neutral-500 hover:text-neutral-200 hover:bg-[#13131a]'
+                  ? 'bg-[#1a1a1a] text-white'
+                  : 'text-neutral-500 hover:text-neutral-200 hover:bg-[#141414]'
               }`}
             >
               {active && (
                 <div
                   className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-5 rounded-r"
                   style={{
-                    background: 'linear-gradient(to bottom, #67e8f9, #06b6d4)',
-                    boxShadow: '0 0 8px 1px rgba(6,182,212,0.5)',
+                    background: 'linear-gradient(to bottom, #ffffff, #aaaaaa)',
+                    boxShadow: '0 0 6px 1px rgba(255,255,255,0.25)',
                   }}
                 />
               )}
@@ -78,7 +78,7 @@ export function Sidebar({
         })}
       </nav>
 
-      <div className="border-t border-[#1e1e24] p-3 space-y-1">
+      <div className="border-t border-[#202020] p-3 space-y-1">
         {profile?.role === 'admin' && onNavAdmin && (
           <button
             onClick={onNavAdmin}
@@ -111,7 +111,7 @@ export function Sidebar({
         <Menu size={16} />
       </button>
 
-      <aside className="hidden lg:flex w-60 flex-col bg-[#0c0c10] border-r border-[#1e1e24] fixed inset-y-0 left-0 z-20 shadow-[4px_0_24px_0_rgba(0,0,0,0.4)]">
+      <aside className="hidden lg:flex w-60 flex-col bg-[#0d0d0d] border-r border-[#202020] fixed inset-y-0 left-0 z-20 shadow-[4px_0_24px_0_rgba(0,0,0,0.4)]">
         {content}
       </aside>
 
@@ -121,7 +121,7 @@ export function Sidebar({
             className="absolute inset-0 bg-black/70 backdrop-blur-sm"
             onClick={() => setOpenMobile(false)}
           />
-          <aside className="relative w-64 bg-[#0c0c10] border-r border-[#1e1e24] flex flex-col shadow-[4px_0_24px_0_rgba(0,0,0,0.4)]">
+          <aside className="relative w-64 bg-[#0d0d0d] border-r border-[#202020] flex flex-col shadow-[4px_0_24px_0_rgba(0,0,0,0.4)]">
             <button
               onClick={() => setOpenMobile(false)}
               className="absolute top-4 right-4 text-neutral-500 hover:text-white"
