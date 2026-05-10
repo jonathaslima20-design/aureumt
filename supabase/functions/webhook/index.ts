@@ -185,16 +185,24 @@ async function callGemini(apiKey: string, systemPrompt: string, history: { role:
       });
       const data = await res.json();
       if (!res.ok) {
-        lastError = `[${model}] ${res.status} ${JSON.stringify(data).slice(0, 300)}`;
+        lastError = `[${model}] ${res.status} ${JSON.stringify(data).slice(0, 400)}`;
         console.error("Gemini API error", lastError);
         continue;
       }
-      const text = data?.candidates?.[0]?.content?.parts?.[0]?.text;
-      if (text) {
+      console.log("[callGemini] raw response:", JSON.stringify(data).slice(0, 600));
+      const candidate = data?.candidates?.[0];
+      const finishReason = candidate?.finishReason;
+      const text = candidate?.content?.parts?.[0]?.text;
+      if (typeof text === "string" && text.trim().length > 0) {
         const tokens = data?.usageMetadata?.totalTokenCount || 0;
-        return { text, tokens, error: "" };
+        return { text: text.trim(), tokens, error: "" };
       }
-      lastError = `[${model}] empty response ${JSON.stringify(data).slice(0, 300)}`;
+      // Handle safety/recitation blocks — return a neutral message instead of the error string
+      if (finishReason && finishReason !== "STOP" && finishReason !== "MAX_TOKENS") {
+        console.warn(`[callGemini] ${model} finishReason=${finishReason}`);
+        return { text: "Não consigo responder a isso.", tokens: 0, error: "" };
+      }
+      lastError = `[${model}] empty text finishReason=${finishReason} data=${JSON.stringify(data).slice(0, 400)}`;
       console.error("Gemini empty", lastError);
     } catch (e) {
       lastError = `[${model}] ${e instanceof Error ? e.message : "fetch_error"}`;
