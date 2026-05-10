@@ -1,9 +1,9 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import {
   Search, Send, Loader2, User, Bot, Hand, MessagesSquare,
-  Zap, Tag, StickyNote, ChevronRight, ChevronLeft, Trash2, Plus, X, Check, Pencil,
+  Zap, X,
 } from 'lucide-react';
-import { supabase, ChatLog, Instance, QuickReply, ContactNote, ContactLabel, LABEL_COLORS } from '../../lib/supabase';
+import { supabase, ChatLog, Instance, QuickReply, ContactLabel, LABEL_COLORS } from '../../lib/supabase';
 import { evolution } from '../../lib/evolution';
 import { useAuth } from '../../context/AuthContext';
 
@@ -74,271 +74,14 @@ function QuickReplyPicker({
 
 // ─── Label chip ───────────────────────────────────────────────────────────────
 
-function LabelChip({ label, onRemove }: { label: ContactLabel; onRemove?: () => void }) {
+function LabelChip({ label }: { label: ContactLabel }) {
   return (
     <span
       className="inline-flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-full font-medium"
       style={{ background: label.color + '22', color: label.color, border: `1px solid ${label.color}44` }}
     >
       {label.label}
-      {onRemove && (
-        <button onClick={onRemove} className="opacity-60 hover:opacity-100 transition-opacity">
-          <X size={9} />
-        </button>
-      )}
     </span>
-  );
-}
-
-// ─── Inline Save icon (avoids re-importing) ───────────────────────────────────
-
-function SaveIcon({ size, className }: { size: number; className?: string }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
-      <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z" />
-      <polyline points="17 21 17 13 7 13 7 21" />
-      <polyline points="7 3 7 8 15 8" />
-    </svg>
-  );
-}
-
-// ─── Contact detail panel ─────────────────────────────────────────────────────
-
-function ContactPanel({
-  instanceId,
-  number,
-  contactName,
-  labels,
-  notes,
-  messageCount,
-  firstContact,
-  onNameSaved,
-  onLabelsChanged,
-  onNotesChanged,
-}: {
-  instanceId: string;
-  number: string;
-  contactName: string | null;
-  labels: ContactLabel[];
-  notes: ContactNote[];
-  messageCount: number;
-  firstContact: string | null;
-  onNameSaved: (name: string) => void;
-  onLabelsChanged: () => void;
-  onNotesChanged: () => void;
-}) {
-  const [nameEdit, setNameEdit] = useState(contactName || '');
-  const [nameSaving, setNameSaving] = useState(false);
-  const [nameSaved, setNameSaved] = useState(false);
-  const [newLabel, setNewLabel] = useState('');
-  const [labelColor, setLabelColor] = useState(LABEL_COLORS[0]);
-  const [addingLabel, setAddingLabel] = useState(false);
-  const [savingLabel, setSavingLabel] = useState(false);
-  const [noteText, setNoteText] = useState('');
-  const [savingNote, setSavingNote] = useState(false);
-  const [deletingNoteId, setDeletingNoteId] = useState<string | null>(null);
-
-  useEffect(() => {
-    setNameEdit(contactName || '');
-  }, [contactName, number]);
-
-  const saveName = async () => {
-    setNameSaving(true);
-    await supabase
-      .from('conversation_states')
-      .upsert(
-        { instance_id: instanceId, customer_number: number, contact_name: nameEdit.trim() || null },
-        { onConflict: 'instance_id,customer_number' }
-      );
-    setNameSaving(false);
-    setNameSaved(true);
-    setTimeout(() => setNameSaved(false), 1500);
-    onNameSaved(nameEdit.trim());
-  };
-
-  const saveLabel = async () => {
-    if (!newLabel.trim()) return;
-    setSavingLabel(true);
-    await supabase.from('contact_labels').upsert(
-      { instance_id: instanceId, customer_number: number, label: newLabel.trim(), color: labelColor },
-      { onConflict: 'instance_id,customer_number,label' }
-    );
-    setSavingLabel(false);
-    setNewLabel('');
-    setAddingLabel(false);
-    onLabelsChanged();
-  };
-
-  const removeLabel = async (id: string) => {
-    await supabase.from('contact_labels').delete().eq('id', id);
-    onLabelsChanged();
-  };
-
-  const saveNote = async () => {
-    if (!noteText.trim()) return;
-    setSavingNote(true);
-    await supabase.from('contact_notes').insert({
-      instance_id: instanceId,
-      customer_number: number,
-      content: noteText.trim(),
-    });
-    setSavingNote(false);
-    setNoteText('');
-    onNotesChanged();
-  };
-
-  const deleteNote = async (id: string) => {
-    setDeletingNoteId(id);
-    await supabase.from('contact_notes').delete().eq('id', id);
-    setDeletingNoteId(null);
-    onNotesChanged();
-  };
-
-  return (
-    <div className="flex flex-col overflow-y-auto scrollbar-thin border-l border-[#242424] bg-[#0a0a0a]">
-      {/* Header */}
-      <div className="px-4 py-3 border-b border-[#1a1a1a]">
-        <div className="text-[10px] uppercase tracking-wider text-neutral-500 mb-1">Contato</div>
-        <div className="text-sm font-mono text-white break-all">{number}</div>
-        {messageCount > 0 && (
-          <div className="text-[10px] text-neutral-600 mt-0.5">
-            {messageCount} mensagens
-            {firstContact && ` · desde ${new Date(firstContact).toLocaleDateString('pt-BR')}`}
-          </div>
-        )}
-      </div>
-
-      {/* Name / alias */}
-      <div className="px-4 py-3 border-b border-[#1a1a1a]">
-        <div className="text-[10px] uppercase tracking-wider text-neutral-500 mb-2 flex items-center gap-1.5">
-          <Pencil size={9} /> Apelido
-        </div>
-        <div className="flex gap-2">
-          <input
-            type="text"
-            value={nameEdit}
-            onChange={(e) => setNameEdit(e.target.value)}
-            onKeyDown={(e) => { if (e.key === 'Enter') saveName(); }}
-            placeholder="Nome do contato"
-            className="flex-1 min-w-0 bg-[#050505] border border-[#1a1a1a] rounded-lg px-2.5 py-1.5 text-xs text-white placeholder:text-neutral-700 focus:outline-none focus:border-neutral-600 transition-colors"
-          />
-          <button
-            onClick={saveName}
-            disabled={nameSaving}
-            className="text-neutral-400 hover:text-white transition-colors p-1.5 shrink-0"
-          >
-            {nameSaving
-              ? <Loader2 size={12} className="animate-spin" />
-              : nameSaved
-              ? <Check size={12} className="text-emerald-400" />
-              : <SaveIcon size={12} />}
-          </button>
-        </div>
-      </div>
-
-      {/* Labels */}
-      <div className="px-4 py-3 border-b border-[#1a1a1a]">
-        <div className="text-[10px] uppercase tracking-wider text-neutral-500 mb-2 flex items-center justify-between">
-          <span className="flex items-center gap-1.5"><Tag size={9} /> Etiquetas</span>
-          <button onClick={() => setAddingLabel((v) => !v)} className="text-neutral-600 hover:text-white transition-colors">
-            <Plus size={11} />
-          </button>
-        </div>
-
-        {labels.length > 0 && (
-          <div className="flex flex-wrap gap-1 mb-2">
-            {labels.map((l) => (
-              <LabelChip key={l.id} label={l} onRemove={() => removeLabel(l.id)} />
-            ))}
-          </div>
-        )}
-
-        {addingLabel && (
-          <div className="space-y-2">
-            <input
-              type="text"
-              value={newLabel}
-              onChange={(e) => setNewLabel(e.target.value)}
-              onKeyDown={(e) => { if (e.key === 'Enter') saveLabel(); if (e.key === 'Escape') setAddingLabel(false); }}
-              placeholder="Nome da etiqueta"
-              autoFocus
-              className="w-full bg-[#050505] border border-[#1a1a1a] rounded-lg px-2.5 py-1.5 text-xs text-white placeholder:text-neutral-700 focus:outline-none focus:border-neutral-600"
-            />
-            <div className="flex flex-wrap gap-1.5">
-              {LABEL_COLORS.map((c) => (
-                <button
-                  key={c}
-                  onClick={() => setLabelColor(c)}
-                  className="w-4 h-4 rounded-full transition-transform"
-                  style={{
-                    background: c,
-                    transform: labelColor === c ? 'scale(1.3)' : 'scale(1)',
-                    outline: labelColor === c ? `2px solid ${c}55` : 'none',
-                    outlineOffset: 2,
-                  }}
-                />
-              ))}
-            </div>
-            <button
-              onClick={saveLabel}
-              disabled={savingLabel || !newLabel.trim()}
-              className="text-[11px] bg-white text-black rounded px-2.5 py-1 font-medium disabled:opacity-40 hover:bg-neutral-200 transition-colors flex items-center gap-1"
-            >
-              {savingLabel ? <Loader2 size={10} className="animate-spin" /> : 'Adicionar'}
-            </button>
-          </div>
-        )}
-
-        {labels.length === 0 && !addingLabel && (
-          <p className="text-[11px] text-neutral-700">Sem etiquetas</p>
-        )}
-      </div>
-
-      {/* Notes */}
-      <div className="px-4 py-3 flex-1">
-        <div className="text-[10px] uppercase tracking-wider text-neutral-500 mb-2 flex items-center gap-1.5">
-          <StickyNote size={9} /> Notas internas
-        </div>
-
-        <div className="space-y-2 mb-3">
-          {notes.length === 0 && <p className="text-[11px] text-neutral-700">Sem notas ainda</p>}
-          {notes.map((n) => (
-            <div key={n.id} className="group bg-[#050505] border border-[#1a1a1a] rounded-lg px-3 py-2">
-              <p className="text-[11px] text-neutral-300 leading-relaxed whitespace-pre-wrap">{n.content}</p>
-              <div className="flex items-center justify-between mt-1.5">
-                <span className="text-[9px] text-neutral-700">
-                  {new Date(n.created_at).toLocaleDateString('pt-BR', {
-                    day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit',
-                  })}
-                </span>
-                <button
-                  onClick={() => deleteNote(n.id)}
-                  disabled={deletingNoteId === n.id}
-                  className="opacity-0 group-hover:opacity-100 text-neutral-600 hover:text-red-400 transition-all"
-                >
-                  {deletingNoteId === n.id ? <Loader2 size={10} className="animate-spin" /> : <Trash2 size={10} />}
-                </button>
-              </div>
-            </div>
-          ))}
-        </div>
-
-        <textarea
-          value={noteText}
-          onChange={(e) => setNoteText(e.target.value)}
-          placeholder="Adicionar nota..."
-          rows={2}
-          className="w-full bg-[#050505] border border-[#1a1a1a] rounded-lg px-2.5 py-2 text-xs text-white placeholder:text-neutral-700 focus:outline-none focus:border-neutral-600 resize-none transition-colors"
-        />
-        <button
-          onClick={saveNote}
-          disabled={savingNote || !noteText.trim()}
-          className="mt-1.5 text-[11px] bg-white text-black rounded px-2.5 py-1 font-medium disabled:opacity-40 hover:bg-neutral-200 transition-colors flex items-center gap-1"
-        >
-          {savingNote ? <Loader2 size={10} className="animate-spin" /> : <><Plus size={10} /> Salvar nota</>}
-        </button>
-      </div>
-    </div>
   );
 }
 
@@ -413,15 +156,9 @@ export function ChatPage({ instance }: { instance: Instance }) {
   const [search, setSearch] = useState('');
   const [loadingThread, setLoadingThread] = useState(false);
   const [activeFilter, setActiveFilter] = useState<ActiveFilter>('all');
-  const [showPanel, setShowPanel] = useState(true);
   const [quickReplies, setQuickReplies] = useState<QuickReply[]>([]);
   const [showQR, setShowQR] = useState(false);
   const [qrQuery, setQrQuery] = useState('');
-
-  const [panelNotes, setPanelNotes] = useState<ContactNote[]>([]);
-  const [panelLabels, setPanelLabels] = useState<ContactLabel[]>([]);
-  const [panelMsgCount, setPanelMsgCount] = useState(0);
-  const [panelFirstContact, setPanelFirstContact] = useState<string | null>(null);
 
   const threadRef = useRef<HTMLDivElement>(null);
   const composeRef = useRef<HTMLTextAreaElement>(null);
@@ -492,32 +229,6 @@ export function ChatPage({ instance }: { instance: Instance }) {
     setQuickReplies(data || []);
   }, [profile?.id, instance.id]);
 
-  const loadPanelData = useCallback(async (number: string) => {
-    const [notesRes, labelsRes, firstRes] = await Promise.all([
-      supabase
-        .from('contact_notes')
-        .select('*')
-        .eq('instance_id', instance.id)
-        .eq('customer_number', number)
-        .order('created_at', { ascending: false }),
-      supabase
-        .from('contact_labels')
-        .select('*')
-        .eq('instance_id', instance.id)
-        .eq('customer_number', number),
-      supabase
-        .from('chat_logs')
-        .select('id, created_at')
-        .eq('instance_id', instance.id)
-        .eq('customer_number', number)
-        .order('created_at', { ascending: true })
-        .limit(1),
-    ]);
-    setPanelNotes(notesRes.data || []);
-    setPanelLabels(labelsRes.data || []);
-    setPanelFirstContact(firstRes.data?.[0]?.created_at ?? null);
-  }, [instance.id]);
-
   useEffect(() => {
     loadContacts();
     loadQuickReplies();
@@ -530,18 +241,6 @@ export function ChatPage({ instance }: { instance: Instance }) {
       .subscribe();
     return () => { supabase.removeChannel(channel); };
   }, [instance.id]);
-
-  useEffect(() => {
-    if (!selected) return;
-    loadPanelData(selected);
-    // get total count separately
-    supabase
-      .from('chat_logs')
-      .select('id', { count: 'exact', head: true })
-      .eq('instance_id', instance.id)
-      .eq('customer_number', selected)
-      .then(({ count }) => setPanelMsgCount(count || 0));
-  }, [selected]);
 
   const loadThread = async (number: string) => {
     setLoadingThread(true);
@@ -640,6 +339,9 @@ export function ChatPage({ instance }: { instance: Instance }) {
 
   const manualCount = contacts.filter((c) => c.manual).length;
 
+  // LABEL_COLORS kept in import to avoid unused-var; referenced via allLabels color data
+  void LABEL_COLORS;
+
   return (
     <div className="space-y-4">
       <div>
@@ -654,7 +356,7 @@ export function ChatPage({ instance }: { instance: Instance }) {
         style={{
           height: 'calc(100vh - 200px)',
           display: 'grid',
-          gridTemplateColumns: showPanel && selected ? '240px 1fr 220px' : '240px 1fr',
+          gridTemplateColumns: '240px 1fr',
         }}
       >
         {/* ── LEFT: contacts ── */}
@@ -786,13 +488,6 @@ export function ChatPage({ instance }: { instance: Instance }) {
                     <Hand size={11} />
                     {selectedContact?.manual ? 'Retomar bot' : 'Assumir manual'}
                   </button>
-                  <button
-                    onClick={() => setShowPanel((v) => !v)}
-                    className="text-neutral-500 hover:text-white transition-colors p-1"
-                    title={showPanel ? 'Ocultar painel' : 'Mostrar painel do contato'}
-                  >
-                    {showPanel ? <ChevronRight size={14} /> : <ChevronLeft size={14} />}
-                  </button>
                 </div>
               </div>
 
@@ -882,29 +577,6 @@ export function ChatPage({ instance }: { instance: Instance }) {
             </>
           )}
         </div>
-
-        {/* ── RIGHT: contact panel ── */}
-        {showPanel && selected && (
-          <ContactPanel
-            instanceId={instance.id}
-            number={selected}
-            contactName={contactName}
-            labels={panelLabels}
-            notes={panelNotes}
-            messageCount={panelMsgCount}
-            firstContact={panelFirstContact}
-            onNameSaved={(name) => {
-              setContacts((prev) =>
-                prev.map((c) => c.number === selected ? { ...c, name: name || null } : c)
-              );
-            }}
-            onLabelsChanged={() => {
-              loadPanelData(selected);
-              loadContacts();
-            }}
-            onNotesChanged={() => loadPanelData(selected)}
-          />
-        )}
       </div>
     </div>
   );
