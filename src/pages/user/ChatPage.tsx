@@ -10,7 +10,7 @@ type ContactSummary = {
   manual: boolean;
 };
 
-export function ConversationsPage({ instance }: { instance: Instance }) {
+export function ChatPage({ instance }: { instance: Instance }) {
   const [contacts, setContacts] = useState<ContactSummary[]>([]);
   const [selected, setSelected] = useState<string | null>(null);
   const [thread, setThread] = useState<ChatLog[]>([]);
@@ -58,21 +58,15 @@ export function ConversationsPage({ instance }: { instance: Instance }) {
   useEffect(() => {
     loadContacts();
     const channel = supabase
-      .channel(`conv_list:${instance.id}`)
-      .on(
-        'postgres_changes',
-        {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'chat_logs',
-          filter: `instance_id=eq.${instance.id}`,
-        },
-        () => loadContacts()
-      )
+      .channel(`chat_list:${instance.id}`)
+      .on('postgres_changes', {
+        event: 'INSERT',
+        schema: 'public',
+        table: 'chat_logs',
+        filter: `instance_id=eq.${instance.id}`,
+      }, () => loadContacts())
       .subscribe();
-    return () => {
-      supabase.removeChannel(channel);
-    };
+    return () => { supabase.removeChannel(channel); };
   }, [instance.id]);
 
   const loadThread = async (number: string) => {
@@ -95,29 +89,23 @@ export function ConversationsPage({ instance }: { instance: Instance }) {
     if (!selected) return;
     loadThread(selected);
     const channel = supabase
-      .channel(`conv_thread:${instance.id}:${selected}`)
-      .on(
-        'postgres_changes',
-        {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'chat_logs',
-          filter: `instance_id=eq.${instance.id}`,
-        },
-        (payload) => {
-          const row = payload.new as ChatLog;
-          if (row.customer_number === selected) {
-            setThread((prev) => [...prev, row]);
-            setTimeout(() => {
-              threadRef.current?.scrollTo({ top: threadRef.current.scrollHeight });
-            }, 50);
-          }
+      .channel(`chat_thread:${instance.id}:${selected}`)
+      .on('postgres_changes', {
+        event: 'INSERT',
+        schema: 'public',
+        table: 'chat_logs',
+        filter: `instance_id=eq.${instance.id}`,
+      }, (payload) => {
+        const row = payload.new as ChatLog;
+        if (row.customer_number === selected) {
+          setThread((prev) => [...prev, row]);
+          setTimeout(() => {
+            threadRef.current?.scrollTo({ top: threadRef.current.scrollHeight });
+          }, 50);
         }
-      )
+      })
       .subscribe();
-    return () => {
-      supabase.removeChannel(channel);
-    };
+    return () => { supabase.removeChannel(channel); };
   }, [selected, instance.id]);
 
   const sendReply = async () => {
@@ -152,7 +140,7 @@ export function ConversationsPage({ instance }: { instance: Instance }) {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-semibold text-white tracking-tight">Conversas</h1>
+        <h1 className="text-2xl font-semibold text-white tracking-tight">Chat</h1>
         <p className="text-sm text-neutral-500 mt-1">
           Histórico por contato com possibilidade de resposta manual.
         </p>
@@ -192,10 +180,7 @@ export function ConversationsPage({ instance }: { instance: Instance }) {
                     <div className="flex items-center justify-between mb-1">
                       <span className="text-xs font-mono text-white">{c.number}</span>
                       <span className="text-[10px] text-neutral-600">
-                        {new Date(c.lastAt).toLocaleTimeString('pt-BR', {
-                          hour: '2-digit',
-                          minute: '2-digit',
-                        })}
+                        {new Date(c.lastAt).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
                       </span>
                     </div>
                     <div className="flex items-center gap-2">
@@ -254,10 +239,7 @@ export function ConversationsPage({ instance }: { instance: Instance }) {
                   thread.map((m) => {
                     const isIn = m.direction === 'in';
                     return (
-                      <div
-                        key={m.id}
-                        className={`flex gap-2 ${isIn ? 'justify-start' : 'justify-end'}`}
-                      >
+                      <div key={m.id} className={`flex gap-2 ${isIn ? 'justify-start' : 'justify-end'}`}>
                         {isIn && (
                           <div className="w-6 h-6 rounded-full bg-[#0a0a0a] border border-[#1a1a1a] flex items-center justify-center shrink-0">
                             <User size={11} className="text-neutral-500" />
@@ -271,15 +253,8 @@ export function ConversationsPage({ instance }: { instance: Instance }) {
                           }`}
                         >
                           <p className="whitespace-pre-wrap break-words">{m.message_body}</p>
-                          <div
-                            className={`text-[9px] mt-1 ${
-                              isIn ? 'text-neutral-600' : 'text-neutral-500'
-                            }`}
-                          >
-                            {new Date(m.created_at).toLocaleTimeString('pt-BR', {
-                              hour: '2-digit',
-                              minute: '2-digit',
-                            })}
+                          <div className={`text-[9px] mt-1 ${isIn ? 'text-neutral-600' : 'text-neutral-500'}`}>
+                            {new Date(m.created_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
                           </div>
                         </div>
                         {!isIn && (
@@ -299,10 +274,7 @@ export function ConversationsPage({ instance }: { instance: Instance }) {
                     value={draft}
                     onChange={(e) => setDraft(e.target.value)}
                     onKeyDown={(e) => {
-                      if (e.key === 'Enter' && !e.shiftKey) {
-                        e.preventDefault();
-                        sendReply();
-                      }
+                      if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendReply(); }
                     }}
                     placeholder="Escreva uma resposta manual..."
                     rows={1}

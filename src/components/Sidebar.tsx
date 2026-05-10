@@ -1,18 +1,16 @@
 import { useState } from 'react';
-import { LayoutDashboard, Link2, Sliders, Activity, MessagesSquare, LogOut, Shield, Menu, X, CircleUser as UserCircle2, Database } from 'lucide-react';
+import { LayoutDashboard, Link2, MessagesSquare, LogOut, Shield, Menu, X, Bot, Database } from 'lucide-react';
 import { Logo } from './Logo';
 import { useAuth } from '../context/AuthContext';
 
-export type PageKey = 'overview' | 'profile' | 'connections' | 'settings' | 'knowledge' | 'monitor' | 'conversations';
+export type PageKey = 'overview' | 'agents' | 'connections' | 'knowledge' | 'chat';
 
 const ITEMS: { key: PageKey; label: string; icon: typeof LayoutDashboard }[] = [
   { key: 'overview', label: 'Visão Geral', icon: LayoutDashboard },
-  { key: 'profile', label: 'Perfil do Agente', icon: UserCircle2 },
+  { key: 'agents', label: 'Agentes', icon: Bot },
   { key: 'connections', label: 'Conexões', icon: Link2 },
-  { key: 'settings', label: 'Ajustes do Agente', icon: Sliders },
   { key: 'knowledge', label: 'Base de Conhecimento', icon: Database },
-  { key: 'monitor', label: 'Monitor ao Vivo', icon: Activity },
-  { key: 'conversations', label: 'Conversas', icon: MessagesSquare },
+  { key: 'chat', label: 'Chat', icon: MessagesSquare },
 ];
 
 export function Sidebar({

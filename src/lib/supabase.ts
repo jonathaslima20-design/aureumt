@@ -153,3 +153,23 @@ export type ChatLog = {
   tokens_used: number;
   created_at: string;
 };
+
+export type KnowledgeBase = {
+  id: string;
+  user_id: string;
+  name: string;
+  description: string;
+  created_at: string;
+};
+
+export type KnowledgeSource = {
+  id: string;
+  instance_id: string | null;
+  knowledge_base_id: string | null;
+  type: 'file' | 'url' | 'audio';
+  title: string;
+  content: string;
+  metadata: Record<string, unknown>;
+  is_active: boolean;
+  created_at: string;
+};

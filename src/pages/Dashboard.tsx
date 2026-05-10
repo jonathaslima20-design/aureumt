@@ -1,42 +1,41 @@
 import { useEffect, useState } from 'react';
-import { Plus, Loader2, Trash2, AlertTriangle, X } from 'lucide-react';
+import { Loader2, Trash2, AlertTriangle, X } from 'lucide-react';
 import { Sidebar, PageKey } from '../components/Sidebar';
 import { supabase, Instance } from '../lib/supabase';
 import { useAuth } from '../context/AuthContext';
 import { evolution } from '../lib/evolution';
-import { AgentAvatar } from '../components/AgentAvatar';
 import { CreateAgentModal } from '../components/CreateAgentModal';
 import { OverviewPage } from './user/OverviewPage';
+import { AgentsPage } from './user/AgentsPage';
+import { AgentDetailPage } from './user/AgentDetailPage';
 import { ConnectionsPage } from './user/ConnectionsPage';
-import { SettingsPage } from './user/SettingsPage';
 import { KnowledgePage } from './user/KnowledgePage';
-import { MonitorPage } from './user/MonitorPage';
-import { ConversationsPage } from './user/ConversationsPage';
-import { ProfilePage } from './user/ProfilePage';
+import { ChatPage } from './user/ChatPage';
 
 const STORAGE_KEY = 'auratalk:lastPage';
-const STORAGE_INSTANCE = 'auratalk:lastInstance';
 
 export function Dashboard({ onNavAdmin }: { onNavAdmin: () => void }) {
   const { profile } = useAuth();
   const [instances, setInstances] = useState<Instance[]>([]);
-  const [selectedId, setSelectedId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [showCreate, setShowCreate] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState<Instance | null>(null);
   const [deleting, setDeleting] = useState(false);
+  const [linkedBaseCounts, setLinkedBaseCounts] = useState<Record<string, number>>({});
+
   const [page, setPage] = useState<PageKey>(() => {
     const saved = localStorage.getItem(STORAGE_KEY) as PageKey | null;
-    return saved || 'overview';
+    const valid: PageKey[] = ['overview', 'agents', 'connections', 'knowledge', 'chat'];
+    return saved && valid.includes(saved) ? saved : 'overview';
   });
+
+  const [selectedAgent, setSelectedAgent] = useState<Instance | null>(null);
+  const [selectedChatInstance, setSelectedChatInstance] = useState<Instance | null>(null);
+  const [selectedConnectionInstance, setSelectedConnectionInstance] = useState<Instance | null>(null);
 
   useEffect(() => {
     localStorage.setItem(STORAGE_KEY, page);
   }, [page]);
-
-  useEffect(() => {
-    if (selectedId) localStorage.setItem(STORAGE_INSTANCE, selectedId);
-  }, [selectedId]);
 
   const fetchInstances = async () => {
     const { data } = await supabase
@@ -45,10 +44,17 @@ export function Dashboard({ onNavAdmin }: { onNavAdmin: () => void }) {
       .order('created_at', { ascending: true });
     const list = data || [];
     setInstances(list);
-    if (!selectedId && list.length > 0) {
-      const saved = localStorage.getItem(STORAGE_INSTANCE);
-      const match = list.find((i) => i.id === saved);
-      setSelectedId(match ? match.id : list[0].id);
+
+    if (list.length > 0) {
+      const { data: links } = await supabase
+        .from('instance_knowledge_bases')
+        .select('instance_id')
+        .in('instance_id', list.map((i) => i.id));
+      const counts: Record<string, number> = {};
+      (links || []).forEach((l: { instance_id: string }) => {
+        counts[l.instance_id] = (counts[l.instance_id] || 0) + 1;
+      });
+      setLinkedBaseCounts(counts);
     }
     setLoading(false);
   };
@@ -59,32 +65,31 @@ export function Dashboard({ onNavAdmin }: { onNavAdmin: () => void }) {
 
   const handleCreated = (inst: Instance) => {
     setInstances((prev) => [...prev, inst]);
-    setSelectedId(inst.id);
     setShowCreate(false);
+    setSelectedAgent(inst);
+    setPage('agents');
   };
 
-  const deleteInstance = async () => {
+  const handleDeleteConfirmed = async () => {
     if (!confirmDelete) return;
     setDeleting(true);
     try {
-      try {
-        await evolution.deleteInstance(confirmDelete.id);
-      } catch {
-        /* evolution pode falhar se nunca criada; seguir com remoção local */
-      }
+      try { await evolution.deleteInstance(confirmDelete.id); } catch { /* ignore */ }
       await supabase.from('instances').delete().eq('id', confirmDelete.id);
-      const remaining = instances.filter((i) => i.id !== confirmDelete.id);
-      setInstances(remaining);
-      if (selectedId === confirmDelete.id) {
-        setSelectedId(remaining[0]?.id || null);
-      }
+      setInstances((prev) => prev.filter((i) => i.id !== confirmDelete.id));
+      if (selectedAgent?.id === confirmDelete.id) setSelectedAgent(null);
+      if (selectedChatInstance?.id === confirmDelete.id) setSelectedChatInstance(null);
+      if (selectedConnectionInstance?.id === confirmDelete.id) setSelectedConnectionInstance(null);
       setConfirmDelete(null);
     } finally {
       setDeleting(false);
     }
   };
 
-  const selected = instances.find((i) => i.id === selectedId) || null;
+  const handlePageChange = (p: PageKey) => {
+    setPage(p);
+    setSelectedAgent(null);
+  };
 
   if (loading) {
     return (
@@ -95,22 +100,77 @@ export function Dashboard({ onNavAdmin }: { onNavAdmin: () => void }) {
   }
 
   const renderPage = () => {
-    if (!selected) return null;
     switch (page) {
       case 'overview':
-        return <OverviewPage instance={selected} />;
-      case 'profile':
-        return <ProfilePage instance={selected} onUpdate={fetchInstances} />;
+        return <OverviewPage instance={instances[0] || null} />;
+
+      case 'agents':
+        if (selectedAgent) {
+          return (
+            <AgentDetailPage
+              instance={selectedAgent}
+              onBack={() => setSelectedAgent(null)}
+              onUpdate={fetchInstances}
+              onDelete={(inst) => setConfirmDelete(inst)}
+            />
+          );
+        }
+        return (
+          <AgentsPage
+            instances={instances}
+            onCreateAgent={() => setShowCreate(true)}
+            onSelectAgent={(inst) => setSelectedAgent(inst)}
+            linkedBaseCounts={linkedBaseCounts}
+          />
+        );
+
       case 'connections':
-        return <ConnectionsPage instance={selected} onUpdate={fetchInstances} />;
-      case 'settings':
-        return <SettingsPage instance={selected} onUpdate={fetchInstances} />;
+        if (instances.length === 0) return <EmptyAgentsPrompt onCreate={() => setShowCreate(true)} />;
+        if (!selectedConnectionInstance && instances.length > 0) {
+          if (instances.length === 1) {
+            return (
+              <ConnectionsPage
+                instance={instances[0]}
+                onUpdate={fetchInstances}
+              />
+            );
+          }
+          return (
+            <InstancePicker
+              instances={instances}
+              title="Conexões"
+              description="Selecione um agente para gerenciar a conexão WhatsApp."
+              onSelect={(inst) => setSelectedConnectionInstance(inst)}
+            />
+          );
+        }
+        return (
+          <ConnectionsPage
+            instance={selectedConnectionInstance || instances[0]}
+            onUpdate={fetchInstances}
+          />
+        );
+
       case 'knowledge':
-        return <KnowledgePage instance={selected} />;
-      case 'monitor':
-        return <MonitorPage instance={selected} />;
-      case 'conversations':
-        return <ConversationsPage instance={selected} />;
+        return <KnowledgePage />;
+
+      case 'chat':
+        if (instances.length === 0) return <EmptyAgentsPrompt onCreate={() => setShowCreate(true)} />;
+        if (!selectedChatInstance) {
+          if (instances.length === 1) {
+            return <ChatPage instance={instances[0]} />;
+          }
+          return (
+            <InstancePicker
+              instances={instances}
+              title="Chat"
+              description="Selecione um agente para ver as conversas."
+              onSelect={(inst) => setSelectedChatInstance(inst)}
+            />
+          );
+        }
+        return <ChatPage instance={selectedChatInstance} />;
+
       default:
         return null;
     }
@@ -118,100 +178,11 @@ export function Dashboard({ onNavAdmin }: { onNavAdmin: () => void }) {
 
   return (
     <div className="min-h-screen bg-[#050505]">
-      <Sidebar current={page} onChange={setPage} onNavAdmin={onNavAdmin} />
+      <Sidebar current={page} onChange={handlePageChange} onNavAdmin={onNavAdmin} />
 
       <div className="lg:pl-60">
-        {instances.length > 0 && (
-          <div className="sticky top-0 z-10 bg-[#050505]/90 backdrop-blur-xl border-b border-[#1a1a1a]">
-            <div className="px-6 lg:px-10 py-3 flex items-center gap-3 justify-end lg:justify-between">
-              <div className="hidden lg:flex items-center gap-2 overflow-x-auto scrollbar-thin">
-                {instances.map((inst) => (
-                  <button
-                    key={inst.id}
-                    onClick={() => setSelectedId(inst.id)}
-                    className={`pl-1 pr-3 py-1 rounded-full text-xs whitespace-nowrap border flex items-center gap-2 transition-colors ${
-                      selectedId === inst.id
-                        ? 'bg-white text-black border-white'
-                        : 'border-[#1a1a1a] text-neutral-400 hover:text-white hover:border-[#262626]'
-                    }`}
-                  >
-                    <AgentAvatar
-                      name={inst.display_name || inst.instance_name}
-                      url={inst.avatar_url}
-                      color={inst.color}
-                      size={22}
-                    />
-                    {inst.display_name || inst.instance_name}
-                  </button>
-                ))}
-              </div>
-              <div className="flex items-center gap-2 shrink-0">
-                {selected && (
-                  <button
-                    onClick={() => setConfirmDelete(selected)}
-                    className="text-neutral-500 hover:text-red-400 border border-[#1a1a1a] hover:border-red-900/60 rounded-lg px-3 py-1.5 text-xs flex items-center gap-1.5 transition-colors"
-                    title="Excluir agente selecionado"
-                  >
-                    <Trash2 size={12} />
-                    Excluir
-                  </button>
-                )}
-                <button
-                  onClick={() => setShowCreate(true)}
-                  className="bg-white text-black rounded-lg px-3 py-1.5 text-xs font-medium flex items-center gap-2 hover:bg-neutral-200 transition-colors"
-                >
-                  <Plus size={12} />
-                  Novo agente
-                </button>
-              </div>
-            </div>
-            <div className="lg:hidden px-6 pb-3 flex gap-2 overflow-x-auto scrollbar-thin items-center">
-              {instances.map((inst) => (
-                <button
-                  key={inst.id}
-                  onClick={() => setSelectedId(inst.id)}
-                  className={`pl-1 pr-3 py-1 rounded-full text-xs whitespace-nowrap border flex items-center gap-2 transition-colors ${
-                    selectedId === inst.id
-                      ? 'bg-white text-black border-white'
-                      : 'border-[#1a1a1a] text-neutral-400 hover:text-white hover:border-[#262626]'
-                  }`}
-                >
-                  <AgentAvatar
-                    name={inst.display_name || inst.instance_name}
-                    url={inst.avatar_url}
-                    color={inst.color}
-                    size={20}
-                  />
-                  {inst.display_name || inst.instance_name}
-                </button>
-              ))}
-              {selected && (
-                <button
-                  onClick={() => setConfirmDelete(selected)}
-                  className="shrink-0 text-neutral-500 hover:text-red-400 border border-[#1a1a1a] hover:border-red-900/60 rounded-md p-1.5 transition-colors"
-                  title="Excluir agente selecionado"
-                >
-                  <Trash2 size={12} />
-                </button>
-              )}
-            </div>
-          </div>
-        )}
-
         <main className="px-6 lg:px-10 py-8 max-w-7xl">
-          {instances.length === 0 ? (
-            <div className="border border-dashed border-[#1a1a1a] rounded-xl p-16 text-center">
-              <p className="text-sm text-neutral-500 mb-4">Nenhum agente ainda. Crie o primeiro.</p>
-              <button
-                onClick={() => setShowCreate(true)}
-                className="bg-white text-black rounded-lg px-4 py-2 text-sm font-medium inline-flex items-center gap-2 hover:bg-neutral-200 transition-colors"
-              >
-                <Plus size={14} /> Criar agente
-              </button>
-            </div>
-          ) : (
-            renderPage()
-          )}
+          {renderPage()}
         </main>
       </div>
 
@@ -236,7 +207,11 @@ export function Dashboard({ onNavAdmin }: { onNavAdmin: () => void }) {
               </button>
             </div>
             <p className="text-sm text-neutral-300 leading-relaxed">
-              O agente <span className="text-white font-medium">{confirmDelete.display_name || confirmDelete.instance_name}</span> será removido permanentemente, junto com suas conexões e histórico de conversas.
+              O agente{' '}
+              <span className="text-white font-medium">
+                {confirmDelete.display_name || confirmDelete.instance_name}
+              </span>{' '}
+              será removido permanentemente, junto com suas conexões e histórico de conversas.
             </p>
             <div className="flex gap-2 mt-6">
               <button
@@ -247,7 +222,7 @@ export function Dashboard({ onNavAdmin }: { onNavAdmin: () => void }) {
                 Cancelar
               </button>
               <button
-                onClick={deleteInstance}
+                onClick={handleDeleteConfirmed}
                 disabled={deleting}
                 className="flex-1 bg-red-500/90 hover:bg-red-500 text-white rounded-lg py-2.5 text-sm font-medium flex items-center justify-center gap-2 transition-colors disabled:opacity-50"
               >
@@ -266,6 +241,65 @@ export function Dashboard({ onNavAdmin }: { onNavAdmin: () => void }) {
           onCreated={handleCreated}
         />
       )}
+    </div>
+  );
+}
+
+function EmptyAgentsPrompt({ onCreate }: { onCreate: () => void }) {
+  return (
+    <div className="border border-dashed border-[#1a1a1a] rounded-xl p-16 text-center">
+      <p className="text-sm text-neutral-500 mb-4">Nenhum agente ainda. Crie o primeiro.</p>
+      <button
+        onClick={onCreate}
+        className="bg-white text-black rounded-lg px-4 py-2 text-sm font-medium inline-flex items-center gap-2 hover:bg-neutral-200 transition-colors"
+      >
+        Criar agente
+      </button>
+    </div>
+  );
+}
+
+function InstancePicker({
+  instances,
+  title,
+  description,
+  onSelect,
+}: {
+  instances: Instance[];
+  title: string;
+  description: string;
+  onSelect: (inst: Instance) => void;
+}) {
+  return (
+    <div className="space-y-6">
+      <div>
+        <h1 className="text-2xl font-semibold text-white tracking-tight">{title}</h1>
+        <p className="text-sm text-neutral-500 mt-1">{description}</p>
+      </div>
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
+        {instances.map((inst) => (
+          <button
+            key={inst.id}
+            onClick={() => onSelect(inst)}
+            className="text-left bg-[#0a0a0a] border border-[#1a1a1a] rounded-xl p-4 hover:border-[#2a2a2a] hover:bg-[#0d0d0d] transition-colors flex items-center gap-3"
+          >
+            <div
+              className="w-8 h-8 rounded-full shrink-0 flex items-center justify-center text-white text-xs font-semibold"
+              style={{ background: inst.color || '#3b82f6' }}
+            >
+              {(inst.display_name || inst.instance_name).slice(0, 2).toUpperCase()}
+            </div>
+            <div className="min-w-0">
+              <div className="text-sm text-white font-medium truncate">
+                {inst.display_name || inst.instance_name}
+              </div>
+              {inst.company_name && (
+                <div className="text-[11px] text-neutral-600 truncate">{inst.company_name}</div>
+              )}
+            </div>
+          </button>
+        ))}
+      </div>
     </div>
   );
 }
