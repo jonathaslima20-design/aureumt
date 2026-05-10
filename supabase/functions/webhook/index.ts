@@ -210,32 +210,43 @@ async function callGemini(apiKey: string, systemPrompt: string, history: { role:
   };
 }
 
-async function sendPresence(creds: Creds, instanceName: string, number: string) {
+async function sendPresence(creds: Creds, instanceName: string, number: string, durationMs: number) {
   const url = `${creds.url.replace(/\/$/, "")}/chat/sendPresence/${instanceName}`;
   try {
     const res = await fetch(url, {
       method: "POST",
       headers: { "Content-Type": "application/json", apikey: creds.key },
-      body: JSON.stringify({ number, presence: "composing", delay: 5000 }),
+      // delay tells Evolution how long to show "composing" — keep it slightly over durationMs
+      body: JSON.stringify({ number, presence: "composing", delay: durationMs + 500 }),
     });
-    console.log("[sendPresence] status:", res.status, "number:", number);
+    console.log("[sendPresence] status:", res.status, "number:", number, "durationMs:", durationMs);
   } catch (e) {
     console.error("[sendPresence] error:", e instanceof Error ? e.message : e);
   }
 }
 
+// Calculates a realistic typing duration based on message length.
+// ~200 chars/min average human typing speed on phone, capped between 1.5s and 12s.
+function typingDurationForText(text: string): number {
+  const CHARS_PER_MS = 200 / 60000; // ~3.3 chars/ms
+  const raw = text.length / CHARS_PER_MS;
+  return Math.max(1500, Math.min(12000, raw));
+}
+
 async function simulateTyping(creds: Creds, instanceName: string, number: string, totalMs: number) {
-  const REFRESH_INTERVAL = 4000;
+  // Send presence once with the full duration — Evolution will display "composing" for that period.
+  // Refresh every 4s in case Evolution resets early, keeping the indicator stable.
+  const REFRESH_INTERVAL = 3800;
+  await sendPresence(creds, instanceName, number, totalMs);
   let elapsed = 0;
-  await sendPresence(creds, instanceName, number);
-  while (elapsed < totalMs) {
-    const wait = Math.min(REFRESH_INTERVAL, totalMs - elapsed);
-    await new Promise((r) => setTimeout(r, wait));
-    elapsed += wait;
-    if (elapsed < totalMs) {
-      await sendPresence(creds, instanceName, number);
-    }
+  while (elapsed + REFRESH_INTERVAL < totalMs) {
+    await new Promise((r) => setTimeout(r, REFRESH_INTERVAL));
+    elapsed += REFRESH_INTERVAL;
+    await sendPresence(creds, instanceName, number, totalMs - elapsed);
   }
+  // Wait out the remaining time
+  const remaining = totalMs - elapsed;
+  if (remaining > 0) await new Promise((r) => setTimeout(r, remaining));
 }
 
 async function sendText(creds: Creds, instanceName: string, number: string, text: string) {
@@ -589,6 +600,11 @@ Deno.serve(async (req) => {
         }
       }
 
+      // Wait the configured response_delay BEFORE calling Gemini — simulates the agent reading the message
+      const rawDelay = (instance.response_delay as number) || 3000;
+      const readDelayMs = rawDelay > 100 ? Math.round(rawDelay) : Math.round(rawDelay * 1000);
+      await new Promise((r) => setTimeout(r, readDelayMs));
+
       const { text: reply, tokens, error: gemErr } = await callGemini(creds.gemini, finalPrompt, ordered);
       if (gemErr) console.error("Gemini final error", gemErr);
 
@@ -601,18 +617,11 @@ Deno.serve(async (req) => {
       console.log("[webhook] reply length:", reply.length, "fragments:", fragments.length, "remoteJid:", remoteJid);
       console.log("[webhook] full reply:", reply.slice(0, 300));
 
-      const rawDelay = (instance.response_delay as number) || 3;
-      // response_delay may be stored in seconds (e.g. 3) or milliseconds (e.g. 3000)
-      const typingMs = rawDelay > 100 ? Math.round(rawDelay) : Math.round(rawDelay * 1000);
-
-      // Send first fragment with configured delay
-      await simulateTyping(creds, instanceName, remoteJid, typingMs);
-      await sendText(creds, instanceName, remoteJid, fragments[0] || reply);
-
-      // Send remaining fragments with same configured delay
-      for (let i = 1; i < fragments.length; i++) {
+      // Each fragment gets a typing duration proportional to its own length
+      for (const fragment of (fragments.length > 0 ? fragments : [reply])) {
+        const typingMs = typingDurationForText(fragment);
         await simulateTyping(creds, instanceName, remoteJid, typingMs);
-        await sendText(creds, instanceName, remoteJid, fragments[i]);
+        await sendText(creds, instanceName, remoteJid, fragment);
       }
 
       await admin.from("chat_logs").insert({
