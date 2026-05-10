@@ -111,9 +111,24 @@ async function downloadMedia(evolutionUrl: string, evolutionKey: string, instanc
   }
 }
 
+function normalizeAudioMime(mimetype: string): string {
+  const base = mimetype.split(";")[0].trim().toLowerCase();
+  const map: Record<string, string> = {
+    "audio/ogg": "audio/ogg",
+    "audio/mpeg": "audio/mpeg",
+    "audio/mp3": "audio/mpeg",
+    "audio/mp4": "audio/mp4",
+    "audio/m4a": "audio/mp4",
+    "audio/webm": "audio/webm",
+    "audio/wav": "audio/wav",
+    "audio/x-wav": "audio/wav",
+  };
+  return map[base] || "audio/ogg";
+}
+
 async function processMediaWithGemini(apiKey: string, base64: string, mimetype: string, instruction: string): Promise<string> {
-  const gemMime = mimetype.includes("ogg") ? "audio/ogg" : mimetype.split(";")[0].trim();
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
+  const gemMime = mimetype.startsWith("audio/") ? normalizeAudioMime(mimetype) : mimetype.split(";")[0].trim();
+  const models = ["gemini-2.5-flash", "gemini-2.0-flash"];
   const body = {
     contents: [{
       parts: [
@@ -121,26 +136,37 @@ async function processMediaWithGemini(apiKey: string, base64: string, mimetype: 
         { text: instruction },
       ],
     }],
-    generationConfig: { temperature: 0.1, maxOutputTokens: 300 },
+    generationConfig: { temperature: 0.1, maxOutputTokens: 500 },
   };
 
   console.log("[processMediaWithGemini] sending", gemMime, "base64 length:", base64.length);
 
-  const res = await fetch(url, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(body),
-  });
-  const data = await res.json();
+  for (const model of models) {
+    try {
+      const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+      const res = await fetch(url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+      const data = await res.json();
 
-  if (!res.ok) {
-    console.error("[processMediaWithGemini] error:", res.status, JSON.stringify(data).slice(0, 300));
-    return "";
+      if (!res.ok) {
+        console.error(`[processMediaWithGemini] ${model} error:`, res.status, JSON.stringify(data).slice(0, 300));
+        continue;
+      }
+
+      const result = (data?.candidates?.[0]?.content?.parts?.[0]?.text || "").trim();
+      if (result) {
+        console.log("[processMediaWithGemini] transcription ok, model:", model, "length:", result.length, "preview:", result.slice(0, 150));
+        return result;
+      }
+    } catch (e) {
+      console.error(`[processMediaWithGemini] ${model} fetch error:`, e instanceof Error ? e.message : e);
+    }
   }
 
-  const result = (data?.candidates?.[0]?.content?.parts?.[0]?.text || "").slice(0, 500);
-  console.log("[processMediaWithGemini] result:", result.slice(0, 200));
-  return result;
+  return "";
 }
 
 async function callGemini(apiKey: string, systemPrompt: string, history: { role: string; text: string }[]) {
@@ -385,29 +411,65 @@ Deno.serve(async (req) => {
       const creds = await loadCreds(admin, instance.user_id);
       if (!creds.gemini || !creds.url || !creds.key) return;
 
-      // Handle media: transcribe audio or describe image (max 300 output tokens, truncated to 500 chars)
+      // Handle media: transcribe audio or describe image
       let mediaContext = "";
       if (media && instance.is_multimodal_active !== false) {
         const rawKey = key as Record<string, unknown>;
         console.log("[webhook] media detected:", media.type, "rawKey:", JSON.stringify(rawKey));
-        const downloaded = await downloadMedia(creds.url, creds.key, instanceName, rawKey);
-        if (downloaded) {
-          console.log("[webhook] media downloaded, base64 length:", downloaded.base64.length, "mime:", downloaded.mimetype);
-          if (media.type === "audio") {
-            mediaContext = await processMediaWithGemini(
-              creds.gemini, downloaded.base64, downloaded.mimetype || "audio/ogg",
-              "Transcribe this audio in the original language. Return only the transcription, no commentary."
-            );
-          } else if (media.type === "image") {
-            mediaContext = await processMediaWithGemini(
-              creds.gemini, downloaded.base64, downloaded.mimetype || "image/jpeg",
-              "Describe this image briefly."
-            );
-          }
-          console.log("[webhook] mediaContext length:", mediaContext.length, "preview:", mediaContext.slice(0, 100));
-        } else {
-          console.log("[webhook] downloadMedia returned null");
+
+        const MEDIA_TIMEOUT_MS = 15000;
+        const downloadPromise = downloadMedia(creds.url, creds.key, instanceName, rawKey);
+        const timeoutPromise = new Promise<null>((r) => setTimeout(() => r(null), MEDIA_TIMEOUT_MS));
+        const downloaded = await Promise.race([downloadPromise, timeoutPromise]);
+
+        if (!downloaded) {
+          console.log("[webhook] downloadMedia failed or timed out — asking user to resend");
+          const retryMsg = "Não consegui ouvir o áudio. Pode me enviar em texto?";
+          const typingMs = typingDurationForText(retryMsg);
+          await simulateTyping(creds, instanceName, remoteJid, typingMs);
+          await sendText(creds, instanceName, remoteJid, retryMsg);
+          await admin.from("chat_logs").insert({
+            instance_id: instance.id,
+            customer_number: customerNumber,
+            direction: "out",
+            message_body: retryMsg,
+            tokens_used: 0,
+          });
+          return;
         }
+
+        console.log("[webhook] media downloaded, base64 length:", downloaded.base64.length, "mime:", downloaded.mimetype);
+
+        const instruction = media.type === "audio"
+          ? "Transcreva este áudio fielmente. Retorne apenas a transcrição, sem comentários ou explicações."
+          : "Descreva esta imagem de forma breve e objetiva.";
+
+        const processPromise = processMediaWithGemini(
+          creds.gemini,
+          downloaded.base64,
+          downloaded.mimetype || (media.type === "audio" ? "audio/ogg" : "image/jpeg"),
+          instruction
+        );
+        const processTimeout = new Promise<string>((r) => setTimeout(() => r(""), MEDIA_TIMEOUT_MS));
+        mediaContext = await Promise.race([processPromise, processTimeout]);
+
+        if (!mediaContext && media.type === "audio") {
+          console.log("[webhook] transcription empty or timed out — asking user to resend");
+          const retryMsg = "Não consegui ouvir o áudio. Pode me enviar em texto?";
+          const typingMs = typingDurationForText(retryMsg);
+          await simulateTyping(creds, instanceName, remoteJid, typingMs);
+          await sendText(creds, instanceName, remoteJid, retryMsg);
+          await admin.from("chat_logs").insert({
+            instance_id: instance.id,
+            customer_number: customerNumber,
+            direction: "out",
+            message_body: retryMsg,
+            tokens_used: 0,
+          });
+          return;
+        }
+
+        console.log("[webhook] mediaContext length:", mediaContext.length, "preview:", mediaContext.slice(0, 150));
       }
 
       // Knowledge base: only fetch sources whose content matches keywords from the user message.
@@ -456,12 +518,12 @@ Deno.serve(async (req) => {
         text: h.message_body.slice(0, 400),
       }));
 
-      // If media was transcribed, replace the last user message with the media context
+      // If media was transcribed/described, replace the last user message with the content directly
+      // so Gemini receives the transcription as if the user typed it
       if (mediaContext) {
         const lastMsg = ordered[ordered.length - 1];
         if (lastMsg && lastMsg.role === "user") {
-          const prefix = media!.type === "audio" ? "[audio]" : "[imagem]";
-          lastMsg.text = `${prefix}: ${mediaContext}`;
+          lastMsg.text = mediaContext;
         }
       }
 
