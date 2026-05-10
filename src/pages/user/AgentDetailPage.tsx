@@ -96,7 +96,7 @@ export function AgentDetailPage({ instance, onBack, onUpdate, onDelete }: Props)
         <SettingsTab instance={instance} onUpdate={onUpdate} />
       )}
       {tab === 'knowledge' && (
-        <KnowledgeTab instance={instance} />
+        <KnowledgeTab instance={instance} onUpdate={onUpdate} />
       )}
     </div>
   );
@@ -517,7 +517,7 @@ function SettingsTab({ instance, onUpdate }: { instance: Instance; onUpdate: () 
   );
 }
 
-function KnowledgeTab({ instance }: { instance: Instance }) {
+function KnowledgeTab({ instance, onUpdate }: { instance: Instance; onUpdate: () => void }) {
   const [linkedBases, setLinkedBases] = useState<KnowledgeBase[]>([]);
   const [allBases, setAllBases] = useState<KnowledgeBase[]>([]);
   const [loading, setLoading] = useState(true);
@@ -556,6 +556,7 @@ function KnowledgeTab({ instance }: { instance: Instance }) {
     await fetchData();
     setLinking(null);
     setShowPicker(false);
+    onUpdate();
   };
 
   const unlinkBase = async (baseId: string) => {
@@ -567,6 +568,7 @@ function KnowledgeTab({ instance }: { instance: Instance }) {
       .eq('knowledge_base_id', baseId);
     await fetchData();
     setUnlinking(null);
+    onUpdate();
   };
 
   const linkedIds = new Set(linkedBases.map((b) => b.id));
