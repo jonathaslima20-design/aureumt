@@ -1,10 +1,9 @@
 import { useEffect, useState } from 'react';
-import { MessageSquare, Zap, Users, AlertTriangle, ArrowUpRight, ArrowDownLeft } from 'lucide-react';
+import { MessageSquare, Users, AlertTriangle, ArrowUpRight, ArrowDownLeft } from 'lucide-react';
 import { supabase, Instance, ChatLog } from '../../lib/supabase';
 
 type Metrics = {
   messagesToday: number;
-  tokensToday: number;
   activeContacts: number;
   overflowRate: number;
 };
@@ -12,7 +11,6 @@ type Metrics = {
 export function OverviewPage({ instance }: { instance: Instance }) {
   const [metrics, setMetrics] = useState<Metrics>({
     messagesToday: 0,
-    tokensToday: 0,
     activeContacts: 0,
     overflowRate: 0,
   });
@@ -47,7 +45,6 @@ export function OverviewPage({ instance }: { instance: Instance }) {
 
       setMetrics({
         messagesToday: todayRows.length,
-        tokensToday: todayRows.reduce((acc, r) => acc + (r.tokens_used || 0), 0),
         activeContacts: contacts.size,
         overflowRate: Math.round((overflowCount / incoming) * 100),
       });
@@ -87,9 +84,8 @@ export function OverviewPage({ instance }: { instance: Instance }) {
         </p>
       </div>
 
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
         <MetricCard icon={MessageSquare} label="Mensagens hoje" value={metrics.messagesToday.toString()} />
-        <MetricCard icon={Zap} label="Tokens hoje" value={metrics.tokensToday.toLocaleString('pt-BR')} />
         <MetricCard icon={Users} label="Contatos ativos" value={metrics.activeContacts.toString()} />
         <MetricCard icon={AlertTriangle} label="Taxa transbordo" value={`${metrics.overflowRate}%`} />
       </div>

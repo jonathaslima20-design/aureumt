@@ -10,8 +10,35 @@ export type Profile = {
   email: string;
   role: 'admin' | 'user';
   plan_status: string;
+  token_limit: number | null;
+  token_alert_threshold: number | null;
   created_at: string;
 };
+
+export type TokenStatsByUser = {
+  user_id: string;
+  email: string;
+  plan_status: string;
+  token_limit: number | null;
+  token_alert_threshold: number | null;
+  tokens_today: number;
+  tokens_7d: number;
+  tokens_month: number;
+  tokens_total: number;
+};
+
+export type TokenDailySeries = {
+  day: string;
+  tokens: number;
+};
+
+// Gemini 2.5 Flash pricing (USD per 1M tokens, output rate used as conservative estimate)
+export const GEMINI_PRICE_PER_1M_OUTPUT_USD = 0.6;
+export const USD_TO_BRL = 5.1;
+
+export function calcCostBRL(tokens: number): number {
+  return (tokens / 1_000_000) * GEMINI_PRICE_PER_1M_OUTPUT_USD * USD_TO_BRL;
+}
 
 export type Instance = {
   id: string;
