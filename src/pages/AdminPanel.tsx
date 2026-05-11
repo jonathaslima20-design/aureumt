@@ -1,10 +1,11 @@
 import { useEffect, useState } from 'react';
 import {
   ArrowLeft, Save, Loader2, Check, Users, MessageCircle, Key,
-  Zap, DollarSign, ChevronDown, ChevronUp, AlertTriangle, TrendingUp,
+  Zap, DollarSign, ChevronDown, ChevronUp, AlertTriangle, TrendingUp, LayoutTemplate,
 } from 'lucide-react';
 import { Logo } from '../components/Logo';
 import { supabase, Profile, ApiConfig, TokenStatsByUser, TokenDailySeries, calcCostBRL } from '../lib/supabase';
+import { TemplatesPage } from './admin/TemplatesPage';
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -207,7 +208,10 @@ function TokenRow({ stat, onSaved }: { stat: TokenStatsByUser; onSaved: () => vo
 
 // ─── Main component ───────────────────────────────────────────────────────────
 
+type AdminTab = 'dashboard' | 'templates';
+
 export function AdminPanel({ onBack }: { onBack: () => void }) {
+  const [tab, setTab] = useState<AdminTab>('dashboard');
   const [config, setConfig] = useState<ApiConfig | null>(null);
   const [users, setUsers] = useState<Profile[]>([]);
   const [tokenStats, setTokenStats] = useState<TokenStatsByUser[]>([]);
@@ -301,7 +305,7 @@ export function AdminPanel({ onBack }: { onBack: () => void }) {
   return (
     <div className="min-h-screen bg-[#050505]">
       <header className="border-b border-[#1a1a1a] px-6 py-4 sticky top-0 bg-[#050505]/90 backdrop-blur-xl z-10">
-        <div className="max-w-7xl mx-auto flex items-center justify-between">
+        <div className="max-w-7xl mx-auto flex items-center justify-between gap-4 flex-wrap">
           <div className="flex items-center gap-4">
             <button onClick={onBack} className="text-neutral-500 hover:text-white transition-colors">
               <ArrowLeft size={16} />
@@ -311,10 +315,38 @@ export function AdminPanel({ onBack }: { onBack: () => void }) {
               Admin
             </span>
           </div>
+          <nav className="flex items-center gap-1">
+            <button
+              onClick={() => setTab('dashboard')}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs transition-colors ${
+                tab === 'dashboard'
+                  ? 'bg-[#111] text-white border border-[#262626]'
+                  : 'text-neutral-500 hover:text-white'
+              }`}
+            >
+              <TrendingUp size={12} /> Dashboard
+            </button>
+            <button
+              onClick={() => setTab('templates')}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs transition-colors ${
+                tab === 'templates'
+                  ? 'bg-[#111] text-white border border-[#262626]'
+                  : 'text-neutral-500 hover:text-white'
+              }`}
+            >
+              <LayoutTemplate size={12} /> Templates
+            </button>
+          </nav>
         </div>
       </header>
 
-      <main className="max-w-7xl mx-auto px-6 py-8 space-y-6">
+      {tab === 'templates' && (
+        <main className="max-w-7xl mx-auto px-6 py-8">
+          <TemplatesPage />
+        </main>
+      )}
+
+      {tab === 'dashboard' && <main className="max-w-7xl mx-auto px-6 py-8 space-y-6">
         <div>
           <h1 className="text-2xl font-semibold text-white tracking-tight">Central de Controle</h1>
           <p className="text-sm text-neutral-500 mt-1">Configuração global e supervisão de usuários.</p>
@@ -490,7 +522,7 @@ export function AdminPanel({ onBack }: { onBack: () => void }) {
             </table>
           </div>
         </div>
-      </main>
+      </main>}
     </div>
   );
 }

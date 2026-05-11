@@ -1,14 +1,15 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { X, Loader2, Upload, Check, ArrowRight, ArrowLeft, Sparkles } from 'lucide-react';
 import {
   supabase,
   Instance,
+  AgentTemplate,
   AGENT_COLORS,
   TONE_OPTIONS,
   EMOJI_OPTIONS,
   LANGUAGE_OPTIONS,
-  AGENT_TEMPLATES,
   buildSystemPrompt,
+  mergeTemplatePrompt,
 } from '../lib/supabase';
 import { AgentAvatar } from './AgentAvatar';
 
@@ -24,20 +25,65 @@ export function CreateAgentModal({ userId, onClose, onCreated }: Props) {
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState('');
 
+  // Step 1 — Identity
   const [displayName, setDisplayName] = useState('');
   const [personaName, setPersonaName] = useState('');
   const [companyName, setCompanyName] = useState('');
   const [avatarUrl, setAvatarUrl] = useState('');
   const [color, setColor] = useState(AGENT_COLORS[0]);
 
+  // Step 2 — Personality
   const [tone, setTone] = useState('friendly');
   const [language, setLanguage] = useState('pt-BR');
   const [emojiUsage, setEmojiUsage] = useState('moderate');
 
-  const [templateKey, setTemplateKey] = useState('sales');
+  // Step 3 — Template
+  const [templates, setTemplates] = useState<AgentTemplate[]>([]);
+  const [loadingTemplates, setLoadingTemplates] = useState(true);
+  const [selectedTemplateId, setSelectedTemplateId] = useState<string | null>(null);
+  const [customFieldValues, setCustomFieldValues] = useState<Record<string, string>>({});
 
   const canNext1 = displayName.trim().length >= 2;
-  const template = AGENT_TEMPLATES.find((t) => t.key === templateKey) || AGENT_TEMPLATES[0];
+
+  const selectedTemplate = templates.find((t) => t.id === selectedTemplateId) ?? null;
+
+  // Validate custom fields
+  const customFieldsValid = selectedTemplate
+    ? selectedTemplate.custom_fields.every(
+        (f) => !f.required || (customFieldValues[f.key] ?? '').trim().length > 0
+      )
+    : true;
+
+  const canFinish = !!selectedTemplate && customFieldsValid;
+
+  useEffect(() => {
+    (async () => {
+      setLoadingTemplates(true);
+      const { data } = await supabase
+        .from('agent_templates')
+        .select('*')
+        .eq('is_active', true)
+        .order('sort_order', { ascending: true });
+      const list = (data as AgentTemplate[]) || [];
+      setTemplates(list);
+      if (list.length > 0) setSelectedTemplateId(list[0].id);
+      setLoadingTemplates(false);
+    })();
+  }, []);
+
+  // When template changes, apply default settings and reset custom field values
+  useEffect(() => {
+    if (!selectedTemplate) return;
+    const ds = selectedTemplate.default_settings;
+    if (ds.tone) setTone(ds.tone);
+    if (ds.language) setLanguage(ds.language);
+    if (ds.emoji_usage) setEmojiUsage(ds.emoji_usage);
+    setCustomFieldValues({});
+  }, [selectedTemplateId]);
+
+  const mergedBase = selectedTemplate
+    ? mergeTemplatePrompt(selectedTemplate.base_prompt, customFieldValues)
+    : '';
 
   const previewPrompt = buildSystemPrompt({
     persona_name: personaName || displayName,
@@ -45,7 +91,7 @@ export function CreateAgentModal({ userId, onClose, onCreated }: Props) {
     tone,
     language,
     emoji_usage: emojiUsage,
-    base: template.base,
+    base: mergedBase,
   });
 
   const handleUpload = async (file: File) => {
@@ -104,6 +150,7 @@ export function CreateAgentModal({ userId, onClose, onCreated }: Props) {
   return (
     <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 animate-fade-in">
       <div className="bg-[#0a0a0a] border border-[#1a1a1a] rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col">
+        {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-[#1a1a1a]">
           <div>
             <div className="text-sm text-white font-medium">Criar novo agente</div>
@@ -114,6 +161,7 @@ export function CreateAgentModal({ userId, onClose, onCreated }: Props) {
           </button>
         </div>
 
+        {/* Progress */}
         <div className="px-6 pt-3">
           <div className="flex gap-1.5">
             {[1, 2, 3].map((n) => (
@@ -127,7 +175,9 @@ export function CreateAgentModal({ userId, onClose, onCreated }: Props) {
           </div>
         </div>
 
+        {/* Body */}
         <div className="flex-1 overflow-y-auto px-6 py-6">
+          {/* ── Step 1: Identity ── */}
           {step === 1 && (
             <div className="space-y-5">
               <div>
@@ -145,10 +195,7 @@ export function CreateAgentModal({ userId, onClose, onCreated }: Props) {
                       type="file"
                       accept="image/*"
                       className="hidden"
-                      onChange={(e) => {
-                        const f = e.target.files?.[0];
-                        if (f) handleUpload(f);
-                      }}
+                      onChange={(e) => { const f = e.target.files?.[0]; if (f) handleUpload(f); }}
                     />
                   </label>
                   {avatarUrl && (
@@ -211,6 +258,7 @@ export function CreateAgentModal({ userId, onClose, onCreated }: Props) {
             </div>
           )}
 
+          {/* ── Step 2: Personality ── */}
           {step === 2 && (
             <div className="space-y-5">
               <div>
@@ -277,41 +325,111 @@ export function CreateAgentModal({ userId, onClose, onCreated }: Props) {
             </div>
           )}
 
+          {/* ── Step 3: Template + Custom Fields ── */}
           {step === 3 && (
             <div className="space-y-5">
               <div>
                 <h3 className="text-base text-white font-medium mb-1">Função</h3>
-                <p className="text-xs text-neutral-500">Escolha um ponto de partida para o comportamento.</p>
+                <p className="text-xs text-neutral-500">Escolha um ponto de partida e preencha os detalhes.</p>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                {AGENT_TEMPLATES.map((t) => (
-                  <button
-                    key={t.key}
-                    onClick={() => setTemplateKey(t.key)}
-                    className={`text-left px-3 py-3 rounded-lg border transition-colors ${
-                      templateKey === t.key
-                        ? 'border-white bg-[#111]'
-                        : 'border-[#1a1a1a] hover:border-[#262626]'
-                    }`}
-                  >
-                    <div className="flex items-center gap-2">
-                      <div className="text-sm text-white font-medium">{t.title}</div>
-                      {templateKey === t.key && <Check size={12} className="text-white" />}
-                    </div>
-                    <div className="text-[11px] text-neutral-500 mt-1">{t.description}</div>
-                  </button>
-                ))}
-              </div>
-
-              <div>
-                <label className="text-xs text-neutral-400 mb-2 flex items-center gap-1.5">
-                  <Sparkles size={11} /> Prévia do prompt gerado
-                </label>
-                <div className="bg-[#060606] border border-[#1a1a1a] rounded-lg p-3 text-[11px] text-neutral-400 whitespace-pre-wrap leading-relaxed max-h-40 overflow-y-auto">
-                  {previewPrompt}
+              {loadingTemplates ? (
+                <div className="flex items-center justify-center py-8">
+                  <Loader2 size={16} className="text-neutral-600 animate-spin" />
                 </div>
-              </div>
+              ) : templates.length === 0 ? (
+                <div className="border border-dashed border-[#1a1a1a] rounded-xl py-10 text-center">
+                  <p className="text-xs text-neutral-600">Nenhum template disponível no momento.</p>
+                </div>
+              ) : (
+                <>
+                  {/* Template gallery */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                    {templates.map((t) => (
+                      <button
+                        key={t.id}
+                        onClick={() => setSelectedTemplateId(t.id)}
+                        className={`text-left px-3 py-3 rounded-xl border transition-all ${
+                          selectedTemplateId === t.id
+                            ? 'border-white bg-[#111] shadow-[0_0_20px_rgba(255,255,255,0.04)]'
+                            : 'border-[#1a1a1a] hover:border-[#262626] hover:bg-[#0d0d0d]'
+                        }`}
+                      >
+                        <div className="flex items-center gap-2.5">
+                          {t.icon && (
+                            <span className="text-lg leading-none">{t.icon}</span>
+                          )}
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-1.5">
+                              <span className="text-sm text-white font-medium truncate">{t.title}</span>
+                              {selectedTemplateId === t.id && (
+                                <Check size={11} className="text-white flex-shrink-0" />
+                              )}
+                            </div>
+                            <div className="text-[11px] text-neutral-500 mt-0.5 truncate">{t.description}</div>
+                          </div>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+
+                  {/* Custom fields for selected template */}
+                  {selectedTemplate && selectedTemplate.custom_fields.length > 0 && (
+                    <div className="border border-[#1a1a1a] rounded-xl p-4 bg-[#060606] space-y-3">
+                      <div className="text-[10px] text-neutral-500 uppercase tracking-wider mb-1">
+                        Informações do template
+                      </div>
+                      {selectedTemplate.custom_fields.map((f) => (
+                        <div key={f.key}>
+                          <label className="block text-xs text-neutral-400 mb-1.5">
+                            {f.label}
+                            {f.required && (
+                              <span className="text-red-400 ml-1">*</span>
+                            )}
+                          </label>
+                          {f.type === 'textarea' ? (
+                            <textarea
+                              value={customFieldValues[f.key] ?? ''}
+                              onChange={(e) =>
+                                setCustomFieldValues((v) => ({ ...v, [f.key]: e.target.value }))
+                              }
+                              placeholder={f.placeholder}
+                              rows={3}
+                              className="w-full bg-[#0d0d0d] border border-[#1a1a1a] rounded-lg px-3 py-2.5 text-sm text-white placeholder-neutral-600 focus:border-[#2a2a2a] outline-none resize-none"
+                            />
+                          ) : (
+                            <input
+                              type={f.type === 'url' ? 'url' : 'text'}
+                              value={customFieldValues[f.key] ?? ''}
+                              onChange={(e) =>
+                                setCustomFieldValues((v) => ({ ...v, [f.key]: e.target.value }))
+                              }
+                              placeholder={f.placeholder}
+                              className="w-full bg-[#0d0d0d] border border-[#1a1a1a] rounded-lg px-3 py-2.5 text-sm text-white placeholder-neutral-600 focus:border-[#2a2a2a] outline-none"
+                            />
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Prompt preview */}
+                  {selectedTemplate && (
+                    <div>
+                      <label className="text-xs text-neutral-400 mb-2 flex items-center gap-1.5">
+                        <Sparkles size={11} /> Prévia do prompt gerado
+                      </label>
+                      <div className="bg-[#060606] border border-[#1a1a1a] rounded-lg p-3 text-[11px] text-neutral-400 whitespace-pre-wrap leading-relaxed max-h-40 overflow-y-auto font-mono">
+                        {previewPrompt || (
+                          <span className="text-neutral-600 italic">
+                            Prompt vazio — este template não gera instruções adicionais.
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </>
+              )}
             </div>
           )}
 
@@ -322,6 +440,7 @@ export function CreateAgentModal({ userId, onClose, onCreated }: Props) {
           )}
         </div>
 
+        {/* Footer */}
         <div className="flex items-center justify-between px-6 py-4 border-t border-[#1a1a1a] gap-2">
           <button
             onClick={() => (step > 1 ? setStep(step - 1) : onClose())}
@@ -341,7 +460,7 @@ export function CreateAgentModal({ userId, onClose, onCreated }: Props) {
           ) : (
             <button
               onClick={handleCreate}
-              disabled={saving}
+              disabled={saving || !canFinish}
               className="bg-white text-black rounded-lg px-4 py-2 text-xs font-medium flex items-center gap-1.5 hover:bg-neutral-200 transition-colors disabled:opacity-40"
             >
               {saving ? <Loader2 size={12} className="animate-spin" /> : <Check size={12} />}

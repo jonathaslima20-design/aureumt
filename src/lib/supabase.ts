@@ -102,42 +102,10 @@ export const LANGUAGE_OPTIONS = [
   { value: 'es', label: 'Español' },
 ];
 
-export const AGENT_TEMPLATES = [
-  {
-    key: 'sales',
-    title: 'Vendas',
-    description: 'Consultor de vendas que qualifica e converte',
-    base:
-      'Seu papel é atuar como consultor de vendas. Faça perguntas qualificadoras antes de apresentar soluções, entenda a dor do cliente e conduza com objetividade até o fechamento.',
-  },
-  {
-    key: 'support',
-    title: 'Atendimento',
-    description: 'Atendimento ao cliente claro e resolutivo',
-    base:
-      'Seu papel é prestar atendimento ao cliente. Identifique o problema, ofereça soluções passo a passo e confirme se a demanda foi resolvida antes de encerrar.',
-  },
-  {
-    key: 'sdr',
-    title: 'SDR',
-    description: 'Pré-vendas focado em qualificar e agendar',
-    base:
-      'Seu papel é atuar como SDR. Qualifique o lead usando critérios como necessidade, orçamento e prazo, e agende uma reunião com o time comercial quando houver fit.',
-  },
-  {
-    key: 'faq',
-    title: 'FAQ',
-    description: 'Responde dúvidas frequentes com precisão',
-    base:
-      'Seu papel é responder dúvidas frequentes. Seja direto, cite as informações relevantes e, se não souber a resposta, oriente o cliente a falar com um humano.',
-  },
-  {
-    key: 'blank',
-    title: 'Em branco',
-    description: 'Começar sem template e escrever do zero',
-    base: '',
-  },
-];
+
+export function mergeTemplatePrompt(base_prompt: string, values: Record<string, string>): string {
+  return base_prompt.replace(/\{\{(\w+)\}\}/g, (_, key) => values[key] ?? '');
+}
 
 export function buildSystemPrompt(input: {
   persona_name: string;
@@ -237,6 +205,30 @@ export type KnowledgeBase = {
   name: string;
   description: string;
   created_at: string;
+};
+
+export type AgentTemplate = {
+  id: string;
+  title: string;
+  description: string;
+  icon: string;
+  base_prompt: string;
+  default_settings: {
+    tone?: string;
+    language?: string;
+    emoji_usage?: string;
+  };
+  custom_fields: Array<{
+    key: string;
+    label: string;
+    placeholder: string;
+    required: boolean;
+    type: 'text' | 'textarea' | 'url';
+  }>;
+  sort_order: number;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
 };
 
 export type KnowledgeSource = {
