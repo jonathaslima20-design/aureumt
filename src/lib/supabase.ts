@@ -153,6 +153,8 @@ export type ChatLog = {
   message_body: string;
   tokens_used: number;
   created_at: string;
+  media_type: string | null;
+  media_url: string | null;
 };
 
 export type QuickReply = {

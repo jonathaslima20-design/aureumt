@@ -790,7 +790,24 @@ export function ChatPage({ instance, instances }: { instance: Instance; instance
                               : 'bg-white text-black rounded-tr-sm'
                           }`}
                         >
-                          <p className="whitespace-pre-wrap break-words">{m.message_body}</p>
+                          {m.media_type === 'audio' && m.media_url ? (
+                            <audio
+                              controls
+                              preload="metadata"
+                              className="max-w-full h-8"
+                              style={{ minWidth: 200 }}
+                            >
+                              <source src={m.media_url} />
+                            </audio>
+                          ) : m.media_type === 'image' && m.media_url ? (
+                            <img
+                              src={m.media_url}
+                              alt="Imagem"
+                              className="max-w-full rounded-lg max-h-64 object-contain"
+                            />
+                          ) : (
+                            <p className="whitespace-pre-wrap break-words">{m.message_body}</p>
+                          )}
                           <div className={`text-[9px] mt-1 ${isIn ? 'text-neutral-600' : 'text-neutral-500'}`}>
                             {new Date(m.created_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
                           </div>

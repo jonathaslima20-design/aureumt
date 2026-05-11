@@ -442,14 +442,17 @@ Deno.serve(async (req) => {
       if (!instance && !connectionId) return;
 
       // ── Log incoming message ───────────────────────────────────────────────
-      await admin.from("chat_logs").insert({
+      const incomingLogData: Record<string, unknown> = {
         instance_id: instance?.id || null,
         whatsapp_connection_id: connectionId,
         customer_number: customerNumber,
         direction: "in",
         message_body: text,
         knowledge_hit: false,
-      });
+        media_type: media?.type || null,
+      };
+
+      await admin.from("chat_logs").insert(incomingLogData);
 
       if (!instance) return;
 
@@ -502,6 +505,25 @@ Deno.serve(async (req) => {
             knowledge_hit: false,
           });
           return;
+        }
+
+        // Store media as data URI on the incoming log so the frontend can play it
+        const mediaMime = downloaded.mimetype || (media.type === "audio" ? "audio/ogg" : "image/jpeg");
+        const dataUri = `data:${mediaMime};base64,${downloaded.base64}`;
+        // Update the most recent incoming log for this customer with the media_url
+        const { data: recentLog } = await admin
+          .from("chat_logs")
+          .select("id")
+          .eq("instance_id", instance.id)
+          .eq("customer_number", customerNumber)
+          .eq("direction", "in")
+          .eq("media_type", media.type)
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+
+        if (recentLog) {
+          await admin.from("chat_logs").update({ media_url: dataUri }).eq("id", recentLog.id);
         }
 
         const instruction = media.type === "audio"
