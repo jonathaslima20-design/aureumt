@@ -65,42 +65,43 @@ function extractMedia(msg: Record<string, unknown> | null | undefined): MediaInf
   return null;
 }
 
-async function downloadMedia(evolutionUrl: string, evolutionKey: string, instanceName: string, messageKey: Record<string, unknown>): Promise<{ base64: string; mimetype: string } | null> {
+async function downloadMedia(
+  evolutionUrl: string,
+  evolutionKey: string,
+  instanceName: string,
+  messageKey: Record<string, unknown>
+): Promise<{ base64: string; mimetype: string } | null> {
   const baseUrl = evolutionUrl.replace(/\/$/, "");
   const headers = { "Content-Type": "application/json", apikey: evolutionKey };
   const url = `${baseUrl}/chat/getBase64FromMediaMessage/${instanceName}`;
-
-  const payload = {
-    message: { key: messageKey },
-    convertToMp4: false,
-  };
+  const payload = { message: { key: messageKey }, convertToMp4: false };
 
   console.log("[downloadMedia] POST", url, JSON.stringify(payload).slice(0, 300));
 
   try {
-    const res = await fetch(url, {
-      method: "POST",
-      headers,
-      body: JSON.stringify(payload),
-    });
-
+    const res = await fetch(url, { method: "POST", headers, body: JSON.stringify(payload) });
     const text = await res.text();
     console.log("[downloadMedia] status:", res.status, "body:", text.slice(0, 500));
-
     if (!res.ok) return null;
 
     let data: Record<string, unknown>;
-    try {
-      data = JSON.parse(text);
-    } catch {
-      return null;
-    }
+    try { data = JSON.parse(text); } catch { return null; }
 
-    const base64 = (data?.base64 || data?.data || (data?.message as Record<string, unknown>)?.base64MediaMessage || "") as string;
-    const mimetype = (data?.mimetype || data?.mimeType || (data?.message as Record<string, unknown>)?.mimetype || "") as string;
+    const base64 = (
+      data?.base64 ||
+      data?.data ||
+      (data?.message as Record<string, unknown>)?.base64MediaMessage ||
+      ""
+    ) as string;
+    const mimetype = (
+      data?.mimetype ||
+      data?.mimeType ||
+      (data?.message as Record<string, unknown>)?.mimetype ||
+      ""
+    ) as string;
 
     if (!base64) {
-      console.log("[downloadMedia] no base64 in response. Keys:", Object.keys(data));
+      console.log("[downloadMedia] no base64. Keys:", Object.keys(data));
       return null;
     }
 
@@ -126,8 +127,17 @@ function normalizeAudioMime(mimetype: string): string {
   return map[base] || "audio/ogg";
 }
 
-async function processMediaWithGemini(apiKey: string, base64: string, mimetype: string, instruction: string): Promise<string> {
-  const gemMime = mimetype.startsWith("audio/") ? normalizeAudioMime(mimetype) : mimetype.split(";")[0].trim();
+// Transcribe audio or describe image using Gemini multimodal
+async function processMediaWithGemini(
+  apiKey: string,
+  base64: string,
+  mimetype: string,
+  instruction: string
+): Promise<string> {
+  const gemMime = mimetype.startsWith("audio/")
+    ? normalizeAudioMime(mimetype)
+    : mimetype.split(";")[0].trim();
+
   const models = ["gemini-2.5-flash", "gemini-2.0-flash"];
   const body = {
     contents: [{
@@ -139,8 +149,6 @@ async function processMediaWithGemini(apiKey: string, base64: string, mimetype: 
     generationConfig: { temperature: 0.1, maxOutputTokens: 500 },
   };
 
-  console.log("[processMediaWithGemini] sending", gemMime, "base64 length:", base64.length);
-
   for (const model of models) {
     try {
       const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
@@ -150,26 +158,22 @@ async function processMediaWithGemini(apiKey: string, base64: string, mimetype: 
         body: JSON.stringify(body),
       });
       const data = await res.json();
-
-      if (!res.ok) {
-        console.error(`[processMediaWithGemini] ${model} error:`, res.status, JSON.stringify(data).slice(0, 300));
-        continue;
-      }
-
+      if (!res.ok) { console.error(`[processMedia] ${model} error:`, res.status); continue; }
       const result = (data?.candidates?.[0]?.content?.parts?.[0]?.text || "").trim();
-      if (result) {
-        console.log("[processMediaWithGemini] transcription ok, model:", model, "length:", result.length, "preview:", result.slice(0, 150));
-        return result;
-      }
+      if (result) return result;
     } catch (e) {
-      console.error(`[processMediaWithGemini] ${model} fetch error:`, e instanceof Error ? e.message : e);
+      console.error(`[processMedia] ${model} error:`, e instanceof Error ? e.message : e);
     }
   }
-
   return "";
 }
 
-async function callGemini(apiKey: string, systemPrompt: string, history: { role: string; text: string }[]) {
+// Main Gemini call using systemInstruction for the knowledge base
+async function callGemini(
+  apiKey: string,
+  systemInstruction: string,
+  history: { role: string; text: string }[]
+) {
   const models = ["gemini-2.5-flash", "gemini-2.0-flash", "gemini-1.5-flash"];
 
   const rawContents = history.map((h) => ({
@@ -177,7 +181,7 @@ async function callGemini(apiKey: string, systemPrompt: string, history: { role:
     parts: [{ text: h.text }],
   }));
 
-  // Merge consecutive same-role messages and ensure first is "user"
+  // Merge consecutive same-role messages, ensure first is "user"
   const contents: { role: string; parts: { text: string }[] }[] = [];
   for (const item of rawContents) {
     if (contents.length === 0 && item.role === "model") continue;
@@ -194,7 +198,8 @@ async function callGemini(apiKey: string, systemPrompt: string, history: { role:
   }
 
   const body = {
-    systemInstruction: { parts: [{ text: systemPrompt }] },
+    // systemInstruction carries the full KB context — Gemini treats it as the highest-priority context
+    systemInstruction: { parts: [{ text: systemInstruction }] },
     contents,
     generationConfig: { temperature: 0.7, maxOutputTokens: 800 },
   };
@@ -214,7 +219,6 @@ async function callGemini(apiKey: string, systemPrompt: string, history: { role:
         console.error("Gemini API error", lastError);
         continue;
       }
-      console.log("[callGemini] raw response:", JSON.stringify(data).slice(0, 600));
       const candidate = data?.candidates?.[0];
       const finishReason = candidate?.finishReason;
       const text = candidate?.content?.parts?.[0]?.text;
@@ -222,12 +226,11 @@ async function callGemini(apiKey: string, systemPrompt: string, history: { role:
         const tokens = data?.usageMetadata?.totalTokenCount || 0;
         return { text: text.trim(), tokens, error: "" };
       }
-      // Handle safety/recitation blocks — return a neutral message instead of the error string
       if (finishReason && finishReason !== "STOP" && finishReason !== "MAX_TOKENS") {
         console.warn(`[callGemini] ${model} finishReason=${finishReason}`);
         return { text: "Não consigo responder a isso.", tokens: 0, error: "" };
       }
-      lastError = `[${model}] empty text finishReason=${finishReason} data=${JSON.stringify(data).slice(0, 400)}`;
+      lastError = `[${model}] empty text finishReason=${finishReason}`;
       console.error("Gemini empty", lastError);
     } catch (e) {
       lastError = `[${model}] ${e instanceof Error ? e.message : "fetch_error"}`;
@@ -245,26 +248,29 @@ async function callGemini(apiKey: string, systemPrompt: string, history: { role:
 async function sendPresence(creds: Creds, instanceName: string, number: string, durationMs: number) {
   const url = `${creds.url.replace(/\/$/, "")}/chat/sendPresence/${instanceName}`;
   try {
-    const res = await fetch(url, {
+    await fetch(url, {
       method: "POST",
       headers: { "Content-Type": "application/json", apikey: creds.key },
-      // delay tells Evolution how long to show "composing" — keep it slightly over durationMs
       body: JSON.stringify({ number, presence: "composing", delay: durationMs + 500 }),
     });
-    console.log("[sendPresence] status:", res.status, "number:", number, "durationMs:", durationMs);
   } catch (e) {
     console.error("[sendPresence] error:", e instanceof Error ? e.message : e);
   }
 }
 
-// ~800 chars/min typing speed, capped between 800ms and 8s.
-function typingDurationForText(text: string): number {
-  const CHARS_PER_MS = 800 / 60000;
-  const raw = text.length / CHARS_PER_MS;
-  return Math.max(800, Math.min(8000, raw));
+// Dynamic delay: 1 second per 50 characters, clamped between minDelay and maxDelay
+function calcTypingDelay(text: string, minDelay: number, maxDelay: number): number {
+  const MS_PER_CHAR = 1000 / 50; // 20ms per char → 1s per 50 chars
+  const raw = Math.round(text.length * MS_PER_CHAR);
+  return Math.max(minDelay, Math.min(maxDelay, raw));
 }
 
-async function simulateTyping(creds: Creds, instanceName: string, number: string, totalMs: number) {
+async function simulateTyping(
+  creds: Creds,
+  instanceName: string,
+  number: string,
+  totalMs: number
+) {
   const REFRESH_INTERVAL = 3800;
   await sendPresence(creds, instanceName, number, totalMs);
   let elapsed = 0;
@@ -279,22 +285,29 @@ async function simulateTyping(creds: Creds, instanceName: string, number: string
 
 async function sendText(creds: Creds, instanceName: string, number: string, text: string) {
   const url = `${creds.url.replace(/\/$/, "")}/message/sendText/${instanceName}`;
-  const payload = { number, text };
-  console.log("[sendText] POST", url, "number:", number, "text:", text.slice(0, 80));
   try {
     const res = await fetch(url, {
       method: "POST",
       headers: { "Content-Type": "application/json", apikey: creds.key },
-      body: JSON.stringify(payload),
+      body: JSON.stringify({ number, text }),
     });
     const body = await res.text();
-    console.log("[sendText] status:", res.status, "body:", body.slice(0, 200));
-    if (!res.ok) {
-      console.error("[sendText] FAILED:", res.status, body.slice(0, 500));
-    }
+    if (!res.ok) console.error("[sendText] FAILED:", res.status, body.slice(0, 300));
   } catch (e) {
-    console.error("[sendText] fetch error:", e instanceof Error ? e.message : e);
+    console.error("[sendText] error:", e instanceof Error ? e.message : e);
   }
+}
+
+// Clean extracted text: normalize whitespace, strip control chars, collapse blank lines
+function cleanText(raw: string): string {
+  return raw
+    .replace(/\r\n/g, "\n")
+    .replace(/\r/g, "\n")
+    .replace(/[^\S\n]+/g, " ")         // collapse horizontal whitespace
+    .replace(/\n{3,}/g, "\n\n")        // max 2 consecutive newlines
+    .replace(/[ \t]+\n/g, "\n")        // trailing spaces before newline
+    .replace(/\x00-\x08\x0b\x0c\x0e-\x1f\x7f/g, "") // control chars
+    .trim();
 }
 
 const processedMessages = new Set<string>();
@@ -316,7 +329,10 @@ Deno.serve(async (req) => {
   const event = (payload?.event as string) || "";
   const instanceName = (payload?.instance || payload?.instanceName) as string;
 
-  if (!event.toLowerCase().includes("messages.upsert") && !event.toLowerCase().includes("messages_upsert")) {
+  if (
+    !event.toLowerCase().includes("messages.upsert") &&
+    !event.toLowerCase().includes("messages_upsert")
+  ) {
     return new Response(JSON.stringify({ ok: true, ignored: "event" }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
@@ -347,7 +363,7 @@ Deno.serve(async (req) => {
   const msgObj = data?.message as Record<string, unknown> | null | undefined;
   const messageType = (data?.messageType as string) || "";
 
-  console.log("[webhook] event:", event, "instance:", instanceName, "messageType:", messageType, "dataKeys:", Object.keys(data), "msgKeys:", msgObj ? Object.keys(msgObj) : "null");
+  console.log("[webhook] event:", event, "instance:", instanceName, "messageType:", messageType);
 
   const text = extractText(msgObj);
   let media = extractMedia(msgObj);
@@ -357,8 +373,6 @@ Deno.serve(async (req) => {
   if (!media && messageType === "imageMessage") {
     media = { type: "image", mimetype: "image/jpeg" };
   }
-
-  console.log("[webhook] extracted text:", JSON.stringify(text?.slice(0, 50)), "media:", media ? media.type : "none");
 
   if (!text && !media) {
     return new Response(JSON.stringify({ ok: true, ignored: "no_text" }), {
@@ -376,21 +390,19 @@ Deno.serve(async (req) => {
         Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
       );
 
-      // Look up the whatsapp_connection by evolution_instance_id (instanceName from webhook)
+      // ── Resolve connection and agent ───────────────────────────────────────
       const { data: connection } = await admin
         .from("whatsapp_connections")
         .select("*, instances(*)")
         .eq("evolution_instance_id", instanceName)
         .maybeSingle();
 
-      // Fall back to legacy instances lookup by instance_name
       let instance: Record<string, unknown> | null = null;
       let connectionId: string | null = null;
 
       if (connection) {
         connectionId = connection.id;
         instance = connection.agent_id ? (connection.instances as Record<string, unknown>) : null;
-        // Update connection status if needed
         await admin.from("whatsapp_connections").update({ status: "open" }).eq("id", connection.id);
       } else {
         const { data: legacyInstance } = await admin
@@ -403,17 +415,19 @@ Deno.serve(async (req) => {
 
       if (!instance && !connectionId) return;
 
+      // ── Log incoming message ───────────────────────────────────────────────
       await admin.from("chat_logs").insert({
         instance_id: instance?.id || null,
         whatsapp_connection_id: connectionId,
         customer_number: customerNumber,
         direction: "in",
         message_body: text,
+        knowledge_hit: false,
       });
 
-      // If no agent is assigned to this connection, stop here
       if (!instance) return;
 
+      // ── Overflow keyword check ─────────────────────────────────────────────
       const overflow = ((instance.overflow_keyword as string) || "").trim().toLowerCase();
       if (overflow && text.toLowerCase().includes(overflow)) {
         await admin.from("instances").update({ flow_status: "paused" }).eq("id", instance.id);
@@ -422,6 +436,7 @@ Deno.serve(async (req) => {
 
       if (instance.flow_status !== "active") return;
 
+      // ── Manual override check ──────────────────────────────────────────────
       const { data: convState } = await admin
         .from("conversation_states")
         .select("manual_override")
@@ -434,21 +449,21 @@ Deno.serve(async (req) => {
       const creds = await loadCreds(admin, instance.user_id as string);
       if (!creds.gemini || !creds.url || !creds.key) return;
 
-      // Handle media: transcribe audio or describe image
+      // ── Media processing (audio transcription / image description) ─────────
       let mediaContext = "";
       if (media && instance.is_multimodal_active !== false) {
         const rawKey = key as Record<string, unknown>;
-        console.log("[webhook] media detected:", media.type, "rawKey:", JSON.stringify(rawKey));
+        console.log("[webhook] media:", media.type);
 
         const MEDIA_TIMEOUT_MS = 15000;
-        const downloadPromise = downloadMedia(creds.url, creds.key, instanceName, rawKey);
-        const timeoutPromise = new Promise<null>((r) => setTimeout(() => r(null), MEDIA_TIMEOUT_MS));
-        const downloaded = await Promise.race([downloadPromise, timeoutPromise]);
+        const downloaded = await Promise.race([
+          downloadMedia(creds.url, creds.key, instanceName, rawKey),
+          new Promise<null>((r) => setTimeout(() => r(null), MEDIA_TIMEOUT_MS)),
+        ]);
 
         if (!downloaded) {
-          console.log("[webhook] downloadMedia failed or timed out — asking user to resend");
           const retryMsg = "Não consegui ouvir o áudio. Pode me enviar em texto?";
-          const typingMs = typingDurationForText(retryMsg);
+          const typingMs = calcTypingDelay(retryMsg, 800, 4000);
           await simulateTyping(creds, instanceName, remoteJid, typingMs);
           await sendText(creds, instanceName, remoteJid, retryMsg);
           await admin.from("chat_logs").insert({
@@ -458,29 +473,28 @@ Deno.serve(async (req) => {
             direction: "out",
             message_body: retryMsg,
             tokens_used: 0,
+            knowledge_hit: false,
           });
           return;
         }
-
-        console.log("[webhook] media downloaded, base64 length:", downloaded.base64.length, "mime:", downloaded.mimetype);
 
         const instruction = media.type === "audio"
           ? "Transcreva este áudio fielmente. Retorne apenas a transcrição, sem comentários ou explicações."
-          : "Descreva esta imagem de forma breve e objetiva.";
+          : "Descreva esta imagem de forma detalhada. Se houver produtos, preços, números, texto visível ou qualquer informação relevante, inclua tudo na descrição.";
 
-        const processPromise = processMediaWithGemini(
-          creds.gemini,
-          downloaded.base64,
-          downloaded.mimetype || (media.type === "audio" ? "audio/ogg" : "image/jpeg"),
-          instruction
-        );
-        const processTimeout = new Promise<string>((r) => setTimeout(() => r(""), MEDIA_TIMEOUT_MS));
-        mediaContext = await Promise.race([processPromise, processTimeout]);
+        const processed = await Promise.race([
+          processMediaWithGemini(
+            creds.gemini,
+            downloaded.base64,
+            downloaded.mimetype || (media.type === "audio" ? "audio/ogg" : "image/jpeg"),
+            instruction
+          ),
+          new Promise<string>((r) => setTimeout(() => r(""), MEDIA_TIMEOUT_MS)),
+        ]);
 
-        if (!mediaContext && media.type === "audio") {
-          console.log("[webhook] transcription empty or timed out — asking user to resend");
+        if (!processed && media.type === "audio") {
           const retryMsg = "Não consegui ouvir o áudio. Pode me enviar em texto?";
-          const typingMs = typingDurationForText(retryMsg);
+          const typingMs = calcTypingDelay(retryMsg, 800, 4000);
           await simulateTyping(creds, instanceName, remoteJid, typingMs);
           await sendText(creds, instanceName, remoteJid, retryMsg);
           await admin.from("chat_logs").insert({
@@ -490,61 +504,83 @@ Deno.serve(async (req) => {
             direction: "out",
             message_body: retryMsg,
             tokens_used: 0,
+            knowledge_hit: false,
           });
           return;
         }
 
-        console.log("[webhook] mediaContext length:", mediaContext.length, "preview:", mediaContext.slice(0, 150));
+        mediaContext = processed;
+        console.log("[webhook] mediaContext length:", mediaContext.length);
       }
 
-      // Knowledge base: only fetch sources whose content matches keywords from the user message.
-      // Limited to top 4 relevant results, capped at 8k chars total.
-      let knowledgeContext = "";
-      if (text) {
-        const { data: knowledgeSources } = await admin
+      // ── Load ALL active knowledge sources via instance_knowledge_bases ─────
+      // RAG v2: full context loading — no keyword filtering, pass everything as
+      // systemInstruction so Gemini can reason over the complete KB.
+      let knowledgeContent = "";
+      let knowledgeHit = false;
+
+      const { data: kbLinks } = await admin
+        .from("instance_knowledge_bases")
+        .select("knowledge_base_id")
+        .eq("instance_id", instance.id);
+
+      const kbIds = (kbLinks || []).map((l: { knowledge_base_id: string }) => l.knowledge_base_id);
+
+      if (kbIds.length > 0) {
+        const { data: kbSources } = await admin
+          .from("knowledge_sources")
+          .select("content, title, type")
+          .in("knowledge_base_id", kbIds)
+          .eq("is_active", true)
+          .limit(30);
+
+        if (kbSources && kbSources.length > 0) {
+          const chunks = kbSources.map((s: { title: string; type: string; content: string }) => {
+            const cleaned = cleanText(s.content);
+            return `### ${s.title} (${s.type.toUpperCase()})\n${cleaned}`;
+          });
+          // Cap total KB content at 80k chars — well within Gemini's 1M context window
+          knowledgeContent = chunks.join("\n\n---\n\n").slice(0, 80000);
+          knowledgeHit = true;
+          console.log("[webhook] KB: loaded", kbSources.length, "sources,", knowledgeContent.length, "chars");
+        }
+      }
+
+      // Also check legacy knowledge_sources linked directly to instance_id
+      if (!knowledgeContent) {
+        const { data: legacySources } = await admin
           .from("knowledge_sources")
           .select("content, title, type")
           .eq("instance_id", instance.id)
           .eq("is_active", true)
-          .limit(10);
+          .limit(20);
 
-        if (knowledgeSources && knowledgeSources.length > 0) {
-          const userWords = text.toLowerCase().split(/\s+/).filter((w: string) => w.length > 3);
-          const scored = knowledgeSources
-            .map((s: { title: string; type: string; content: string }) => {
-              const haystack = (s.title + " " + s.content).toLowerCase();
-              const hits = userWords.filter((w: string) => haystack.includes(w)).length;
-              return { ...s, hits };
-            })
-            .filter((s: { hits: number }) => s.hits > 0)
-            .sort((a: { hits: number }, b: { hits: number }) => b.hits - a.hits)
-            .slice(0, 4);
-
-          if (scored.length > 0) {
-            const chunks = scored.map((s: { title: string; type: string; content: string }) =>
-              `[${s.type.toUpperCase()}: ${s.title}]\n${s.content}`
-            );
-            knowledgeContext = chunks.join("\n\n---\n\n").slice(0, 8000);
-          }
+        if (legacySources && legacySources.length > 0) {
+          const chunks = legacySources.map((s: { title: string; type: string; content: string }) => {
+            const cleaned = cleanText(s.content);
+            return `### ${s.title} (${s.type.toUpperCase()})\n${cleaned}`;
+          });
+          knowledgeContent = chunks.join("\n\n---\n\n").slice(0, 80000);
+          knowledgeHit = true;
+          console.log("[webhook] KB (legacy): loaded", legacySources.length, "sources");
         }
       }
 
-      // Last 8 messages, each body truncated to 400 chars to keep history tokens low
+      // ── Conversation history ───────────────────────────────────────────────
       const { data: history } = await admin
         .from("chat_logs")
         .select("direction, message_body")
         .eq("instance_id", instance.id)
         .eq("customer_number", customerNumber)
         .order("created_at", { ascending: false })
-        .limit(8);
+        .limit(10);
 
       const ordered = (history || []).reverse().map((h: { direction: string; message_body: string }) => ({
         role: h.direction === "in" ? "user" : "assistant",
-        text: h.message_body.slice(0, 400),
+        text: h.message_body.slice(0, 500),
       }));
 
-      // If media was transcribed/described, replace the last user message with the content directly
-      // so Gemini receives the transcription as if the user typed it
+      // If audio was transcribed, replace the placeholder "[audio]" in the last user turn
       if (mediaContext) {
         const lastMsg = ordered[ordered.length - 1];
         if (lastMsg && lastMsg.role === "user") {
@@ -552,64 +588,86 @@ Deno.serve(async (req) => {
         }
       }
 
+      // ── Build system instruction ───────────────────────────────────────────
       const lang = ((instance.language as string) || "pt-BR") as "pt-BR" | "en-US" | "es";
 
-      // Compact per-language strings — replaces the verbose i18n block
       const langLock: Record<string, string> = {
         "pt-BR": "Responda SEMPRE em português do Brasil.",
         "en-US": "ALWAYS reply in English (US).",
         "es": "Responde SIEMPRE en español.",
       };
-      const ragInstruction: Record<string, string> = {
-        "pt-BR": "Use APENAS o CONTEXTO abaixo. Se não souber, diga que não tem essa informação.",
-        "en-US": "Use ONLY the CONTEXT below. If unknown, say you don't have that info.",
-        "es": "Usa SOLO el CONTEXTO abajo. Si no sabes, di que no tienes esa información.",
-      };
       const formatRule: Record<string, string> = {
-        "pt-BR": "Regras: sem Markdown; texto puro; respostas curtas e diretas; saudacao simples na primeira msg; use | so para ideias distintas; sem frases genericas.",
-        "en-US": "Rules: no Markdown; plain text; short direct answers; simple greeting on first msg; use | only for distinct ideas; no generic phrases.",
-        "es": "Reglas: sin Markdown; texto puro; respuestas cortas y directas; saludo simple en primer msg; usa | solo para ideas distintas; sin frases genéricas.",
+        "pt-BR": "Regras de formato: sem Markdown; texto puro; respostas curtas e humanas; saudação simples na primeira mensagem; use | apenas para separar ideias distintas; sem frases genéricas.",
+        "en-US": "Format rules: no Markdown; plain text; short human answers; simple greeting on first message; use | only for distinct ideas; no generic phrases.",
+        "es": "Reglas de formato: sin Markdown; texto puro; respuestas cortas y humanas; saludo simple en primer mensaje; usa | solo para ideas distintas; sin frases genéricas.",
+      };
+      const noKbInstruction: Record<string, string> = {
+        "pt-BR": "Se a pergunta não puder ser respondida com as informações acima, diga gentilmente que não possui essa informação específica e pergunte se o cliente deseja falar com um consultor humano.",
+        "en-US": "If the question cannot be answered with the information above, kindly say you don't have that specific information and ask if they'd like to speak with a human consultant.",
+        "es": "Si la pregunta no puede responderse con la información anterior, di amablemente que no tienes esa información específica y pregunta si desea hablar con un consultor humano.",
       };
 
       const userPrompt = ((instance.system_prompt as string) || "").trim();
-
       const parts: string[] = [];
-      if (userPrompt) {
-        parts.push(userPrompt);
+
+      if (knowledgeContent) {
+        // RAG v2: KB-first system instruction structure
+        if (userPrompt) {
+          parts.push(userPrompt);
+        } else {
+          const who = (instance.persona_name as string) || "assistente";
+          const co = instance.company_name ? `, da empresa ${instance.company_name}` : "";
+          parts.push(`Você é ${who}${co}.`);
+        }
+        if (instance.signature) parts.push(`Sempre encerre com: "${instance.signature}".`);
+        parts.push(langLock[lang] || langLock["pt-BR"]);
+        parts.push(formatRule[lang] || formatRule["pt-BR"]);
+        parts.push("BASE DE CONHECIMENTO OFICIAL:\n\nAs informações abaixo são a única fonte de verdade que você deve usar para responder. Priorize sempre este conteúdo.\n\n" + knowledgeContent);
+        parts.push(noKbInstruction[lang] || noKbInstruction["pt-BR"]);
       } else {
-        const who = (instance.persona_name as string) || "assistente";
-        const co = instance.company_name ? `, ${instance.company_name}` : "";
-        parts.push(`Você é ${who}${co}.`);
-      }
-      if (instance.signature) parts.push(`Assine: "${instance.signature}".`);
-      parts.push(langLock[lang] || langLock["pt-BR"]);
-      parts.push(formatRule[lang] || formatRule["pt-BR"]);
-      if (knowledgeContext) {
-        parts.push(`${ragInstruction[lang] || ragInstruction["pt-BR"]}\n\nCONTEXTO:\n${knowledgeContext}`);
+        // No KB: use agent prompt only
+        if (userPrompt) {
+          parts.push(userPrompt);
+        } else {
+          const who = (instance.persona_name as string) || "assistente";
+          const co = instance.company_name ? `, da empresa ${instance.company_name}` : "";
+          parts.push(`Você é ${who}${co}.`);
+        }
+        if (instance.signature) parts.push(`Sempre encerre com: "${instance.signature}".`);
+        parts.push(langLock[lang] || langLock["pt-BR"]);
+        parts.push(formatRule[lang] || formatRule["pt-BR"]);
       }
 
-      const finalPrompt = parts.join("\n");
+      const systemInstruction = parts.join("\n\n");
 
-      // Wait the configured response_delay before calling Gemini — simulates the agent reading the message
+      // ── Response delay: initial read simulation ────────────────────────────
       const rawDelay = (instance.response_delay as number) || 3000;
       const readDelayMs = rawDelay > 100 ? Math.round(rawDelay) : Math.round(rawDelay * 1000);
       await new Promise((r) => setTimeout(r, readDelayMs));
 
-      const { text: reply, tokens, error: gemErr } = await callGemini(creds.gemini, finalPrompt, ordered);
+      // ── Gemini call ────────────────────────────────────────────────────────
+      const { text: reply, tokens, error: gemErr } = await callGemini(
+        creds.gemini,
+        systemInstruction,
+        ordered
+      );
       if (gemErr) console.error("Gemini final error", gemErr);
 
-      // Fragment the reply by | or newlines into separate messages
+      // ── Fragment and send with dynamic typing delay ────────────────────────
       const fragments = reply
         .split(/\||\n/)
         .map((f: string) => f.trim())
         .filter((f: string) => f.length > 0);
 
-      console.log("[webhook] reply length:", reply.length, "fragments:", fragments.length, "remoteJid:", remoteJid);
-      console.log("[webhook] full reply:", reply.slice(0, 300));
+      const toSend = fragments.length > 0 ? fragments : [reply];
 
-      // Each fragment gets a typing duration proportional to its own length
-      for (const fragment of (fragments.length > 0 ? fragments : [reply])) {
-        const typingMs = typingDurationForText(fragment);
+      // Dynamic delay per fragment: 1s per 50 chars, clamped to [2s, 15s]
+      const minTyping = 2000;
+      const maxTyping = 15000;
+
+      for (const fragment of toSend) {
+        const typingMs = calcTypingDelay(fragment, minTyping, maxTyping);
+        console.log("[webhook] fragment:", fragment.length, "chars →", typingMs, "ms typing");
         await simulateTyping(creds, instanceName, remoteJid, typingMs);
         await sendText(creds, instanceName, remoteJid, fragment);
       }
@@ -621,7 +679,9 @@ Deno.serve(async (req) => {
         direction: "out",
         message_body: reply,
         tokens_used: tokens,
+        knowledge_hit: knowledgeHit,
       });
+
     } catch (e) {
       console.error("Background task error:", e instanceof Error ? e.message : e);
     }

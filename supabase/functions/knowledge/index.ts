@@ -59,6 +59,18 @@ async function extractTextWithGemini(apiKey: string, base64Data: string, mimeTyp
   return data?.candidates?.[0]?.content?.parts?.[0]?.text || "";
 }
 
+// Normalize extracted text: collapse whitespace, strip control chars, dedupe blank lines
+function cleanExtractedText(raw: string): string {
+  return raw
+    .replace(/\r\n/g, "\n")
+    .replace(/\r/g, "\n")
+    .replace(/[^\S\n]+/g, " ")
+    .replace(/\n{3,}/g, "\n\n")
+    .replace(/[ \t]+\n/g, "\n")
+    .replace(/[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]/g, "")
+    .trim();
+}
+
 async function scrapeUrl(sourceUrl: string): Promise<string> {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 15000);
@@ -163,7 +175,8 @@ Deno.serve(async (req: Request) => {
         return jsonResponse({ error: "Nao foi possivel extrair conteudo significativo desta URL. Verifique se a pagina possui conteudo de texto." }, 400);
       }
 
-      console.log("[knowledge] scraped", content.length, "chars from", source_url);
+      const cleanedContent = cleanExtractedText(content);
+      console.log("[knowledge] scraped", content.length, "raw →", cleanedContent.length, "clean chars from", source_url);
 
       const { data: source, error: insertErr } = await admin
         .from("knowledge_sources")
@@ -171,8 +184,8 @@ Deno.serve(async (req: Request) => {
           instance_id,
           type: "url",
           title: title || source_url,
-          content,
-          metadata: { url: source_url, char_count: content.length },
+          content: cleanedContent,
+          metadata: { url: source_url, char_count: cleanedContent.length },
         })
         .select()
         .single();
@@ -223,14 +236,16 @@ Deno.serve(async (req: Request) => {
         return jsonResponse({ error: "Could not extract text from file" }, 400);
       }
 
+      const cleanedContent = cleanExtractedText(content).slice(0, 100000);
+
       const { data: source, error: insertErr } = await admin
         .from("knowledge_sources")
         .insert({
           instance_id: instanceId,
           type: "file",
           title: title || file.name,
-          content: content.slice(0, 100000),
-          metadata: { filename: file.name, mime_type: mime, size_bytes: buffer.byteLength, char_count: content.length },
+          content: cleanedContent,
+          metadata: { filename: file.name, mime_type: mime, size_bytes: buffer.byteLength, char_count: cleanedContent.length },
         })
         .select()
         .single();
@@ -275,14 +290,16 @@ Deno.serve(async (req: Request) => {
         return jsonResponse({ error: "Could not transcribe audio" }, 400);
       }
 
+      const cleanedContent = cleanExtractedText(content);
+
       const { data: source, error: insertErr } = await admin
         .from("knowledge_sources")
         .insert({
           instance_id: instanceId,
           type: "audio",
           title: title || "Gravacao de voz",
-          content,
-          metadata: { mime_type: mime, size_bytes: buffer.byteLength, char_count: content.length },
+          content: cleanedContent,
+          metadata: { mime_type: mime, size_bytes: buffer.byteLength, char_count: cleanedContent.length },
         })
         .select()
         .single();
