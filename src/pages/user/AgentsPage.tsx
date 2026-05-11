@@ -142,11 +142,6 @@ function TemplateCard({ template, onUse }: { template: AgentTemplate; onUse: () 
 
       <div className="flex items-center justify-between mt-auto pt-1">
         <div className="flex items-center gap-2 flex-wrap">
-          {template.custom_fields.length > 0 && (
-            <span className="text-[10px] text-neutral-500 border border-[#1a1a1a] rounded-md px-2 py-0.5">
-              {template.custom_fields.length} campo{template.custom_fields.length !== 1 ? 's' : ''}
-            </span>
-          )}
           {template.default_settings?.tone && (
             <span className="text-[10px] text-neutral-500 border border-[#1a1a1a] rounded-md px-2 py-0.5">
               {TONE_LABELS[template.default_settings.tone] || template.default_settings.tone}

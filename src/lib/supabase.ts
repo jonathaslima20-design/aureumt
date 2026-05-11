@@ -103,10 +103,6 @@ export const LANGUAGE_OPTIONS = [
 ];
 
 
-export function mergeTemplatePrompt(base_prompt: string, values: Record<string, string>): string {
-  return base_prompt.replace(/\{\{(\w+)\}\}/g, (_, key) => values[key] ?? '');
-}
-
 export function buildSystemPrompt(input: {
   persona_name: string;
   company_name: string;
@@ -218,13 +214,6 @@ export type AgentTemplate = {
     language?: string;
     emoji_usage?: string;
   };
-  custom_fields: Array<{
-    key: string;
-    label: string;
-    placeholder: string;
-    required: boolean;
-    type: 'text' | 'textarea' | 'url';
-  }>;
   sort_order: number;
   is_active: boolean;
   profile_image_url: string | null;
