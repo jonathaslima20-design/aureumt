@@ -1,8 +1,8 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
   Plus, Pencil, Trash2, Loader2, Check, X, GripVertical,
   ToggleLeft, ToggleRight, ChevronDown, ChevronUp, Eye, EyeOff,
-  Sparkles,
+  Sparkles, ImagePlus, ImageOff,
 } from 'lucide-react';
 import { supabase, AgentTemplate } from '../../lib/supabase';
 
@@ -132,12 +132,113 @@ function FieldRow({
   );
 }
 
+// ─── Cover image uploader ─────────────────────────────────────────────────────
+
+function CoverImageUploader({
+  value,
+  onChange,
+}: {
+  value: string | null;
+  onChange: (url: string | null) => void;
+}) {
+  const inputRef = useRef<HTMLInputElement>(null);
+  const [uploading, setUploading] = useState(false);
+  const [uploadError, setUploadError] = useState('');
+
+  const handleFile = async (file: File) => {
+    if (!file.type.startsWith('image/')) {
+      setUploadError('Apenas imagens são permitidas.');
+      return;
+    }
+    setUploading(true);
+    setUploadError('');
+    const ext = file.name.split('.').pop();
+    const path = `covers/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
+    const { error } = await supabase.storage
+      .from('template-covers')
+      .upload(path, file, { upsert: false });
+    if (error) {
+      setUploadError('Erro ao fazer upload.');
+      setUploading(false);
+      return;
+    }
+    const { data } = supabase.storage.from('template-covers').getPublicUrl(path);
+    onChange(data.publicUrl);
+    setUploading(false);
+  };
+
+  const handleRemove = async () => {
+    if (!value) return;
+    const path = value.split('/template-covers/')[1];
+    if (path) await supabase.storage.from('template-covers').remove([path]);
+    onChange(null);
+  };
+
+  return (
+    <div>
+      <label className="text-[10px] text-neutral-500 uppercase tracking-wider mb-1.5 block">
+        Foto de capa
+      </label>
+      {value ? (
+        <div className="relative rounded-xl overflow-hidden border border-[#1a1a1a] group" style={{ height: 120 }}>
+          <img src={value} alt="Capa" className="w-full h-full object-cover" />
+          <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+            <button
+              type="button"
+              onClick={() => inputRef.current?.click()}
+              className="text-xs text-white border border-white/20 bg-white/10 hover:bg-white/20 rounded-lg px-3 py-1.5 flex items-center gap-1.5 transition-colors"
+            >
+              <ImagePlus size={12} /> Trocar
+            </button>
+            <button
+              type="button"
+              onClick={handleRemove}
+              className="text-xs text-red-400 border border-red-900/40 bg-red-950/30 hover:bg-red-950/50 rounded-lg px-3 py-1.5 flex items-center gap-1.5 transition-colors"
+            >
+              <ImageOff size={12} /> Remover
+            </button>
+          </div>
+        </div>
+      ) : (
+        <button
+          type="button"
+          onClick={() => inputRef.current?.click()}
+          disabled={uploading}
+          className="w-full border border-dashed border-[#1a1a1a] hover:border-[#2a2a2a] rounded-xl flex flex-col items-center justify-center gap-2 transition-colors"
+          style={{ height: 120 }}
+        >
+          {uploading ? (
+            <Loader2 size={18} className="text-neutral-600 animate-spin" />
+          ) : (
+            <>
+              <ImagePlus size={18} className="text-neutral-600" />
+              <span className="text-xs text-neutral-600">Clique para carregar uma foto de capa</span>
+              <span className="text-[10px] text-neutral-700">JPG, PNG, WebP · máx 5 MB</span>
+            </>
+          )}
+        </button>
+      )}
+      {uploadError && (
+        <p className="text-[11px] text-red-400 mt-1">{uploadError}</p>
+      )}
+      <input
+        ref={inputRef}
+        type="file"
+        accept="image/jpeg,image/png,image/webp,image/gif"
+        className="hidden"
+        onChange={(e) => { const f = e.target.files?.[0]; if (f) handleFile(f); e.target.value = ''; }}
+      />
+    </div>
+  );
+}
+
 // ─── Template form (create / edit) ──────────────────────────────────────────
 
 const BLANK_TEMPLATE: Omit<AgentTemplate, 'id' | 'created_at' | 'updated_at'> = {
   title: '',
   description: '',
   icon: '',
+  cover_image_url: null,
   base_prompt: '',
   default_settings: { tone: 'friendly', language: 'pt-BR', emoji_usage: 'moderate' },
   custom_fields: [],
@@ -202,6 +303,12 @@ function TemplateForm({
 
   return (
     <form onSubmit={handleSubmit} className="space-y-5">
+      {/* Cover image */}
+      <CoverImageUploader
+        value={form.cover_image_url}
+        onChange={(url) => setField('cover_image_url', url)}
+      />
+
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div>
           <label className="text-[10px] text-neutral-500 uppercase tracking-wider mb-1.5 block">
@@ -400,6 +507,7 @@ function TemplateCard({
   const [confirming, setConfirming] = useState(false);
   const [hovered, setHovered] = useState(false);
   const palette = PALETTES[paletteIndex % PALETTES.length];
+  const hasCover = !!template.cover_image_url;
 
   return (
     <div
@@ -418,12 +526,35 @@ function TemplateCard({
         transition: 'border-color 0.3s ease, box-shadow 0.3s ease',
       }}
     >
-      {/* Colored top accent stripe */}
-      {template.is_active && (
-        <div
-          className="absolute top-0 left-0 right-0 h-[2px]"
-          style={{ background: `linear-gradient(90deg, transparent, ${palette.ring}, transparent)` }}
-        />
+      {/* Cover image area */}
+      {hasCover ? (
+        <div className="relative w-full overflow-hidden" style={{ height: 120 }}>
+          <img
+            src={template.cover_image_url!}
+            alt={template.title}
+            className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+          />
+          {/* gradient overlay so text below stays readable */}
+          <div
+            className="absolute inset-0"
+            style={{ background: 'linear-gradient(to bottom, rgba(0,0,0,0.1) 0%, rgba(0,0,0,0.6) 100%)' }}
+          />
+          {/* Colored top accent stripe */}
+          {template.is_active && (
+            <div
+              className="absolute top-0 left-0 right-0 h-[2px]"
+              style={{ background: `linear-gradient(90deg, transparent, ${palette.ring}, transparent)` }}
+            />
+          )}
+        </div>
+      ) : (
+        /* No-cover: just the accent stripe */
+        template.is_active && (
+          <div
+            className="absolute top-0 left-0 right-0 h-[2px]"
+            style={{ background: `linear-gradient(90deg, transparent, ${palette.ring}, transparent)` }}
+          />
+        )
       )}
 
       <div className="p-5">
@@ -516,6 +647,11 @@ function TemplateCard({
           ) : (
             <span className="text-[10px] px-2 py-0.5 rounded-full border border-white/[0.04] text-neutral-600 uppercase tracking-wider flex items-center gap-1">
               <EyeOff size={8} /> Sem prompt
+            </span>
+          )}
+          {hasCover && (
+            <span className="text-[10px] px-2 py-0.5 rounded-full border border-white/[0.07] bg-white/[0.03] text-neutral-400 uppercase tracking-wider flex items-center gap-1">
+              <ImagePlus size={8} /> Com foto
             </span>
           )}
         </div>
