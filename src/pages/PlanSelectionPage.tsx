@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Check, Loader2, Star, ExternalLink } from 'lucide-react';
+import { Check, Loader2, Star, ExternalLink, LogOut } from 'lucide-react';
 import { supabase, Plan } from '../lib/supabase';
 import { useAuth } from '../context/AuthContext';
 import { Logo } from '../components/Logo';
@@ -23,11 +23,13 @@ function installmentInfo(cycle: BillingCycle, price: number): string | null {
 }
 
 export function PlanSelectionPage({ onPlanSelected }: { onPlanSelected: () => void }) {
-  const { profile } = useAuth();
+  const { signOut } = useAuth();
   const [plans, setPlans] = useState<Plan[]>([]);
   const [loading, setLoading] = useState(true);
   const [cycle, setCycle] = useState<BillingCycle>('monthly');
-  const [selecting, setSelecting] = useState<string | null>(null);
+
+  // Suppress unused warning - kept for future use when payment confirmation flow is added
+  void onPlanSelected;
 
   useEffect(() => {
     (async () => {
@@ -53,35 +55,11 @@ export function PlanSelectionPage({ onPlanSelected }: { onPlanSelected: () => vo
     return plan.payment_link_monthly;
   };
 
-  const selectPlan = async (plan: Plan) => {
-    if (!profile) return;
+  const handleSelectPlan = (plan: Plan) => {
     const link = getPaymentLink(plan, cycle);
-
-    setSelecting(plan.id);
-
-    // Create the user_plan record
-    await supabase.from('user_plans').insert({
-      user_id: profile.id,
-      plan_id: plan.id,
-      billing_cycle: cycle,
-      status: 'active',
-      starts_at: new Date().toISOString(),
-    });
-
-    // Update profile with plan reference
-    await supabase.from('profiles').update({
-      plan_id: plan.id,
-      plan_status: 'active',
-    }).eq('id', profile.id);
-
-    setSelecting(null);
-
-    // If there's a payment link, open it and proceed
     if (link) {
       window.open(link, '_blank');
     }
-
-    onPlanSelected();
   };
 
   if (loading) {
@@ -155,7 +133,6 @@ export function PlanSelectionPage({ onPlanSelected }: { onPlanSelected: () => vo
             const price = getPrice(plan, cycle);
             const link = getPaymentLink(plan, cycle);
             const installment = installmentInfo(cycle, price);
-            const isSelecting = selecting === plan.id;
 
             return (
               <div
@@ -202,27 +179,39 @@ export function PlanSelectionPage({ onPlanSelected }: { onPlanSelected: () => vo
                   ))}
                 </ul>
 
-                <button
-                  onClick={() => selectPlan(plan)}
-                  disabled={isSelecting}
-                  className={`w-full py-3 rounded-xl text-sm font-medium flex items-center justify-center gap-2 transition-colors disabled:opacity-50 ${
-                    plan.highlight
-                      ? 'bg-white text-black hover:bg-neutral-200'
-                      : 'border border-[#2a2a2a] text-white hover:bg-[#141414] hover:border-[#3a3a3a]'
-                  }`}
-                >
-                  {isSelecting ? (
-                    <Loader2 size={14} className="animate-spin" />
-                  ) : (
-                    <>
-                      Escolher {plan.name}
-                      {link && <ExternalLink size={12} />}
-                    </>
-                  )}
-                </button>
+                {link ? (
+                  <a
+                    href={link}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    onClick={() => handleSelectPlan(plan)}
+                    className={`w-full py-3 rounded-xl text-sm font-medium flex items-center justify-center gap-2 transition-colors ${
+                      plan.highlight
+                        ? 'bg-white text-black hover:bg-neutral-200'
+                        : 'border border-[#2a2a2a] text-white hover:bg-[#141414] hover:border-[#3a3a3a]'
+                    }`}
+                  >
+                    Assinar {plan.name} <ExternalLink size={12} />
+                  </a>
+                ) : (
+                  <div className="w-full py-3 rounded-xl text-center text-sm font-medium border border-[#1a1a1a] text-neutral-600">
+                    Link em breve
+                  </div>
+                )}
               </div>
             );
           })}
+        </div>
+
+        {/* Logout / close */}
+        <div className="flex justify-center mt-10">
+          <button
+            onClick={signOut}
+            className="flex items-center gap-2 text-sm text-neutral-500 hover:text-white transition-colors px-4 py-2 rounded-lg border border-[#1a1a1a] hover:border-[#2a2a2a]"
+          >
+            <LogOut size={14} />
+            Sair
+          </button>
         </div>
       </div>
     </div>
