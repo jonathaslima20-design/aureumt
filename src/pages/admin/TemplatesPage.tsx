@@ -156,6 +156,7 @@ function ProfileImageUploader({
   const [cropSrc, setCropSrc] = useState<string | null>(null);
   const [cropFile, setCropFile] = useState<File | null>(null);
   const [zoom, setZoom] = useState(1);
+  const [baseScale, setBaseScale] = useState(1); // scale that makes image fill the circle
   const [offset, setOffset] = useState({ x: 0, y: 0 });
   const [dragging, setDragging] = useState(false);
   const dragStart = useRef<{ mx: number; my: number; ox: number; oy: number } | null>(null);
@@ -177,11 +178,13 @@ function ProfileImageUploader({
     ctx.beginPath();
     ctx.arc(PREVIEW / 2, PREVIEW / 2, PREVIEW / 2, 0, Math.PI * 2);
     ctx.clip();
-    const w = img.naturalWidth * zoom;
-    const h = img.naturalHeight * zoom;
+    // zoom is a multiplier on top of baseScale (1 = fill circle, >1 = zoom in)
+    const scale = baseScale * zoom;
+    const w = img.naturalWidth * scale;
+    const h = img.naturalHeight * scale;
     ctx.drawImage(img, (PREVIEW - w) / 2 + offset.x, (PREVIEW - h) / 2 + offset.y, w, h);
     ctx.restore();
-  }, [zoom, offset]);
+  }, [zoom, baseScale, offset]);
 
   useEffect(() => {
     if (cropSrc) drawCrop();
@@ -194,7 +197,13 @@ function ProfileImageUploader({
     setZoom(1);
     setOffset({ x: 0, y: 0 });
     const img = new Image();
-    img.onload = () => { imgRef.current = img; drawCrop(); };
+    img.onload = () => {
+      imgRef.current = img;
+      // compute scale so the shorter side fills the preview circle
+      const scale = PREVIEW / Math.min(img.naturalWidth, img.naturalHeight);
+      setBaseScale(scale);
+      drawCrop();
+    };
     img.src = url;
   };
 
@@ -264,11 +273,11 @@ function ProfileImageUploader({
 
         {/* Zoom slider */}
         <div className="flex items-center gap-2 w-full max-w-[200px]">
-          <button type="button" onClick={() => setZoom((z) => Math.max(0.5, z - 0.1))} className="text-neutral-400 hover:text-white transition-colors">
+          <button type="button" onClick={() => setZoom((z) => Math.max(1, z - 0.1))} className="text-neutral-400 hover:text-white transition-colors">
             <ZoomOut size={14} />
           </button>
           <input
-            type="range" min={0.5} max={3} step={0.05}
+            type="range" min={1} max={3} step={0.05}
             value={zoom}
             onChange={(e) => setZoom(Number(e.target.value))}
             className="flex-1 accent-white h-1"
