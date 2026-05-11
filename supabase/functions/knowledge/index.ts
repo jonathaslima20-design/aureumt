@@ -81,6 +81,19 @@ function cleanExtractedText(raw: string): string {
   return raw
     .replace(/\r\n/g, "\n")
     .replace(/\r/g, "\n")
+    // Remove markdown images: ![alt](url)
+    .replace(/!\[[^\]]*\]\([^)]*\)/g, "")
+    // Convert markdown links to just text: [text](url) -> text
+    .replace(/\[([^\]]*)\]\([^)]*\)/g, "$1")
+    // Remove standalone URLs on their own line
+    .replace(/^https?:\/\/\S+$/gm, "")
+    // Remove lines that are just image/asset file paths
+    .replace(/^[^\n]*\.(jpg|jpeg|png|gif|svg|webp|avif|ico|bmp|tiff)(\?[^\n]*)?\s*$/gim, "")
+    // Remove lines that look like asset paths (/assets/..., /images/..., /img/...)
+    .replace(/^\/?(?:assets|images?|img|media|static|uploads?|files?|cdn)\/[^\n]*$/gim, "")
+    // Remove markdown heading lines that are just URLs
+    .replace(/^#+\s*https?:\/\/\S+\s*$/gm, "")
+    // Basic whitespace normalization
     .replace(/[^\S\n]+/g, " ")
     .replace(/\n{3,}/g, "\n\n")
     .replace(/[ \t]+\n/g, "\n")
@@ -122,6 +135,15 @@ async function scrapeUrlDirect(sourceUrl: string): Promise<string> {
       .replace(/<aside[^>]*>[\s\S]*?<\/aside>/gi, "")
       .replace(/<noscript[^>]*>[\s\S]*?<\/noscript>/gi, "")
       .replace(/<dialog[^>]*>[\s\S]*?<\/dialog>/gi, "")
+      // Remove media elements before generic tag strip to avoid leaking src/alt as text
+      .replace(/<img[^>]*>/gi, "")
+      .replace(/<picture[^>]*>[\s\S]*?<\/picture>/gi, "")
+      .replace(/<video[^>]*>[\s\S]*?<\/video>/gi, "")
+      .replace(/<audio[^>]*>[\s\S]*?<\/audio>/gi, "")
+      .replace(/<source[^>]*>/gi, "")
+      .replace(/<svg[^>]*>[\s\S]*?<\/svg>/gi, "")
+      .replace(/<canvas[^>]*>[\s\S]*?<\/canvas>/gi, "")
+      .replace(/<figure[^>]*>[\s\S]*?<\/figure>/gi, "")
       .replace(/<[^>]*class="[^"]*(?:cookie|popup|banner|modal|overlay)[^"]*"[^>]*>[\s\S]*?<\/[^>]+>/gi, "")
       .replace(/<[^>]+>/g, " ")
       .replace(/&nbsp;/g, " ")
