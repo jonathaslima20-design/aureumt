@@ -1,8 +1,8 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useCallback } from 'react';
 import {
   Plus, Pencil, Trash2, Loader2, Check, X, GripVertical,
   ToggleLeft, ToggleRight, ChevronDown, ChevronUp, Eye, EyeOff,
-  Sparkles, ImagePlus, ImageOff,
+  Sparkles, ImagePlus, ImageOff, ZoomIn, ZoomOut, Move,
 } from 'lucide-react';
 import { supabase, AgentTemplate } from '../../lib/supabase';
 
@@ -132,7 +132,7 @@ function FieldRow({
   );
 }
 
-// ─── Profile image uploader (circular) ───────────────────────────────────────
+// ─── Profile image uploader with crop/zoom ───────────────────────────────────
 
 function ProfileImageUploader({
   value,
@@ -148,30 +148,90 @@ function ProfileImageUploader({
   onChange: (url: string | null) => void;
 }) {
   const inputRef = useRef<HTMLInputElement>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState('');
 
-  const handleFile = async (file: File) => {
-    if (!file.type.startsWith('image/')) {
-      setUploadError('Apenas imagens são permitidas.');
-      return;
-    }
+  // crop state
+  const [cropSrc, setCropSrc] = useState<string | null>(null);
+  const [cropFile, setCropFile] = useState<File | null>(null);
+  const [zoom, setZoom] = useState(1);
+  const [offset, setOffset] = useState({ x: 0, y: 0 });
+  const [dragging, setDragging] = useState(false);
+  const dragStart = useRef<{ mx: number; my: number; ox: number; oy: number } | null>(null);
+  const imgRef = useRef<HTMLImageElement | null>(null);
+
+  const PREVIEW = 160; // px — size of the crop circle preview
+
+  const drawCrop = useCallback(() => {
+    const canvas = canvasRef.current;
+    const img = imgRef.current;
+    if (!canvas || !img) return;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+    canvas.width = PREVIEW;
+    canvas.height = PREVIEW;
+    ctx.clearRect(0, 0, PREVIEW, PREVIEW);
+    // circular clip
+    ctx.save();
+    ctx.beginPath();
+    ctx.arc(PREVIEW / 2, PREVIEW / 2, PREVIEW / 2, 0, Math.PI * 2);
+    ctx.clip();
+    const w = img.naturalWidth * zoom;
+    const h = img.naturalHeight * zoom;
+    ctx.drawImage(img, (PREVIEW - w) / 2 + offset.x, (PREVIEW - h) / 2 + offset.y, w, h);
+    ctx.restore();
+  }, [zoom, offset]);
+
+  useEffect(() => {
+    if (cropSrc) drawCrop();
+  }, [cropSrc, zoom, offset, drawCrop]);
+
+  const openCrop = (file: File) => {
+    const url = URL.createObjectURL(file);
+    setCropSrc(url);
+    setCropFile(file);
+    setZoom(1);
+    setOffset({ x: 0, y: 0 });
+    const img = new Image();
+    img.onload = () => { imgRef.current = img; drawCrop(); };
+    img.src = url;
+  };
+
+  const handlePointerDown = (e: React.PointerEvent) => {
+    (e.target as HTMLElement).setPointerCapture(e.pointerId);
+    setDragging(true);
+    dragStart.current = { mx: e.clientX, my: e.clientY, ox: offset.x, oy: offset.y };
+  };
+  const handlePointerMove = (e: React.PointerEvent) => {
+    if (!dragging || !dragStart.current) return;
+    setOffset({
+      x: dragStart.current.ox + (e.clientX - dragStart.current.mx),
+      y: dragStart.current.oy + (e.clientY - dragStart.current.my),
+    });
+  };
+  const handlePointerUp = () => { setDragging(false); dragStart.current = null; };
+
+  const uploadCropped = async () => {
+    const canvas = canvasRef.current;
+    if (!canvas || !cropFile) return;
     setUploading(true);
     setUploadError('');
-    const ext = file.name.split('.').pop();
-    const path = `profiles/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
-    const { error } = await supabase.storage
-      .from('template-covers')
-      .upload(path, file, { upsert: false });
-    if (error) {
-      setUploadError('Erro ao fazer upload.');
+    canvas.toBlob(async (blob) => {
+      if (!blob) { setUploadError('Erro ao recortar.'); setUploading(false); return; }
+      const ext = 'png';
+      const path = `profiles/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
+      const { error } = await supabase.storage.from('template-covers').upload(path, blob, { upsert: false, contentType: 'image/png' });
+      if (error) { setUploadError('Erro ao fazer upload.'); setUploading(false); return; }
+      const { data } = supabase.storage.from('template-covers').getPublicUrl(path);
+      onChange(data.publicUrl);
+      setCropSrc(null);
+      setCropFile(null);
       setUploading(false);
-      return;
-    }
-    const { data } = supabase.storage.from('template-covers').getPublicUrl(path);
-    onChange(data.publicUrl);
-    setUploading(false);
+    }, 'image/png');
   };
+
+  const cancelCrop = () => { setCropSrc(null); setCropFile(null); };
 
   const handleRemove = async () => {
     if (!value) return;
@@ -180,73 +240,109 @@ function ProfileImageUploader({
     onChange(null);
   };
 
+  // ── Crop modal ──
+  if (cropSrc) {
+    return (
+      <div className="flex flex-col items-center gap-4">
+        <label className="text-[10px] text-neutral-500 uppercase tracking-wider">
+          Recortar foto de perfil
+        </label>
+
+        {/* Preview canvas */}
+        <div
+          className="relative select-none"
+          style={{ width: PREVIEW, height: PREVIEW, borderRadius: '50%', overflow: 'hidden', cursor: dragging ? 'grabbing' : 'grab', border: `2px solid ${ringColor}`, boxShadow: `0 0 20px ${glowColor}` }}
+          onPointerDown={handlePointerDown}
+          onPointerMove={handlePointerMove}
+          onPointerUp={handlePointerUp}
+        >
+          <canvas ref={canvasRef} style={{ width: PREVIEW, height: PREVIEW, display: 'block' }} />
+          <div className="absolute inset-0 flex items-center justify-center pointer-events-none opacity-20">
+            <Move size={24} className="text-white" />
+          </div>
+        </div>
+
+        {/* Zoom slider */}
+        <div className="flex items-center gap-2 w-full max-w-[200px]">
+          <button type="button" onClick={() => setZoom((z) => Math.max(0.5, z - 0.1))} className="text-neutral-400 hover:text-white transition-colors">
+            <ZoomOut size={14} />
+          </button>
+          <input
+            type="range" min={0.5} max={3} step={0.05}
+            value={zoom}
+            onChange={(e) => setZoom(Number(e.target.value))}
+            className="flex-1 accent-white h-1"
+          />
+          <button type="button" onClick={() => setZoom((z) => Math.min(3, z + 0.1))} className="text-neutral-400 hover:text-white transition-colors">
+            <ZoomIn size={14} />
+          </button>
+        </div>
+        <p className="text-[10px] text-neutral-600">Arraste para reposicionar · use o slider para zoom</p>
+
+        <div className="flex items-center gap-2">
+          <button type="button" onClick={cancelCrop} className="text-[11px] text-neutral-400 hover:text-white border border-[#1a1a1a] rounded-lg px-3 py-1.5 transition-colors">
+            Cancelar
+          </button>
+          <button
+            type="button"
+            onClick={uploadCropped}
+            disabled={uploading}
+            className="text-[11px] text-black bg-white hover:bg-neutral-200 rounded-lg px-4 py-1.5 font-medium flex items-center gap-1.5 transition-colors disabled:opacity-50"
+          >
+            {uploading ? <Loader2 size={11} className="animate-spin" /> : <Check size={11} />}
+            Aplicar
+          </button>
+        </div>
+        {uploadError && <p className="text-[11px] text-red-400">{uploadError}</p>}
+        <input ref={inputRef} type="file" accept="image/jpeg,image/png,image/webp" className="hidden"
+          onChange={(e) => { const f = e.target.files?.[0]; if (f) openCrop(f); e.target.value = ''; }} />
+      </div>
+    );
+  }
+
+  // ── Normal state ──
   return (
     <div className="flex flex-col items-center gap-3">
       <label className="text-[10px] text-neutral-500 uppercase tracking-wider">
         Foto de perfil
       </label>
-
-      {/* Circular avatar click area */}
       <div className="relative group">
         <button
           type="button"
           onClick={() => inputRef.current?.click()}
           disabled={uploading}
-          className="w-20 h-20 rounded-full overflow-hidden flex items-center justify-center focus:outline-none transition-transform duration-200 hover:scale-105"
-          style={{
-            background: 'rgba(0,0,0,0.5)',
-            border: `2px solid ${ringColor}`,
-            boxShadow: `0 0 16px ${glowColor}`,
-          }}
+          className="w-24 h-24 rounded-full overflow-hidden flex items-center justify-center focus:outline-none transition-transform duration-200 hover:scale-105"
+          style={{ background: 'rgba(0,0,0,0.5)', border: `2px solid ${ringColor}`, boxShadow: `0 0 18px ${glowColor}` }}
         >
           {uploading ? (
             <Loader2 size={22} className="text-neutral-500 animate-spin" />
           ) : value ? (
             <img src={value} alt="Perfil" className="w-full h-full object-cover" />
           ) : (
-            <span className="text-3xl">{icon || '🤖'}</span>
+            <span className="text-4xl">{icon || '🤖'}</span>
           )}
-
-          {/* Hover overlay */}
           {!uploading && (
             <div className="absolute inset-0 rounded-full bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-              <ImagePlus size={18} className="text-white" />
+              <ImagePlus size={20} className="text-white" />
             </div>
           )}
         </button>
       </div>
-
       <div className="flex items-center gap-2">
-        <button
-          type="button"
-          onClick={() => inputRef.current?.click()}
-          disabled={uploading}
-          className="text-[11px] text-neutral-400 hover:text-white border border-[#1a1a1a] hover:border-[#262626] rounded-lg px-3 py-1 flex items-center gap-1.5 transition-colors"
-        >
+        <button type="button" onClick={() => inputRef.current?.click()} disabled={uploading}
+          className="text-[11px] text-neutral-400 hover:text-white border border-[#1a1a1a] hover:border-[#262626] rounded-lg px-3 py-1 flex items-center gap-1.5 transition-colors">
           <ImagePlus size={11} /> {value ? 'Trocar foto' : 'Carregar foto'}
         </button>
         {value && (
-          <button
-            type="button"
-            onClick={handleRemove}
-            className="text-[11px] text-red-500 hover:text-red-400 border border-red-900/30 hover:border-red-800/50 rounded-lg px-3 py-1 flex items-center gap-1.5 transition-colors"
-          >
+          <button type="button" onClick={handleRemove}
+            className="text-[11px] text-red-500 hover:text-red-400 border border-red-900/30 hover:border-red-800/50 rounded-lg px-3 py-1 flex items-center gap-1.5 transition-colors">
             <ImageOff size={11} /> Remover
           </button>
         )}
       </div>
-
-      {uploadError && (
-        <p className="text-[11px] text-red-400">{uploadError}</p>
-      )}
-
-      <input
-        ref={inputRef}
-        type="file"
-        accept="image/jpeg,image/png,image/webp,image/gif"
-        className="hidden"
-        onChange={(e) => { const f = e.target.files?.[0]; if (f) handleFile(f); e.target.value = ''; }}
-      />
+      {uploadError && <p className="text-[11px] text-red-400">{uploadError}</p>}
+      <input ref={inputRef} type="file" accept="image/jpeg,image/png,image/webp,image/gif" className="hidden"
+        onChange={(e) => { const f = e.target.files?.[0]; if (f) openCrop(f); e.target.value = ''; }} />
     </div>
   );
 }
@@ -556,17 +652,17 @@ function TemplateCard({
         />
       )}
 
-      <div className="p-5">
+      <div className="p-6">
         {/* Header row */}
-        <div className="flex items-start justify-between gap-3 mb-4">
-          <div className="flex items-center gap-3">
+        <div className="flex items-start justify-between gap-4 mb-5">
+          <div className="flex items-center gap-4">
             {/* Circular avatar — profile photo or emoji fallback */}
             <div
-              className="w-12 h-12 rounded-full overflow-hidden flex items-center justify-center text-2xl flex-shrink-0 transition-all duration-300"
+              className="w-16 h-16 rounded-full overflow-hidden flex items-center justify-center text-3xl flex-shrink-0 transition-all duration-300"
               style={{
                 background: 'rgba(0,0,0,0.4)',
                 border: `2px solid ${template.is_active ? palette.ring : 'rgba(255,255,255,0.06)'}`,
-                boxShadow: template.is_active ? `0 0 14px ${palette.glow}` : 'none',
+                boxShadow: template.is_active ? `0 0 18px ${palette.glow}` : 'none',
               }}
             >
               {template.profile_image_url ? (
@@ -580,8 +676,8 @@ function TemplateCard({
               )}
             </div>
             <div className="min-w-0">
-              <div className="text-sm font-semibold text-white leading-tight">{template.title}</div>
-              <div className="text-[11px] text-neutral-400 mt-1 leading-relaxed line-clamp-2">
+              <div className="text-base font-semibold text-white leading-snug">{template.title}</div>
+              <div className="text-xs text-neutral-400 mt-1.5 leading-relaxed line-clamp-2">
                 {template.description}
               </div>
             </div>
@@ -820,3 +916,6 @@ export function TemplatesPage() {
     </div>
   );
 }
+
+
+export { TemplatesPage }
