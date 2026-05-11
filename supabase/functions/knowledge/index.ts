@@ -34,7 +34,25 @@ async function getGeminiKey(admin: ReturnType<typeof createClient>, userId: stri
   return global?.gemini_key || "";
 }
 
-async function extractTextWithGemini(apiKey: string, base64Data: string, mimeType: string, instruction: string): Promise<string> {
+async function verifyKnowledgeBaseOwnership(
+  admin: ReturnType<typeof createClient>,
+  knowledgeBaseId: string,
+  userId: string
+): Promise<boolean> {
+  const { data } = await admin
+    .from("knowledge_bases")
+    .select("user_id")
+    .eq("id", knowledgeBaseId)
+    .maybeSingle();
+  return !!data && data.user_id === userId;
+}
+
+async function extractTextWithGemini(
+  apiKey: string,
+  base64Data: string,
+  mimeType: string,
+  instruction: string
+): Promise<string> {
   const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
 
   const body = {
@@ -59,7 +77,6 @@ async function extractTextWithGemini(apiKey: string, base64Data: string, mimeTyp
   return data?.candidates?.[0]?.content?.parts?.[0]?.text || "";
 }
 
-// Normalize extracted text: collapse whitespace, strip control chars, dedupe blank lines
 function cleanExtractedText(raw: string): string {
   return raw
     .replace(/\r\n/g, "\n")
@@ -94,10 +111,7 @@ async function scrapeUrl(sourceUrl: string): Promise<string> {
     }
 
     const html = await res.text();
-
-    if (!html || html.length < 50) {
-      throw new Error("A pagina retornou conteudo vazio");
-    }
+    if (!html || html.length < 50) throw new Error("A pagina retornou conteudo vazio");
 
     const stripped = html
       .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, "")
@@ -143,45 +157,35 @@ Deno.serve(async (req: Request) => {
     const url = new URL(req.url);
     const action = url.searchParams.get("action");
 
+    // ── scrape_url ────────────────────────────────────────────────────────────
     if (action === "scrape_url") {
-      const { instance_id, source_url, title } = await req.json();
+      const body = await req.json();
+      const { knowledge_base_id, source_url, title } = body;
 
       if (!source_url || typeof source_url !== "string") {
         return jsonResponse({ error: "URL e obrigatoria" }, 400);
       }
-
       if (!source_url.startsWith("http://") && !source_url.startsWith("https://")) {
         return jsonResponse({ error: "URL deve comecar com http:// ou https://" }, 400);
       }
-
-      if (!instance_id) {
-        return jsonResponse({ error: "instance_id e obrigatorio" }, 400);
+      if (!knowledge_base_id) {
+        return jsonResponse({ error: "knowledge_base_id e obrigatorio" }, 400);
       }
 
-      const { data: instance } = await admin
-        .from("instances")
-        .select("user_id")
-        .eq("id", instance_id)
-        .maybeSingle();
+      const allowed = await verifyKnowledgeBaseOwnership(admin, knowledge_base_id, user.id);
+      if (!allowed) return jsonResponse({ error: "forbidden" }, 403);
 
-      if (!instance || instance.user_id !== user.id) {
-        return jsonResponse({ error: "forbidden" }, 403);
-      }
-
-      console.log("[knowledge] scraping URL:", source_url);
       const content = await scrapeUrl(source_url);
-
       if (!content || content.length < 20) {
-        return jsonResponse({ error: "Nao foi possivel extrair conteudo significativo desta URL. Verifique se a pagina possui conteudo de texto." }, 400);
+        return jsonResponse({ error: "Nao foi possivel extrair conteudo significativo desta URL." }, 400);
       }
 
       const cleanedContent = cleanExtractedText(content);
-      console.log("[knowledge] scraped", content.length, "raw →", cleanedContent.length, "clean chars from", source_url);
 
       const { data: source, error: insertErr } = await admin
         .from("knowledge_sources")
         .insert({
-          instance_id,
+          knowledge_base_id,
           type: "url",
           title: title || source_url,
           content: cleanedContent,
@@ -194,34 +198,37 @@ Deno.serve(async (req: Request) => {
       return jsonResponse({ ok: true, source });
     }
 
+    // ── process_file ──────────────────────────────────────────────────────────
     if (action === "process_file") {
       const formData = await req.formData();
       const file = formData.get("file") as File | null;
-      const instanceId = formData.get("instance_id") as string;
+      const knowledgeBaseId = formData.get("knowledge_base_id") as string;
       const title = formData.get("title") as string;
 
-      if (!file || !instanceId) return jsonResponse({ error: "missing file or instance_id" }, 400);
-
-      const { data: instance } = await admin
-        .from("instances")
-        .select("user_id")
-        .eq("id", instanceId)
-        .maybeSingle();
-
-      if (!instance || instance.user_id !== user.id) {
-        return jsonResponse({ error: "forbidden" }, 403);
+      if (!file || !knowledgeBaseId) {
+        return jsonResponse({ error: "missing file or knowledge_base_id" }, 400);
       }
+
+      const allowed = await verifyKnowledgeBaseOwnership(admin, knowledgeBaseId, user.id);
+      if (!allowed) return jsonResponse({ error: "forbidden" }, 403);
 
       const geminiKey = await getGeminiKey(admin, user.id);
       if (!geminiKey) return jsonResponse({ error: "No Gemini API key configured" }, 400);
 
       const buffer = await file.arrayBuffer();
-      const base64 = btoa(String.fromCharCode(...new Uint8Array(buffer)));
+      const bytes = new Uint8Array(buffer);
+      // btoa safe for large buffers
+      let binary = "";
+      const chunkSize = 8192;
+      for (let i = 0; i < bytes.length; i += chunkSize) {
+        binary += String.fromCharCode(...bytes.subarray(i, i + chunkSize));
+      }
+      const base64 = btoa(binary);
 
-      let content: string;
       const mime = file.type || "application/octet-stream";
+      let content: string;
 
-      if (mime === "text/plain") {
+      if (mime === "text/plain" || file.name.endsWith(".txt")) {
         content = new TextDecoder().decode(buffer);
       } else {
         content = await extractTextWithGemini(
@@ -233,7 +240,7 @@ Deno.serve(async (req: Request) => {
       }
 
       if (!content || content.length < 10) {
-        return jsonResponse({ error: "Could not extract text from file" }, 400);
+        return jsonResponse({ error: "Nao foi possivel extrair texto do arquivo" }, 400);
       }
 
       const cleanedContent = cleanExtractedText(content).slice(0, 100000);
@@ -241,7 +248,7 @@ Deno.serve(async (req: Request) => {
       const { data: source, error: insertErr } = await admin
         .from("knowledge_sources")
         .insert({
-          instance_id: instanceId,
+          knowledge_base_id: knowledgeBaseId,
           type: "file",
           title: title || file.name,
           content: cleanedContent,
@@ -254,29 +261,31 @@ Deno.serve(async (req: Request) => {
       return jsonResponse({ ok: true, source });
     }
 
+    // ── transcribe_audio ──────────────────────────────────────────────────────
     if (action === "transcribe_audio") {
       const formData = await req.formData();
       const audio = formData.get("audio") as File | null;
-      const instanceId = formData.get("instance_id") as string;
+      const knowledgeBaseId = formData.get("knowledge_base_id") as string;
       const title = formData.get("title") as string;
 
-      if (!audio || !instanceId) return jsonResponse({ error: "missing audio or instance_id" }, 400);
-
-      const { data: instance } = await admin
-        .from("instances")
-        .select("user_id")
-        .eq("id", instanceId)
-        .maybeSingle();
-
-      if (!instance || instance.user_id !== user.id) {
-        return jsonResponse({ error: "forbidden" }, 403);
+      if (!audio || !knowledgeBaseId) {
+        return jsonResponse({ error: "missing audio or knowledge_base_id" }, 400);
       }
+
+      const allowed = await verifyKnowledgeBaseOwnership(admin, knowledgeBaseId, user.id);
+      if (!allowed) return jsonResponse({ error: "forbidden" }, 403);
 
       const geminiKey = await getGeminiKey(admin, user.id);
       if (!geminiKey) return jsonResponse({ error: "No Gemini API key configured" }, 400);
 
       const buffer = await audio.arrayBuffer();
-      const base64 = btoa(String.fromCharCode(...new Uint8Array(buffer)));
+      const bytes = new Uint8Array(buffer);
+      let binary = "";
+      const chunkSize = 8192;
+      for (let i = 0; i < bytes.length; i += chunkSize) {
+        binary += String.fromCharCode(...bytes.subarray(i, i + chunkSize));
+      }
+      const base64 = btoa(binary);
       const mime = audio.type || "audio/webm";
 
       const content = await extractTextWithGemini(
@@ -287,7 +296,7 @@ Deno.serve(async (req: Request) => {
       );
 
       if (!content || content.length < 5) {
-        return jsonResponse({ error: "Could not transcribe audio" }, 400);
+        return jsonResponse({ error: "Nao foi possivel transcrever o audio" }, 400);
       }
 
       const cleanedContent = cleanExtractedText(content);
@@ -295,7 +304,7 @@ Deno.serve(async (req: Request) => {
       const { data: source, error: insertErr } = await admin
         .from("knowledge_sources")
         .insert({
-          instance_id: instanceId,
+          knowledge_base_id: knowledgeBaseId,
           type: "audio",
           title: title || "Gravacao de voz",
           content: cleanedContent,
