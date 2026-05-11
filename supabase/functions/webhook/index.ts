@@ -197,47 +197,73 @@ async function callGemini(
     contents.push({ role: "user", parts: [{ text: "oi" }] });
   }
 
+  // Cap systemInstruction at 200k chars to avoid payload-too-large errors
+  const cappedInstruction = systemInstruction.length > 200000
+    ? systemInstruction.slice(0, 200000) + "\n\n[contexto truncado por limite de tamanho]"
+    : systemInstruction;
+
   const body = {
     // systemInstruction carries the full KB context — Gemini treats it as the highest-priority context
-    systemInstruction: { parts: [{ text: systemInstruction }] },
+    systemInstruction: { parts: [{ text: cappedInstruction }] },
     contents,
     generationConfig: { temperature: 0.7, maxOutputTokens: 800 },
   };
 
   let lastError = "";
   for (const model of models) {
-    try {
-      const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
-      const res = await fetch(url, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body),
-      });
-      const data = await res.json();
-      if (!res.ok) {
-        lastError = `[${model}] ${res.status} ${JSON.stringify(data).slice(0, 400)}`;
-        console.error("Gemini API error", lastError);
-        continue;
+    // Retry once on 429 (rate limit) with a short backoff
+    for (let attempt = 0; attempt < 2; attempt++) {
+      try {
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+        const res = await fetch(url, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(body),
+        });
+        const data = await res.json();
+
+        if (res.status === 429) {
+          const retryAfter = parseInt(res.headers.get("Retry-After") || "5", 10);
+          const waitMs = Math.min((retryAfter || 5) * 1000, 8000);
+          lastError = `[${model}] 429 rate_limit — retrying after ${waitMs}ms`;
+          console.warn("Gemini rate limit", lastError);
+          if (attempt === 0) {
+            await new Promise((r) => setTimeout(r, waitMs));
+            continue;
+          }
+          break;
+        }
+
+        if (!res.ok) {
+          const errDetail = JSON.stringify(data?.error || data).slice(0, 400);
+          lastError = `[${model}] HTTP ${res.status}: ${errDetail}`;
+          console.error("Gemini API error", lastError);
+          break;
+        }
+
+        const candidate = data?.candidates?.[0];
+        const finishReason = candidate?.finishReason;
+        const text = candidate?.content?.parts?.[0]?.text;
+        if (typeof text === "string" && text.trim().length > 0) {
+          const tokens = data?.usageMetadata?.totalTokenCount || 0;
+          return { text: text.trim(), tokens, error: "" };
+        }
+        if (finishReason && finishReason !== "STOP" && finishReason !== "MAX_TOKENS") {
+          console.warn(`[callGemini] ${model} finishReason=${finishReason}`);
+          return { text: "Não consigo responder a isso.", tokens: 0, error: "" };
+        }
+        lastError = `[${model}] empty response finishReason=${finishReason ?? "null"}`;
+        console.error("Gemini empty", lastError);
+        break;
+      } catch (e) {
+        lastError = `[${model}] fetch_error: ${e instanceof Error ? e.message : String(e)}`;
+        console.error("Gemini fetch failed", lastError);
+        break;
       }
-      const candidate = data?.candidates?.[0];
-      const finishReason = candidate?.finishReason;
-      const text = candidate?.content?.parts?.[0]?.text;
-      if (typeof text === "string" && text.trim().length > 0) {
-        const tokens = data?.usageMetadata?.totalTokenCount || 0;
-        return { text: text.trim(), tokens, error: "" };
-      }
-      if (finishReason && finishReason !== "STOP" && finishReason !== "MAX_TOKENS") {
-        console.warn(`[callGemini] ${model} finishReason=${finishReason}`);
-        return { text: "Não consigo responder a isso.", tokens: 0, error: "" };
-      }
-      lastError = `[${model}] empty text finishReason=${finishReason}`;
-      console.error("Gemini empty", lastError);
-    } catch (e) {
-      lastError = `[${model}] ${e instanceof Error ? e.message : "fetch_error"}`;
-      console.error("Gemini fetch failed", lastError);
     }
   }
 
+  console.error("[callGemini] all models failed. lastError:", lastError);
   return {
     text: "Desculpe, estou com uma instabilidade momentânea. Tente novamente em instantes.",
     tokens: 0,
