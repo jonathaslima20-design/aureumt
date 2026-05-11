@@ -2,7 +2,7 @@ import { Circle } from 'lucide-react';
 
 export function Logo({ size = 24 }: { size?: number }) {
   const fontSize = Math.round(size * 0.625);
-  const gap = size > 32 ? 'gap-3' : 'gap-1.5';
+  const gap = size > 32 ? 'gap-2' : 'gap-1.5';
 
   return (
     <div className={`flex items-center ${gap}`}>
