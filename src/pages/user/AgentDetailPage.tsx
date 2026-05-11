@@ -10,6 +10,7 @@ import {
   buildSystemPrompt,
 } from '../../lib/supabase';
 import { AgentAvatar } from '../../components/AgentAvatar';
+import { ImageCropModal } from '../../components/ImageCropModal';
 
 type Tab = 'profile' | 'knowledge' | 'connections' | 'advanced';
 
@@ -92,6 +93,7 @@ function ProfileTab({ instance, onUpdate }: { instance: Instance; onUpdate: () =
   const [uploading, setUploading] = useState(false);
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState('');
+  const [cropSrc, setCropSrc] = useState<string | null>(null);
 
   useEffect(() => {
     setDisplayName(instance.display_name || instance.instance_name);
@@ -101,15 +103,21 @@ function ProfileTab({ instance, onUpdate }: { instance: Instance; onUpdate: () =
     setColor(instance.color || AGENT_COLORS[0]);
   }, [instance.id]);
 
-  const handleUpload = async (file: File) => {
+  const handleFileSelect = (file: File) => {
+    const reader = new FileReader();
+    reader.onload = (e) => setCropSrc(e.target?.result as string);
+    reader.readAsDataURL(file);
+  };
+
+  const handleCropConfirm = async (blob: Blob) => {
+    setCropSrc(null);
     setError('');
     setUploading(true);
     try {
-      const ext = file.name.split('.').pop() || 'png';
-      const path = `${instance.user_id}/${instance.id}-${Date.now()}.${ext}`;
+      const path = `${instance.user_id}/${instance.id}-${Date.now()}.png`;
       const { error: upErr } = await supabase.storage
         .from('agent-avatars')
-        .upload(path, file, { upsert: true, contentType: file.type });
+        .upload(path, blob, { upsert: true, contentType: 'image/png' });
       if (upErr) throw upErr;
       const { data } = supabase.storage.from('agent-avatars').getPublicUrl(path);
       setAvatarUrl(data.publicUrl);
@@ -145,6 +153,14 @@ function ProfileTab({ instance, onUpdate }: { instance: Instance; onUpdate: () =
   };
 
   return (
+    <>
+    {cropSrc && (
+      <ImageCropModal
+        src={cropSrc}
+        onConfirm={handleCropConfirm}
+        onCancel={() => setCropSrc(null)}
+      />
+    )}
     <div className="max-w-2xl space-y-5">
       {/* Avatar card */}
       <div className="bg-[#141414] border border-[#242424] rounded-2xl p-6">
@@ -159,7 +175,7 @@ function ProfileTab({ instance, onUpdate }: { instance: Instance; onUpdate: () =
               <label className="flex items-center gap-2 cursor-pointer border border-[#242424] hover:border-[#2e2e2e] rounded-lg px-3 py-1.5 text-[11px] text-neutral-300 transition-colors w-fit">
                 {uploading ? <Loader2 size={11} className="animate-spin" /> : <Upload size={11} />}
                 {avatarUrl ? 'Trocar foto' : 'Enviar foto'}
-                <input type="file" accept="image/*" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) handleUpload(f); }} />
+                <input type="file" accept="image/*" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) handleFileSelect(f); e.target.value = ''; }} />
               </label>
               {avatarUrl && (
                 <button
@@ -237,6 +253,7 @@ function ProfileTab({ instance, onUpdate }: { instance: Instance; onUpdate: () =
         {saved ? 'Salvo' : 'Salvar alterações'}
       </button>
     </div>
+    </>
   );
 }
 
