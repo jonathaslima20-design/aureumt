@@ -1,21 +1,46 @@
 import { useEffect, useState } from 'react';
 import { Loader2 } from 'lucide-react';
 import { AuthProvider, useAuth } from './context/AuthContext';
+import { supabase } from './lib/supabase';
 import { AuthPage } from './pages/AuthPage';
 import { Dashboard } from './pages/Dashboard';
 import { AdminPanel } from './pages/AdminPanel';
+import { PlanSelectionPage } from './pages/PlanSelectionPage';
 
 function Shell() {
   const { session, loading, profile } = useAuth();
-  const [view, setView] = useState<'dashboard' | 'admin' | null>(null);
+  const [view, setView] = useState<'dashboard' | 'admin' | 'plan_selection' | null>(null);
+  const [checkingPlan, setCheckingPlan] = useState(false);
 
   useEffect(() => {
-    if (profile && view === null) {
-      setView(profile.role === 'admin' ? 'admin' : 'dashboard');
+    if (!profile || view !== null) return;
+
+    if (profile.role === 'admin') {
+      setView('admin');
+      return;
     }
+
+    // Check if user has a plan
+    (async () => {
+      setCheckingPlan(true);
+      const { data } = await supabase
+        .from('user_plans')
+        .select('id')
+        .eq('user_id', profile.id)
+        .eq('status', 'active')
+        .limit(1)
+        .maybeSingle();
+
+      if (!data && !profile.plan_id) {
+        setView('plan_selection');
+      } else {
+        setView('dashboard');
+      }
+      setCheckingPlan(false);
+    })();
   }, [profile, view]);
 
-  if (loading || (session && !profile)) {
+  if (loading || (session && !profile) || checkingPlan) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-[#050505]">
         <Loader2 size={20} className="text-neutral-600 animate-spin" />
@@ -24,6 +49,10 @@ function Shell() {
   }
 
   if (!session) return <AuthPage />;
+
+  if (view === 'plan_selection') {
+    return <PlanSelectionPage onPlanSelected={() => setView('dashboard')} />;
+  }
 
   if (view === 'admin' && profile?.role === 'admin') {
     return <AdminPanel onBack={() => setView('dashboard')} />;

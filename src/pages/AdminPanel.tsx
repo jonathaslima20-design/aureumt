@@ -2,10 +2,11 @@ import { useEffect, useState } from 'react';
 import {
   ArrowLeft, Save, Loader2, Check, Users, MessageCircle, Key,
   Zap, DollarSign, ChevronDown, ChevronUp, AlertTriangle, TrendingUp,
-  LayoutDashboard, ShieldCheck,
+  LayoutDashboard, ShieldCheck, CreditCard,
 } from 'lucide-react';
 import { Logo } from '../components/Logo';
-import { supabase, Profile, ApiConfig, TokenStatsByUser, TokenDailySeries, calcCostBRL } from '../lib/supabase';
+import { supabase, Profile, ApiConfig, TokenStatsByUser, TokenDailySeries, calcCostBRL, Plan } from '../lib/supabase';
+import { PlansManagementPage } from './admin/PlansManagementPage';
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -218,11 +219,12 @@ function TokenRow({ stat, onSaved }: { stat: TokenStatsByUser; onSaved: () => vo
 
 // ─── Menu items ───────────────────────────────────────────────────────────────
 
-type AdminSection = 'dashboard' | 'users' | 'tokens' | 'credentials';
+type AdminSection = 'dashboard' | 'users' | 'tokens' | 'credentials' | 'plans';
 
 const MENU_ITEMS: { id: AdminSection; label: string; icon: React.ReactNode; description: string }[] = [
   { id: 'dashboard',   label: 'Dashboard',          icon: <LayoutDashboard size={15} />, description: 'Visão geral do sistema' },
   { id: 'users',       label: 'Gestão de Usuários', icon: <Users size={15} />,           description: 'Contas, planos e perfis' },
+  { id: 'plans',       label: 'Gestão de Planos',   icon: <CreditCard size={15} />,      description: 'Planos, preços e links' },
   { id: 'tokens',      label: 'Consumo de Tokens',  icon: <Zap size={15} />,             description: 'Uso e limites por usuário' },
   { id: 'credentials', label: 'Credenciais',        icon: <ShieldCheck size={15} />,     description: 'Chaves de API globais' },
 ];
@@ -233,6 +235,7 @@ export function AdminPanel({ onBack }: { onBack: () => void }) {
   const [section, setSection] = useState<AdminSection>('dashboard');
   const [config, setConfig] = useState<ApiConfig | null>(null);
   const [users, setUsers] = useState<Profile[]>([]);
+  const [allPlans, setAllPlans] = useState<Plan[]>([]);
   const [tokenStats, setTokenStats] = useState<TokenStatsByUser[]>([]);
   const [messageCount, setMessageCount] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -245,11 +248,12 @@ export function AdminPanel({ onBack }: { onBack: () => void }) {
   const [evoKey, setEvoKey] = useState('');
 
   const load = async () => {
-    const [cfgRes, userRes, countRes, statsRes] = await Promise.all([
+    const [cfgRes, userRes, countRes, statsRes, plansRes] = await Promise.all([
       supabase.from('api_configs').select('*').is('user_id', null).maybeSingle(),
       supabase.from('profiles').select('*').order('created_at', { ascending: false }),
       supabase.from('chat_logs').select('*', { count: 'exact', head: true }),
       supabase.rpc('get_token_stats_by_user'),
+      supabase.from('plans').select('*').order('sort_order', { ascending: true }),
     ]);
 
     if (cfgRes.data) {
@@ -259,6 +263,7 @@ export function AdminPanel({ onBack }: { onBack: () => void }) {
       setEvoKey(cfgRes.data.evolution_key || '');
     }
     setUsers(userRes.data || []);
+    setAllPlans(plansRes.data || []);
     setMessageCount(countRes.count || 0);
     setTokenStats((statsRes.data as TokenStatsByUser[]) || []);
     setLoading(false);
@@ -281,6 +286,33 @@ export function AdminPanel({ onBack }: { onBack: () => void }) {
 
   const updatePlan = async (id: string, plan_status: string) => {
     await supabase.from('profiles').update({ plan_status }).eq('id', id);
+    load();
+  };
+
+  const assignPlan = async (userId: string, planId: string | null) => {
+    if (planId) {
+      await supabase.from('profiles').update({ plan_id: planId, plan_status: 'active' }).eq('id', userId);
+      // Upsert user_plan
+      const { data: existing } = await supabase
+        .from('user_plans')
+        .select('id')
+        .eq('user_id', userId)
+        .eq('status', 'active')
+        .maybeSingle();
+      if (existing) {
+        await supabase.from('user_plans').update({ plan_id: planId }).eq('id', existing.id);
+      } else {
+        await supabase.from('user_plans').insert({
+          user_id: userId,
+          plan_id: planId,
+          billing_cycle: 'monthly',
+          status: 'active',
+        });
+      }
+    } else {
+      await supabase.from('profiles').update({ plan_id: null, plan_status: 'trial' }).eq('id', userId);
+      await supabase.from('user_plans').update({ status: 'cancelled' }).eq('user_id', userId).eq('status', 'active');
+    }
     load();
   };
 
@@ -439,13 +471,14 @@ export function AdminPanel({ onBack }: { onBack: () => void }) {
                             </td>
                             <td className="px-6 py-3">
                               <select
-                                value={u.plan_status}
-                                onChange={(e) => updatePlan(u.id, e.target.value)}
+                                value={u.plan_id || ''}
+                                onChange={(e) => assignPlan(u.id, e.target.value || null)}
                                 className="bg-[#050505] border border-[#1a1a1a] rounded-md px-2 py-1 text-xs text-white focus:outline-none focus:border-neutral-600"
                               >
-                                <option value="trial">Teste</option>
-                                <option value="active">Ativo</option>
-                                <option value="inactive">Inativo</option>
+                                <option value="">Sem plano</option>
+                                {allPlans.map((p) => (
+                                  <option key={p.id} value={p.id}>{p.name}</option>
+                                ))}
                               </select>
                             </td>
                             <td className="px-6 py-3 text-neutral-500 text-xs">
@@ -521,6 +554,9 @@ export function AdminPanel({ onBack }: { onBack: () => void }) {
                 </div>
               </div>
             )}
+
+            {/* ── Gestão de Planos ── */}
+            {section === 'plans' && <PlansManagementPage />}
 
             {/* ── Credenciais ── */}
             {section === 'credentials' && (

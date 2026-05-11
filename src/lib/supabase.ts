@@ -10,6 +10,7 @@ export type Profile = {
   email: string;
   role: 'admin' | 'user';
   plan_status: string;
+  plan_id: string | null;
   token_limit: number | null;
   token_alert_threshold: number | null;
   created_at: string;
@@ -226,5 +227,36 @@ export type KnowledgeSourceHistory = {
   title: string;
   contributed_content: string;
   metadata: Record<string, unknown>;
+  created_at: string;
+};
+
+export type Plan = {
+  id: string;
+  name: string;
+  slug: string;
+  description: string;
+  price_monthly: number;
+  price_semiannual: number;
+  price_annual: number;
+  max_agents: number | null;
+  max_messages_month: number | null;
+  features: string[];
+  payment_link_monthly: string;
+  payment_link_semiannual: string;
+  payment_link_annual: string;
+  sort_order: number;
+  is_active: boolean;
+  highlight: boolean;
+  created_at: string;
+};
+
+export type UserPlan = {
+  id: string;
+  user_id: string;
+  plan_id: string;
+  billing_cycle: 'monthly' | 'semiannual' | 'annual';
+  status: 'active' | 'cancelled' | 'expired';
+  starts_at: string;
+  expires_at: string | null;
   created_at: string;
 };

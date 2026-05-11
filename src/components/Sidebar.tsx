@@ -1,9 +1,10 @@
-import { useState } from 'react';
-import { LayoutDashboard, Link2, MessagesSquare, LogOut, Shield, Menu, X, Bot, Database } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { LayoutDashboard, Link2, MessagesSquare, LogOut, Shield, Menu, X, Bot, Database, CreditCard } from 'lucide-react';
 import { Logo } from './Logo';
 import { useAuth } from '../context/AuthContext';
+import { supabase, Plan } from '../lib/supabase';
 
-export type PageKey = 'overview' | 'agents' | 'connections' | 'knowledge' | 'chat';
+export type PageKey = 'overview' | 'agents' | 'connections' | 'knowledge' | 'chat' | 'plans';
 
 const ITEMS: { key: PageKey; label: string; icon: typeof LayoutDashboard }[] = [
   { key: 'overview', label: 'Visão Geral', icon: LayoutDashboard },
@@ -11,6 +12,7 @@ const ITEMS: { key: PageKey; label: string; icon: typeof LayoutDashboard }[] = [
   { key: 'connections', label: 'Conexões', icon: Link2 },
   { key: 'knowledge', label: 'Base de Conhecimento', icon: Database },
   { key: 'chat', label: 'Chat', icon: MessagesSquare },
+  { key: 'plans', label: 'Planos', icon: CreditCard },
 ];
 
 export function Sidebar({
@@ -24,6 +26,19 @@ export function Sidebar({
 }) {
   const { profile, signOut } = useAuth();
   const [openMobile, setOpenMobile] = useState(false);
+  const [userPlanName, setUserPlanName] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!profile?.plan_id) return;
+    (async () => {
+      const { data } = await supabase
+        .from('plans')
+        .select('name')
+        .eq('id', profile.plan_id)
+        .maybeSingle();
+      if (data) setUserPlanName(data.name);
+    })();
+  }, [profile?.plan_id]);
 
   const content = (
     <div className="flex flex-col h-full relative">
@@ -88,8 +103,17 @@ export function Sidebar({
             Painel Admin
           </button>
         )}
-        <div className="px-3 py-2 text-[11px] text-neutral-600 truncate" title={profile?.email}>
-          {profile?.email}
+        <div className="px-3 py-2">
+          <div className="flex items-center gap-2">
+            <span className="text-[11px] text-neutral-600 truncate flex-1" title={profile?.email}>
+              {profile?.email}
+            </span>
+            {userPlanName && (
+              <span className="shrink-0 text-[9px] px-1.5 py-0.5 rounded border border-emerald-900/40 bg-emerald-950/20 text-emerald-400 uppercase tracking-wider font-medium">
+                {userPlanName}
+              </span>
+            )}
+          </div>
         </div>
         <button
           onClick={signOut}
