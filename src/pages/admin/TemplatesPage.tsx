@@ -916,6 +916,3 @@ export function TemplatesPage() {
     </div>
   );
 }
-
-
-export { TemplatesPage }
