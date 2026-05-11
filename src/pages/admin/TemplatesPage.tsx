@@ -132,13 +132,19 @@ function FieldRow({
   );
 }
 
-// ─── Cover image uploader ─────────────────────────────────────────────────────
+// ─── Profile image uploader (circular) ───────────────────────────────────────
 
-function CoverImageUploader({
+function ProfileImageUploader({
   value,
+  icon,
+  ringColor,
+  glowColor,
   onChange,
 }: {
   value: string | null;
+  icon: string;
+  ringColor: string;
+  glowColor: string;
   onChange: (url: string | null) => void;
 }) {
   const inputRef = useRef<HTMLInputElement>(null);
@@ -153,7 +159,7 @@ function CoverImageUploader({
     setUploading(true);
     setUploadError('');
     const ext = file.name.split('.').pop();
-    const path = `covers/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
+    const path = `profiles/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
     const { error } = await supabase.storage
       .from('template-covers')
       .upload(path, file, { upsert: false });
@@ -175,52 +181,65 @@ function CoverImageUploader({
   };
 
   return (
-    <div>
-      <label className="text-[10px] text-neutral-500 uppercase tracking-wider mb-1.5 block">
-        Foto de capa
+    <div className="flex flex-col items-center gap-3">
+      <label className="text-[10px] text-neutral-500 uppercase tracking-wider">
+        Foto de perfil
       </label>
-      {value ? (
-        <div className="relative rounded-xl overflow-hidden border border-[#1a1a1a] group" style={{ height: 120 }}>
-          <img src={value} alt="Capa" className="w-full h-full object-cover" />
-          <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
-            <button
-              type="button"
-              onClick={() => inputRef.current?.click()}
-              className="text-xs text-white border border-white/20 bg-white/10 hover:bg-white/20 rounded-lg px-3 py-1.5 flex items-center gap-1.5 transition-colors"
-            >
-              <ImagePlus size={12} /> Trocar
-            </button>
-            <button
-              type="button"
-              onClick={handleRemove}
-              className="text-xs text-red-400 border border-red-900/40 bg-red-950/30 hover:bg-red-950/50 rounded-lg px-3 py-1.5 flex items-center gap-1.5 transition-colors"
-            >
-              <ImageOff size={12} /> Remover
-            </button>
-          </div>
-        </div>
-      ) : (
+
+      {/* Circular avatar click area */}
+      <div className="relative group">
         <button
           type="button"
           onClick={() => inputRef.current?.click()}
           disabled={uploading}
-          className="w-full border border-dashed border-[#1a1a1a] hover:border-[#2a2a2a] rounded-xl flex flex-col items-center justify-center gap-2 transition-colors"
-          style={{ height: 120 }}
+          className="w-20 h-20 rounded-full overflow-hidden flex items-center justify-center focus:outline-none transition-transform duration-200 hover:scale-105"
+          style={{
+            background: 'rgba(0,0,0,0.5)',
+            border: `2px solid ${ringColor}`,
+            boxShadow: `0 0 16px ${glowColor}`,
+          }}
         >
           {uploading ? (
-            <Loader2 size={18} className="text-neutral-600 animate-spin" />
+            <Loader2 size={22} className="text-neutral-500 animate-spin" />
+          ) : value ? (
+            <img src={value} alt="Perfil" className="w-full h-full object-cover" />
           ) : (
-            <>
-              <ImagePlus size={18} className="text-neutral-600" />
-              <span className="text-xs text-neutral-600">Clique para carregar uma foto de capa</span>
-              <span className="text-[10px] text-neutral-700">JPG, PNG, WebP · máx 5 MB</span>
-            </>
+            <span className="text-3xl">{icon || '🤖'}</span>
+          )}
+
+          {/* Hover overlay */}
+          {!uploading && (
+            <div className="absolute inset-0 rounded-full bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+              <ImagePlus size={18} className="text-white" />
+            </div>
           )}
         </button>
-      )}
+      </div>
+
+      <div className="flex items-center gap-2">
+        <button
+          type="button"
+          onClick={() => inputRef.current?.click()}
+          disabled={uploading}
+          className="text-[11px] text-neutral-400 hover:text-white border border-[#1a1a1a] hover:border-[#262626] rounded-lg px-3 py-1 flex items-center gap-1.5 transition-colors"
+        >
+          <ImagePlus size={11} /> {value ? 'Trocar foto' : 'Carregar foto'}
+        </button>
+        {value && (
+          <button
+            type="button"
+            onClick={handleRemove}
+            className="text-[11px] text-red-500 hover:text-red-400 border border-red-900/30 hover:border-red-800/50 rounded-lg px-3 py-1 flex items-center gap-1.5 transition-colors"
+          >
+            <ImageOff size={11} /> Remover
+          </button>
+        )}
+      </div>
+
       {uploadError && (
-        <p className="text-[11px] text-red-400 mt-1">{uploadError}</p>
+        <p className="text-[11px] text-red-400">{uploadError}</p>
       )}
+
       <input
         ref={inputRef}
         type="file"
@@ -238,7 +257,7 @@ const BLANK_TEMPLATE: Omit<AgentTemplate, 'id' | 'created_at' | 'updated_at'> = 
   title: '',
   description: '',
   icon: '',
-  cover_image_url: null,
+  profile_image_url: null,
   base_prompt: '',
   default_settings: { tone: 'friendly', language: 'pt-BR', emoji_usage: 'moderate' },
   custom_fields: [],
@@ -303,34 +322,38 @@ function TemplateForm({
 
   return (
     <form onSubmit={handleSubmit} className="space-y-5">
-      {/* Cover image */}
-      <CoverImageUploader
-        value={form.cover_image_url}
-        onChange={(url) => setField('cover_image_url', url)}
-      />
-
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div>
-          <label className="text-[10px] text-neutral-500 uppercase tracking-wider mb-1.5 block">
-            Ícone (emoji)
-          </label>
-          <input
-            value={form.icon}
-            onChange={(e) => setField('icon', e.target.value)}
-            placeholder="ex: 💼"
-            className="w-full bg-[#060606] border border-[#1a1a1a] rounded-lg px-3 py-2.5 text-sm text-white focus:outline-none focus:border-neutral-600"
-          />
-        </div>
-        <div className="md:col-span-2">
-          <label className="text-[10px] text-neutral-500 uppercase tracking-wider mb-1.5 block">
-            Título *
-          </label>
-          <input
-            value={form.title}
-            onChange={(e) => setField('title', e.target.value)}
-            placeholder="ex: Vendas"
-            className="w-full bg-[#060606] border border-[#1a1a1a] rounded-lg px-3 py-2.5 text-sm text-white focus:outline-none focus:border-neutral-600"
-          />
+      {/* Profile photo + icon/title row */}
+      <div className="flex items-center gap-6 p-4 border border-[#1a1a1a] rounded-xl bg-[#060606]">
+        <ProfileImageUploader
+          value={form.profile_image_url}
+          icon={form.icon}
+          ringColor={PALETTES[0].ring}
+          glowColor={PALETTES[0].glow}
+          onChange={(url) => setField('profile_image_url', url)}
+        />
+        <div className="flex-1 space-y-3">
+          <div>
+            <label className="text-[10px] text-neutral-500 uppercase tracking-wider mb-1.5 block">
+              Título *
+            </label>
+            <input
+              value={form.title}
+              onChange={(e) => setField('title', e.target.value)}
+              placeholder="ex: Vendas"
+              className="w-full bg-[#0a0a0a] border border-[#1a1a1a] rounded-lg px-3 py-2.5 text-sm text-white focus:outline-none focus:border-neutral-600"
+            />
+          </div>
+          <div>
+            <label className="text-[10px] text-neutral-500 uppercase tracking-wider mb-1.5 block">
+              Ícone (emoji — fallback sem foto)
+            </label>
+            <input
+              value={form.icon}
+              onChange={(e) => setField('icon', e.target.value)}
+              placeholder="ex: 💼"
+              className="w-full bg-[#0a0a0a] border border-[#1a1a1a] rounded-lg px-3 py-2.5 text-sm text-white focus:outline-none focus:border-neutral-600"
+            />
+          </div>
         </div>
       </div>
 
@@ -507,7 +530,6 @@ function TemplateCard({
   const [confirming, setConfirming] = useState(false);
   const [hovered, setHovered] = useState(false);
   const palette = PALETTES[paletteIndex % PALETTES.length];
-  const hasCover = !!template.cover_image_url;
 
   return (
     <div
@@ -526,52 +548,36 @@ function TemplateCard({
         transition: 'border-color 0.3s ease, box-shadow 0.3s ease',
       }}
     >
-      {/* Cover image area */}
-      {hasCover ? (
-        <div className="relative w-full overflow-hidden" style={{ height: 120 }}>
-          <img
-            src={template.cover_image_url!}
-            alt={template.title}
-            className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-          />
-          {/* gradient overlay so text below stays readable */}
-          <div
-            className="absolute inset-0"
-            style={{ background: 'linear-gradient(to bottom, rgba(0,0,0,0.1) 0%, rgba(0,0,0,0.6) 100%)' }}
-          />
-          {/* Colored top accent stripe */}
-          {template.is_active && (
-            <div
-              className="absolute top-0 left-0 right-0 h-[2px]"
-              style={{ background: `linear-gradient(90deg, transparent, ${palette.ring}, transparent)` }}
-            />
-          )}
-        </div>
-      ) : (
-        /* No-cover: just the accent stripe */
-        template.is_active && (
-          <div
-            className="absolute top-0 left-0 right-0 h-[2px]"
-            style={{ background: `linear-gradient(90deg, transparent, ${palette.ring}, transparent)` }}
-          />
-        )
+      {/* Colored top accent stripe */}
+      {template.is_active && (
+        <div
+          className="absolute top-0 left-0 right-0 h-[2px]"
+          style={{ background: `linear-gradient(90deg, transparent, ${palette.ring}, transparent)` }}
+        />
       )}
 
       <div className="p-5">
         {/* Header row */}
         <div className="flex items-start justify-between gap-3 mb-4">
           <div className="flex items-center gap-3">
-            {/* Circular avatar with colored ring */}
+            {/* Circular avatar — profile photo or emoji fallback */}
             <div
-              className="w-12 h-12 rounded-full flex items-center justify-center text-2xl flex-shrink-0"
+              className="w-12 h-12 rounded-full overflow-hidden flex items-center justify-center text-2xl flex-shrink-0 transition-all duration-300"
               style={{
                 background: 'rgba(0,0,0,0.4)',
                 border: `2px solid ${template.is_active ? palette.ring : 'rgba(255,255,255,0.06)'}`,
-                boxShadow: template.is_active ? `0 0 12px ${palette.glow}` : 'none',
-                transition: 'border-color 0.3s ease, box-shadow 0.3s ease',
+                boxShadow: template.is_active ? `0 0 14px ${palette.glow}` : 'none',
               }}
             >
-              {template.icon || '⬜'}
+              {template.profile_image_url ? (
+                <img
+                  src={template.profile_image_url}
+                  alt={template.title}
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                template.icon || '🤖'
+              )}
             </div>
             <div className="min-w-0">
               <div className="text-sm font-semibold text-white leading-tight">{template.title}</div>
@@ -647,11 +653,6 @@ function TemplateCard({
           ) : (
             <span className="text-[10px] px-2 py-0.5 rounded-full border border-white/[0.04] text-neutral-600 uppercase tracking-wider flex items-center gap-1">
               <EyeOff size={8} /> Sem prompt
-            </span>
-          )}
-          {hasCover && (
-            <span className="text-[10px] px-2 py-0.5 rounded-full border border-white/[0.07] bg-white/[0.03] text-neutral-400 uppercase tracking-wider flex items-center gap-1">
-              <ImagePlus size={8} /> Com foto
             </span>
           )}
         </div>

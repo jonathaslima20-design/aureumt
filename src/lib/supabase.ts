@@ -227,7 +227,7 @@ export type AgentTemplate = {
   }>;
   sort_order: number;
   is_active: boolean;
-  cover_image_url: string | null;
+  profile_image_url: string | null;
   created_at: string;
   updated_at: string;
 };
