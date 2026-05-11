@@ -2,8 +2,20 @@ import { useEffect, useState } from 'react';
 import {
   Plus, Pencil, Trash2, Loader2, Check, X, GripVertical,
   ToggleLeft, ToggleRight, ChevronDown, ChevronUp, Eye, EyeOff,
+  Sparkles,
 } from 'lucide-react';
 import { supabase, AgentTemplate } from '../../lib/supabase';
+
+// ─── Palette per template index ───────────────────────────────────────────────
+
+const PALETTES = [
+  { glow: 'rgba(16,185,129,0.18)', border: 'rgba(16,185,129,0.35)', ring: '#10b981', badge: 'bg-emerald-950/50 border-emerald-800/50 text-emerald-300' },
+  { glow: 'rgba(59,130,246,0.18)', border: 'rgba(59,130,246,0.35)', ring: '#3b82f6', badge: 'bg-blue-950/50 border-blue-800/50 text-blue-300' },
+  { glow: 'rgba(245,158,11,0.18)', border: 'rgba(245,158,11,0.35)', ring: '#f59e0b', badge: 'bg-amber-950/50 border-amber-800/50 text-amber-300' },
+  { glow: 'rgba(236,72,153,0.18)', border: 'rgba(236,72,153,0.35)', ring: '#ec4899', badge: 'bg-pink-950/50 border-pink-800/50 text-pink-300' },
+  { glow: 'rgba(20,184,166,0.18)', border: 'rgba(20,184,166,0.35)', ring: '#14b8a6', badge: 'bg-teal-950/50 border-teal-800/50 text-teal-300' },
+  { glow: 'rgba(148,163,184,0.12)', border: 'rgba(148,163,184,0.22)', ring: '#94a3b8', badge: 'bg-slate-800/50 border-slate-700/50 text-slate-300' },
+];
 
 // ─── Custom field editor row ──────────────────────────────────────────────────
 
@@ -374,95 +386,139 @@ function TemplateForm({
 
 function TemplateCard({
   template,
+  paletteIndex,
   onEdit,
   onDelete,
   onToggle,
 }: {
   template: AgentTemplate;
+  paletteIndex: number;
   onEdit: () => void;
   onDelete: () => void;
   onToggle: () => void;
 }) {
   const [confirming, setConfirming] = useState(false);
+  const [hovered, setHovered] = useState(false);
+  const palette = PALETTES[paletteIndex % PALETTES.length];
 
   return (
     <div
-      className={`border rounded-xl bg-[#0a0a0a] p-5 transition-all group ${
-        template.is_active ? 'border-[#1a1a1a] hover:border-[#262626]' : 'border-[#111] opacity-50'
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+      className={`relative rounded-2xl overflow-hidden group transition-all duration-300 ${
+        template.is_active ? '' : 'opacity-50'
       }`}
+      style={{
+        background: 'rgba(255,255,255,0.025)',
+        backdropFilter: 'blur(12px)',
+        border: `1px solid ${hovered && template.is_active ? palette.border : 'rgba(255,255,255,0.07)'}`,
+        boxShadow: hovered && template.is_active
+          ? `0 0 0 1px ${palette.border}, 0 8px 40px ${palette.glow}, 0 2px 12px rgba(0,0,0,0.5)`
+          : '0 2px 12px rgba(0,0,0,0.3)',
+        transition: 'border-color 0.3s ease, box-shadow 0.3s ease',
+      }}
     >
-      <div className="flex items-start justify-between gap-3 mb-3">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-[#111] border border-[#1a1a1a] flex items-center justify-center text-xl">
-            {template.icon || '⬜'}
+      {/* Colored top accent stripe */}
+      {template.is_active && (
+        <div
+          className="absolute top-0 left-0 right-0 h-[2px]"
+          style={{ background: `linear-gradient(90deg, transparent, ${palette.ring}, transparent)` }}
+        />
+      )}
+
+      <div className="p-5">
+        {/* Header row */}
+        <div className="flex items-start justify-between gap-3 mb-4">
+          <div className="flex items-center gap-3">
+            {/* Circular avatar with colored ring */}
+            <div
+              className="w-12 h-12 rounded-full flex items-center justify-center text-2xl flex-shrink-0"
+              style={{
+                background: 'rgba(0,0,0,0.4)',
+                border: `2px solid ${template.is_active ? palette.ring : 'rgba(255,255,255,0.06)'}`,
+                boxShadow: template.is_active ? `0 0 12px ${palette.glow}` : 'none',
+                transition: 'border-color 0.3s ease, box-shadow 0.3s ease',
+              }}
+            >
+              {template.icon || '⬜'}
+            </div>
+            <div className="min-w-0">
+              <div className="text-sm font-semibold text-white leading-tight">{template.title}</div>
+              <div className="text-[11px] text-neutral-400 mt-1 leading-relaxed line-clamp-2">
+                {template.description}
+              </div>
+            </div>
           </div>
-          <div>
-            <div className="text-sm font-medium text-white">{template.title}</div>
-            <div className="text-[11px] text-neutral-500 mt-0.5">{template.description}</div>
+
+          {/* Action buttons */}
+          <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-all duration-200 flex-shrink-0">
+            <button
+              onClick={onToggle}
+              title={template.is_active ? 'Desativar' : 'Ativar'}
+              className="text-neutral-500 hover:text-white p-1.5 rounded-lg hover:bg-white/5 transition-colors"
+            >
+              {template.is_active ? <ToggleRight size={14} /> : <ToggleLeft size={14} />}
+            </button>
+            <button
+              onClick={onEdit}
+              className="text-neutral-500 hover:text-white p-1.5 rounded-lg hover:bg-white/5 transition-colors"
+            >
+              <Pencil size={13} />
+            </button>
+            {confirming ? (
+              <div className="flex items-center gap-1">
+                <button
+                  onClick={onDelete}
+                  className="text-xs text-red-400 hover:text-red-300 px-2 py-1 rounded-lg border border-red-900/40 bg-red-950/30 transition-colors"
+                >
+                  Confirmar
+                </button>
+                <button
+                  onClick={() => setConfirming(false)}
+                  className="text-neutral-500 hover:text-white p-1.5 rounded-lg hover:bg-white/5 transition-colors"
+                >
+                  <X size={12} />
+                </button>
+              </div>
+            ) : (
+              <button
+                onClick={() => setConfirming(true)}
+                className="text-neutral-500 hover:text-red-400 p-1.5 rounded-lg hover:bg-white/5 transition-colors"
+              >
+                <Trash2 size={13} />
+              </button>
+            )}
           </div>
         </div>
-        <div className="flex items-center gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
-          <button
-            onClick={onToggle}
-            title={template.is_active ? 'Desativar' : 'Ativar'}
-            className="text-neutral-500 hover:text-white p-1.5 rounded-lg hover:bg-[#111] transition-colors"
-          >
-            {template.is_active ? <ToggleRight size={14} /> : <ToggleLeft size={14} />}
-          </button>
-          <button
-            onClick={onEdit}
-            className="text-neutral-500 hover:text-white p-1.5 rounded-lg hover:bg-[#111] transition-colors"
-          >
-            <Pencil size={13} />
-          </button>
-          {confirming ? (
-            <div className="flex items-center gap-1">
-              <button
-                onClick={onDelete}
-                className="text-xs text-red-400 hover:text-red-300 px-2 py-1 rounded border border-red-900/40 bg-red-950/30 transition-colors"
-              >
-                Confirmar
-              </button>
-              <button
-                onClick={() => setConfirming(false)}
-                className="text-neutral-500 hover:text-white p-1.5 rounded-lg hover:bg-[#111] transition-colors"
-              >
-                <X size={12} />
-              </button>
-            </div>
+
+        {/* Separator */}
+        <div className="border-t border-white/[0.05] mb-3" />
+
+        {/* Metadata badges */}
+        <div className="flex items-center gap-2 flex-wrap">
+          <span className={`inline-flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-full border font-medium uppercase tracking-wider ${
+            template.is_active
+              ? palette.badge
+              : 'border-[#1a1a1a] text-neutral-600'
+          }`}>
+            {template.is_active && <Sparkles size={8} />}
+            {template.is_active ? 'Ativo' : 'Inativo'}
+          </span>
+          {template.custom_fields.length > 0 && (
+            <span className="text-[10px] px-2 py-0.5 rounded-full border border-white/[0.07] bg-white/[0.03] text-neutral-400 uppercase tracking-wider">
+              {template.custom_fields.length} {template.custom_fields.length === 1 ? 'campo' : 'campos'}
+            </span>
+          )}
+          {template.base_prompt ? (
+            <span className="text-[10px] px-2 py-0.5 rounded-full border border-white/[0.07] bg-white/[0.03] text-neutral-400 uppercase tracking-wider flex items-center gap-1">
+              <Eye size={8} /> Com prompt
+            </span>
           ) : (
-            <button
-              onClick={() => setConfirming(true)}
-              className="text-neutral-500 hover:text-red-400 p-1.5 rounded-lg hover:bg-[#111] transition-colors"
-            >
-              <Trash2 size={13} />
-            </button>
+            <span className="text-[10px] px-2 py-0.5 rounded-full border border-white/[0.04] text-neutral-600 uppercase tracking-wider flex items-center gap-1">
+              <EyeOff size={8} /> Sem prompt
+            </span>
           )}
         </div>
-      </div>
-
-      <div className="flex items-center gap-3 flex-wrap">
-        <span className={`text-[10px] px-2 py-0.5 rounded-md border uppercase tracking-wider ${
-          template.is_active
-            ? 'border-emerald-900/40 bg-emerald-950/30 text-emerald-400'
-            : 'border-[#1a1a1a] text-neutral-600'
-        }`}>
-          {template.is_active ? 'Ativo' : 'Inativo'}
-        </span>
-        {template.custom_fields.length > 0 && (
-          <span className="text-[10px] px-2 py-0.5 rounded-md border border-[#1a1a1a] text-neutral-500 uppercase tracking-wider">
-            {template.custom_fields.length} {template.custom_fields.length === 1 ? 'campo' : 'campos'}
-          </span>
-        )}
-        {template.base_prompt ? (
-          <span className="text-[10px] px-2 py-0.5 rounded-md border border-[#1a1a1a] text-neutral-500 uppercase tracking-wider flex items-center gap-1">
-            <Eye size={9} /> Com prompt
-          </span>
-        ) : (
-          <span className="text-[10px] px-2 py-0.5 rounded-md border border-[#111] text-neutral-700 uppercase tracking-wider flex items-center gap-1">
-            <EyeOff size={9} /> Sem prompt
-          </span>
-        )}
       </div>
     </div>
   );
@@ -611,11 +667,12 @@ export function TemplatesPage() {
           <div className="text-xs text-neutral-600">Crie o primeiro template para que usuários possam escolher ao criar agentes.</div>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
-          {templates.map((t) => (
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+          {templates.map((t, i) => (
             <TemplateCard
               key={t.id}
               template={t}
+              paletteIndex={i}
               onEdit={() => { setEditing(t); setMode('edit'); }}
               onDelete={() => handleDelete(t.id)}
               onToggle={() => handleToggle(t)}
