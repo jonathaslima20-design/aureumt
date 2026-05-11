@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import {
-  Plus, Pencil, Trash2, Loader2, Check, X,
-  ToggleLeft, ToggleRight, Eye, EyeOff,
+  Plus, Pencil, Trash2, Loader2, Check, X, GripVertical,
+  ToggleLeft, ToggleRight, ChevronDown, ChevronUp, Eye, EyeOff,
   Sparkles, ImagePlus, ImageOff, ZoomIn, ZoomOut, Move,
 } from 'lucide-react';
 import { supabase, AgentTemplate } from '../../lib/supabase';
@@ -16,6 +16,121 @@ const PALETTES = [
   { glow: 'rgba(20,184,166,0.18)', border: 'rgba(20,184,166,0.35)', ring: '#14b8a6', badge: 'bg-teal-950/50 border-teal-800/50 text-teal-300' },
   { glow: 'rgba(148,163,184,0.12)', border: 'rgba(148,163,184,0.22)', ring: '#94a3b8', badge: 'bg-slate-800/50 border-slate-700/50 text-slate-300' },
 ];
+
+// ─── Custom field editor row ──────────────────────────────────────────────────
+
+type CustomField = AgentTemplate['custom_fields'][number];
+
+function FieldRow({
+  field,
+  index,
+  total,
+  onChange,
+  onRemove,
+  onMove,
+}: {
+  field: CustomField;
+  index: number;
+  total: number;
+  onChange: (f: CustomField) => void;
+  onRemove: () => void;
+  onMove: (dir: -1 | 1) => void;
+}) {
+  return (
+    <div className="border border-[#1a1a1a] rounded-lg p-3 bg-[#060606] space-y-2">
+      <div className="flex items-center gap-2">
+        <div className="flex flex-col gap-0.5">
+          <button
+            type="button"
+            onClick={() => onMove(-1)}
+            disabled={index === 0}
+            className="text-neutral-600 hover:text-neutral-400 disabled:opacity-20 transition-colors"
+          >
+            <ChevronUp size={12} />
+          </button>
+          <button
+            type="button"
+            onClick={() => onMove(1)}
+            disabled={index === total - 1}
+            className="text-neutral-600 hover:text-neutral-400 disabled:opacity-20 transition-colors"
+          >
+            <ChevronDown size={12} />
+          </button>
+        </div>
+        <GripVertical size={12} className="text-neutral-700" />
+        <div className="flex-1 grid grid-cols-2 gap-2">
+          <div>
+            <label className="text-[10px] text-neutral-500 uppercase tracking-wider mb-1 block">
+              Chave (variável)
+            </label>
+            <input
+              value={field.key}
+              onChange={(e) => onChange({ ...field, key: e.target.value.replace(/\s/g, '_') })}
+              placeholder="ex: link_cardapio"
+              className="w-full bg-[#0a0a0a] border border-[#1a1a1a] rounded px-2 py-1.5 text-xs text-white font-mono focus:outline-none focus:border-neutral-600"
+            />
+          </div>
+          <div>
+            <label className="text-[10px] text-neutral-500 uppercase tracking-wider mb-1 block">
+              Pergunta para o usuário
+            </label>
+            <input
+              value={field.label}
+              onChange={(e) => onChange({ ...field, label: e.target.value })}
+              placeholder="ex: Qual o link do seu cardápio?"
+              className="w-full bg-[#0a0a0a] border border-[#1a1a1a] rounded px-2 py-1.5 text-xs text-white focus:outline-none focus:border-neutral-600"
+            />
+          </div>
+        </div>
+        <button
+          type="button"
+          onClick={onRemove}
+          className="text-neutral-600 hover:text-red-400 transition-colors ml-1"
+        >
+          <X size={12} />
+        </button>
+      </div>
+      <div className="grid grid-cols-3 gap-2 pl-8">
+        <div>
+          <label className="text-[10px] text-neutral-500 uppercase tracking-wider mb-1 block">
+            Placeholder
+          </label>
+          <input
+            value={field.placeholder}
+            onChange={(e) => onChange({ ...field, placeholder: e.target.value })}
+            placeholder="ex: https://..."
+            className="w-full bg-[#0a0a0a] border border-[#1a1a1a] rounded px-2 py-1.5 text-xs text-white focus:outline-none focus:border-neutral-600"
+          />
+        </div>
+        <div>
+          <label className="text-[10px] text-neutral-500 uppercase tracking-wider mb-1 block">
+            Tipo
+          </label>
+          <select
+            value={field.type}
+            onChange={(e) => onChange({ ...field, type: e.target.value as CustomField['type'] })}
+            className="w-full bg-[#0a0a0a] border border-[#1a1a1a] rounded px-2 py-1.5 text-xs text-white focus:outline-none focus:border-neutral-600"
+          >
+            <option value="text">Texto</option>
+            <option value="textarea">Área de texto</option>
+            <option value="url">URL</option>
+          </select>
+        </div>
+        <div className="flex items-end pb-0.5">
+          <label className="flex items-center gap-2 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={field.required}
+              onChange={(e) => onChange({ ...field, required: e.target.checked })}
+              className="w-3 h-3 accent-white"
+            />
+            <span className="text-[10px] text-neutral-400 uppercase tracking-wider">Obrigatório</span>
+          </label>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 // ─── Profile image uploader with crop/zoom ───────────────────────────────────
 
@@ -250,6 +365,7 @@ const BLANK_TEMPLATE: Omit<AgentTemplate, 'id' | 'created_at' | 'updated_at'> = 
   profile_image_url: null,
   base_prompt: '',
   default_settings: { tone: 'friendly', language: 'pt-BR', emoji_usage: 'moderate' },
+  custom_fields: [],
   sort_order: 0,
   is_active: true,
 };
@@ -269,6 +385,31 @@ function TemplateForm({
 
   const setField = (key: keyof typeof form, value: unknown) => {
     setForm((f) => ({ ...f, [key]: value }));
+  };
+
+  const addCustomField = () => {
+    setField('custom_fields', [
+      ...form.custom_fields,
+      { key: '', label: '', placeholder: '', required: false, type: 'text' as const },
+    ]);
+  };
+
+  const updateCustomField = (i: number, f: CustomField) => {
+    const arr = [...form.custom_fields];
+    arr[i] = f;
+    setField('custom_fields', arr);
+  };
+
+  const removeCustomField = (i: number) => {
+    setField('custom_fields', form.custom_fields.filter((_, idx) => idx !== i));
+  };
+
+  const moveCustomField = (i: number, dir: -1 | 1) => {
+    const arr = [...form.custom_fields];
+    const j = i + dir;
+    if (j < 0 || j >= arr.length) return;
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+    setField('custom_fields', arr);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -337,13 +478,57 @@ function TemplateForm({
         <label className="text-[10px] text-neutral-500 uppercase tracking-wider mb-1.5 block">
           Prompt base
         </label>
+        <p className="text-[11px] text-neutral-600 mb-2">
+          Use <code className="bg-[#111] px-1 rounded text-neutral-400">{'{{chave}}'}</code> para
+          inserir os valores dos campos abaixo. Ex: <code className="bg-[#111] px-1 rounded text-neutral-400 font-mono">{'{{link_cardapio}}'}</code>
+        </p>
         <textarea
           value={form.base_prompt}
           onChange={(e) => setField('base_prompt', e.target.value)}
           rows={6}
-          placeholder="Você é um consultor especialista. Seu papel é..."
+          placeholder="Você é um atendente do restaurante. O cardápio está em {{link_cardapio}}. Seu papel é..."
           className="w-full bg-[#060606] border border-[#1a1a1a] rounded-lg px-3 py-2.5 text-sm text-white focus:outline-none focus:border-neutral-600 resize-none font-mono leading-relaxed"
         />
+      </div>
+
+      <div>
+        <div className="flex items-center justify-between mb-3">
+          <div>
+            <div className="text-[10px] text-neutral-500 uppercase tracking-wider">
+              Campos personalizados
+            </div>
+            <p className="text-[11px] text-neutral-600 mt-0.5">
+              Perguntas que o usuário responderá ao criar o agente.
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={addCustomField}
+            className="text-xs text-neutral-300 border border-[#1a1a1a] hover:border-[#262626] rounded-lg px-3 py-1.5 flex items-center gap-1.5 transition-colors"
+          >
+            <Plus size={11} /> Adicionar campo
+          </button>
+        </div>
+
+        {form.custom_fields.length === 0 ? (
+          <div className="border border-dashed border-[#1a1a1a] rounded-lg py-6 text-center text-xs text-neutral-600">
+            Nenhum campo — o template usará o prompt exatamente como escrito acima.
+          </div>
+        ) : (
+          <div className="space-y-2">
+            {form.custom_fields.map((f, i) => (
+              <FieldRow
+                key={i}
+                field={f}
+                index={i}
+                total={form.custom_fields.length}
+                onChange={(upd) => updateCustomField(i, upd)}
+                onRemove={() => removeCustomField(i)}
+                onMove={(dir) => moveCustomField(i, dir)}
+              />
+            ))}
+          </div>
+        )}
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -561,6 +746,11 @@ function TemplateCard({
             {template.is_active && <Sparkles size={8} />}
             {template.is_active ? 'Ativo' : 'Inativo'}
           </span>
+          {template.custom_fields.length > 0 && (
+            <span className="text-[10px] px-2 py-0.5 rounded-full border border-white/[0.07] bg-white/[0.03] text-neutral-400 uppercase tracking-wider">
+              {template.custom_fields.length} {template.custom_fields.length === 1 ? 'campo' : 'campos'}
+            </span>
+          )}
           {template.base_prompt ? (
             <span className="text-[10px] px-2 py-0.5 rounded-full border border-white/[0.07] bg-white/[0.03] text-neutral-400 uppercase tracking-wider flex items-center gap-1">
               <Eye size={8} /> Com prompt

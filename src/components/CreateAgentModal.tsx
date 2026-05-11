@@ -9,6 +9,7 @@ import {
   AgentTemplate,
   AGENT_COLORS,
   buildSystemPrompt,
+  mergeTemplatePrompt,
 } from '../lib/supabase';
 import { AgentAvatar } from './AgentAvatar';
 
@@ -187,6 +188,8 @@ function StepCustomize({
   setAvatarUrl,
   color,
   setColor,
+  customFieldValues,
+  setCustomFieldValues,
   uploading,
   onUpload,
   userId,
@@ -203,6 +206,8 @@ function StepCustomize({
   setAvatarUrl: (v: string) => void;
   color: string;
   setColor: (v: string) => void;
+  customFieldValues: Record<string, string>;
+  setCustomFieldValues: React.Dispatch<React.SetStateAction<Record<string, string>>>;
   uploading: boolean;
   onUpload: (f: File) => void;
   userId: string;
@@ -305,6 +310,40 @@ function StepCustomize({
         </div>
       </div>
 
+      {/* Custom fields — only shown when template defines them */}
+      {template.custom_fields.length > 0 && (
+        <div className="space-y-3 pt-1">
+          <div className="text-[10px] text-neutral-500 uppercase tracking-wider flex items-center gap-1.5">
+            <Sparkles size={9} /> Adapte para o seu negócio
+          </div>
+          {template.custom_fields.map((f) => (
+            <div key={f.key}>
+              <label className="block text-xs text-neutral-300 mb-1.5 font-medium">
+                {f.label}
+                {f.required && <span className="text-red-400 ml-1">*</span>}
+              </label>
+              {f.type === 'textarea' ? (
+                <textarea
+                  value={customFieldValues[f.key] ?? ''}
+                  onChange={(e) => setCustomFieldValues((v) => ({ ...v, [f.key]: e.target.value }))}
+                  placeholder={f.placeholder}
+                  rows={3}
+                  className="w-full bg-[#0d0d0d] border border-[#1a1a1a] rounded-lg px-3 py-2.5 text-sm text-white placeholder-neutral-600 focus:border-white/20 outline-none resize-none transition-colors"
+                />
+              ) : (
+                <input
+                  type={f.type === 'url' ? 'url' : 'text'}
+                  value={customFieldValues[f.key] ?? ''}
+                  onChange={(e) => setCustomFieldValues((v) => ({ ...v, [f.key]: e.target.value }))}
+                  placeholder={f.placeholder}
+                  className="w-full bg-[#0d0d0d] border border-[#1a1a1a] rounded-lg px-3 py-2.5 text-sm text-white placeholder-neutral-600 focus:border-white/20 outline-none transition-colors"
+                />
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+
       {/* Live preview */}
       <div>
         <div className="text-[10px] text-neutral-500 uppercase tracking-wider mb-2 flex items-center gap-1.5">
@@ -345,6 +384,7 @@ export function CreateAgentModal({ userId, onClose, onCreated }: Props) {
   const [companyName, setCompanyName] = useState('');
   const [avatarUrl, setAvatarUrl] = useState('');
   const [color, setColor] = useState(AGENT_COLORS[0]);
+  const [customFieldValues, setCustomFieldValues] = useState<Record<string, string>>({});
 
   // Inherited from template (not shown in UI)
   const [tone, setTone] = useState('friendly');
@@ -354,8 +394,14 @@ export function CreateAgentModal({ userId, onClose, onCreated }: Props) {
   const selectedTemplate = templates.find((t) => t.id === selectedTemplateId) ?? null;
   const selectedIndex = templates.findIndex((t) => t.id === selectedTemplateId);
 
+  const customFieldsValid = selectedTemplate
+    ? selectedTemplate.custom_fields.every(
+        (f) => !f.required || (customFieldValues[f.key] ?? '').trim().length > 0
+      )
+    : true;
+
   const canNext1 = !!selectedTemplate;
-  const canFinish = displayName.trim().length >= 2;
+  const canFinish = displayName.trim().length >= 2 && customFieldsValid;
 
   const bodyRef = useRef<HTMLDivElement>(null);
 
@@ -381,7 +427,12 @@ export function CreateAgentModal({ userId, onClose, onCreated }: Props) {
     if (ds.tone) setTone(ds.tone);
     if (ds.language) setLanguage(ds.language);
     if (ds.emoji_usage) setEmojiUsage(ds.emoji_usage);
+    setCustomFieldValues({});
   }, [selectedTemplateId]);
+
+  const mergedBase = selectedTemplate
+    ? mergeTemplatePrompt(selectedTemplate.base_prompt, customFieldValues)
+    : '';
 
   const builtPrompt = buildSystemPrompt({
     persona_name: personaName || displayName,
@@ -389,7 +440,7 @@ export function CreateAgentModal({ userId, onClose, onCreated }: Props) {
     tone,
     language,
     emoji_usage: emojiUsage,
-    base: selectedTemplate?.base_prompt ?? '',
+    base: mergedBase,
   });
 
   const handleUpload = async (file: File) => {
@@ -513,6 +564,8 @@ export function CreateAgentModal({ userId, onClose, onCreated }: Props) {
               setAvatarUrl={setAvatarUrl}
               color={color}
               setColor={setColor}
+              customFieldValues={customFieldValues}
+              setCustomFieldValues={setCustomFieldValues}
               uploading={uploading}
               onUpload={handleUpload}
               userId={userId}
