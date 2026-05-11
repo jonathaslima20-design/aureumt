@@ -2,11 +2,10 @@ import { useEffect, useState } from 'react';
 import {
   ArrowLeft, Save, Loader2, Check, Users, MessageCircle, Key,
   Zap, DollarSign, ChevronDown, ChevronUp, AlertTriangle, TrendingUp,
-  LayoutTemplate, LayoutDashboard, ShieldCheck,
+  LayoutDashboard, ShieldCheck,
 } from 'lucide-react';
 import { Logo } from '../components/Logo';
 import { supabase, Profile, ApiConfig, TokenStatsByUser, TokenDailySeries, calcCostBRL } from '../lib/supabase';
-import { TemplatesPage } from './admin/TemplatesPage';
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -219,13 +218,12 @@ function TokenRow({ stat, onSaved }: { stat: TokenStatsByUser; onSaved: () => vo
 
 // ─── Menu items ───────────────────────────────────────────────────────────────
 
-type AdminSection = 'dashboard' | 'users' | 'tokens' | 'templates' | 'credentials';
+type AdminSection = 'dashboard' | 'users' | 'tokens' | 'credentials';
 
 const MENU_ITEMS: { id: AdminSection; label: string; icon: React.ReactNode; description: string }[] = [
   { id: 'dashboard',   label: 'Dashboard',          icon: <LayoutDashboard size={15} />, description: 'Visão geral do sistema' },
   { id: 'users',       label: 'Gestão de Usuários', icon: <Users size={15} />,           description: 'Contas, planos e perfis' },
   { id: 'tokens',      label: 'Consumo de Tokens',  icon: <Zap size={15} />,             description: 'Uso e limites por usuário' },
-  { id: 'templates',   label: 'Templates',          icon: <LayoutTemplate size={15} />,  description: 'Modelos de agentes' },
   { id: 'credentials', label: 'Credenciais',        icon: <ShieldCheck size={15} />,     description: 'Chaves de API globais' },
 ];
 
@@ -523,9 +521,6 @@ export function AdminPanel({ onBack }: { onBack: () => void }) {
                 </div>
               </div>
             )}
-
-            {/* ── Templates ── */}
-            {section === 'templates' && <TemplatesPage />}
 
             {/* ── Credenciais ── */}
             {section === 'credentials' && (

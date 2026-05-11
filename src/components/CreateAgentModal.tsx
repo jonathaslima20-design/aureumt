@@ -1,92 +1,77 @@
-import { useEffect, useRef, useState } from 'react';
+import { useRef, useState } from 'react';
 import {
-  X, Loader2, Upload, Check, ArrowRight, ArrowLeft,
-  Sparkles, Bot, ChevronRight,
+  X, Loader2, Upload, Check, Sparkles, Plus, Trash2,
+  ChevronDown, ChevronUp, GripVertical,
 } from 'lucide-react';
 import {
   supabase,
   Instance,
-  AgentTemplate,
   AGENT_COLORS,
   buildSystemPrompt,
-  mergeTemplatePrompt,
 } from '../lib/supabase';
 import { AgentAvatar } from './AgentAvatar';
 
-// ─── Specialty badge palette ──────────────────────────────────────────────────
+// ─── Custom variable row ──────────────────────────────────────────────────────
 
-const BADGE_PALETTES = [
-  { border: 'border-emerald-700/50', text: 'text-emerald-300', glow: '0 0 32px 4px rgba(16,185,129,0.14)' },
-  { border: 'border-amber-700/50',   text: 'text-amber-300',   glow: '0 0 32px 4px rgba(245,158,11,0.14)' },
-  { border: 'border-sky-700/50',     text: 'text-sky-300',     glow: '0 0 32px 4px rgba(14,165,233,0.16)' },
-  { border: 'border-rose-700/50',    text: 'text-rose-300',    glow: '0 0 32px 4px rgba(244,63,94,0.12)' },
-  { border: 'border-teal-700/50',    text: 'text-teal-300',    glow: '0 0 32px 4px rgba(20,184,166,0.14)' },
-];
+type CustomVar = { key: string; value: string };
 
-// ─── Template gallery card (large format) ────────────────────────────────────
-
-function TemplateCard({
-  template,
+function VarRow({
+  v,
   index,
-  selected,
-  onSelect,
+  total,
+  onChange,
+  onRemove,
+  onMove,
 }: {
-  template: AgentTemplate;
+  v: CustomVar;
   index: number;
-  selected: boolean;
-  onSelect: () => void;
+  total: number;
+  onChange: (u: CustomVar) => void;
+  onRemove: () => void;
+  onMove: (dir: -1 | 1) => void;
 }) {
-  const palette = BADGE_PALETTES[index % BADGE_PALETTES.length];
-  const [hovered, setHovered] = useState(false);
-
   return (
-    <button
-      type="button"
-      onClick={onSelect}
-      onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => setHovered(false)}
-      className={`
-        relative w-full text-left rounded-2xl border transition-all duration-300 overflow-hidden
-        ${selected
-          ? `border-white/25 bg-white/[0.04]`
-          : 'border-white/[0.06] bg-[#0a0a0a] hover:bg-white/[0.03] hover:border-white/[0.12]'}
-      `}
-      style={{ boxShadow: (hovered || selected) ? palette.glow : 'none' }}
-    >
-      {selected && (
-        <div className="absolute top-3 right-3 w-5 h-5 rounded-full bg-white flex items-center justify-center">
-          <Check size={11} className="text-black" />
-        </div>
-      )}
-
-      <div className="p-5 flex items-center gap-4">
-        {/* Avatar */}
-        <div
-          className={`w-16 h-16 rounded-full overflow-hidden flex items-center justify-center text-3xl shrink-0 border-2 ${palette.border} transition-transform duration-300`}
-          style={{ transform: (hovered || selected) ? 'scale(1.06)' : 'scale(1)', background: 'rgba(0,0,0,0.5)' }}
+    <div className="flex items-center gap-2 group">
+      <div className="flex flex-col gap-0.5 shrink-0">
+        <button
+          type="button"
+          onClick={() => onMove(-1)}
+          disabled={index === 0}
+          className="text-neutral-700 hover:text-neutral-400 disabled:opacity-20 transition-colors"
         >
-          {template.profile_image_url ? (
-            <img src={template.profile_image_url} alt={template.title} className="w-full h-full object-cover" />
-          ) : (
-            <span>{template.icon || '🤖'}</span>
-          )}
-        </div>
-
-        {/* Info */}
-        <div className="flex-1 min-w-0">
-          <div className="text-[14px] font-semibold text-white leading-snug mb-0.5">{template.title}</div>
-          <p className={`text-[11px] font-medium mb-1.5 ${palette.text}`}>
-            {template.description.split(' ').slice(0, 5).join(' ')}
-          </p>
-          <p className="text-[11px] text-neutral-500 leading-relaxed line-clamp-2">{template.description}</p>
-        </div>
-
-        <ChevronRight
-          size={14}
-          className={`shrink-0 transition-all duration-300 ${selected ? 'text-white rotate-90' : 'text-neutral-700'}`}
-        />
+          <ChevronUp size={10} />
+        </button>
+        <button
+          type="button"
+          onClick={() => onMove(1)}
+          disabled={index === total - 1}
+          className="text-neutral-700 hover:text-neutral-400 disabled:opacity-20 transition-colors"
+        >
+          <ChevronDown size={10} />
+        </button>
       </div>
-    </button>
+      <GripVertical size={11} className="text-neutral-800 shrink-0" />
+      <input
+        value={v.key}
+        onChange={(e) => onChange({ ...v, key: e.target.value.replace(/\s/g, '_') })}
+        placeholder="variavel"
+        className="w-28 bg-[#0a0a0a] border border-[#1a1a1a] rounded px-2 py-1.5 text-xs text-white font-mono focus:outline-none focus:border-neutral-600 shrink-0"
+      />
+      <span className="text-neutral-700 text-xs shrink-0">=</span>
+      <input
+        value={v.value}
+        onChange={(e) => onChange({ ...v, value: e.target.value })}
+        placeholder="valor"
+        className="flex-1 bg-[#0a0a0a] border border-[#1a1a1a] rounded px-2 py-1.5 text-xs text-white focus:outline-none focus:border-neutral-600"
+      />
+      <button
+        type="button"
+        onClick={onRemove}
+        className="text-neutral-700 hover:text-red-400 transition-colors shrink-0 opacity-0 group-hover:opacity-100"
+      >
+        <Trash2 size={11} />
+      </button>
+    </div>
   );
 }
 
@@ -101,259 +86,26 @@ function ChatPreview({
   avatarUrl: string;
   color: string;
 }) {
-  const greeting = `Olá! Eu sou ${agentName}. Como posso te ajudar hoje?`;
-
+  const name = agentName.trim() || 'Agente';
   return (
     <div className="rounded-xl border border-white/[0.07] bg-[#060606] overflow-hidden">
       <div className="flex items-center gap-2.5 px-3 py-2.5 border-b border-white/[0.05] bg-[#0d0d0d]">
-        <AgentAvatar name={agentName} url={avatarUrl} color={color} size={26} />
+        <AgentAvatar name={name} url={avatarUrl} color={color} size={26} />
         <div>
-          <div className="text-[11px] font-semibold text-white leading-tight">{agentName}</div>
+          <div className="text-[11px] font-semibold text-white leading-tight">{name}</div>
           <div className="text-[9px] text-emerald-400">online</div>
         </div>
       </div>
       <div className="px-3 py-4">
         <div className="flex items-end gap-2">
-          <AgentAvatar name={agentName} url={avatarUrl} color={color} size={20} />
+          <AgentAvatar name={name} url={avatarUrl} color={color} size={20} />
           <div
             className="max-w-[85%] rounded-2xl rounded-bl-none px-3 py-2 text-[11px] text-white leading-relaxed"
             style={{ background: `${color}22`, border: `1px solid ${color}33` }}
           >
-            {greeting}
+            Olá! Eu sou {name}. Como posso te ajudar hoje?
           </div>
         </div>
-      </div>
-    </div>
-  );
-}
-
-// ─── Step 1 — Template gallery ────────────────────────────────────────────────
-
-function StepTemplate({
-  templates,
-  loading,
-  selectedId,
-  onSelect,
-}: {
-  templates: AgentTemplate[];
-  loading: boolean;
-  selectedId: string | null;
-  onSelect: (id: string) => void;
-}) {
-  return (
-    <div className="space-y-4 animate-fade-in">
-      <div>
-        <h3 className="text-[15px] text-white font-semibold mb-1">Escolha o especialista</h3>
-        <p className="text-xs text-neutral-500">Selecione o perfil mais adequado ao seu negócio.</p>
-      </div>
-
-      {loading ? (
-        <div className="flex items-center justify-center py-16">
-          <Loader2 size={18} className="text-neutral-600 animate-spin" />
-        </div>
-      ) : templates.length === 0 ? (
-        <div className="border border-dashed border-white/[0.07] rounded-2xl py-14 text-center">
-          <Bot size={20} className="mx-auto text-neutral-700 mb-2" strokeWidth={1.5} />
-          <p className="text-xs text-neutral-600">Nenhum template disponível no momento.</p>
-        </div>
-      ) : (
-        <div className="space-y-2.5">
-          {templates.map((t, i) => (
-            <TemplateCard
-              key={t.id}
-              template={t}
-              index={i}
-              selected={selectedId === t.id}
-              onSelect={() => onSelect(t.id)}
-            />
-          ))}
-        </div>
-      )}
-    </div>
-  );
-}
-
-// ─── Step 2 — Customize ───────────────────────────────────────────────────────
-
-function StepCustomize({
-  template,
-  index,
-  displayName,
-  setDisplayName,
-  personaName,
-  setPersonaName,
-  companyName,
-  setCompanyName,
-  avatarUrl,
-  setAvatarUrl,
-  color,
-  setColor,
-  customFieldValues,
-  setCustomFieldValues,
-  uploading,
-  onUpload,
-  userId,
-}: {
-  template: AgentTemplate;
-  index: number;
-  displayName: string;
-  setDisplayName: (v: string) => void;
-  personaName: string;
-  setPersonaName: (v: string) => void;
-  companyName: string;
-  setCompanyName: (v: string) => void;
-  avatarUrl: string;
-  setAvatarUrl: (v: string) => void;
-  color: string;
-  setColor: (v: string) => void;
-  customFieldValues: Record<string, string>;
-  setCustomFieldValues: React.Dispatch<React.SetStateAction<Record<string, string>>>;
-  uploading: boolean;
-  onUpload: (f: File) => void;
-  userId: string;
-}) {
-  const palette = BADGE_PALETTES[index % BADGE_PALETTES.length];
-  const agentName = personaName || displayName || template.title;
-
-  return (
-    <div className="space-y-5 animate-fade-in">
-      {/* Template context header */}
-      <div className="flex items-center gap-3 p-3.5 rounded-xl border border-white/[0.07] bg-white/[0.02]">
-        <div
-          className={`w-10 h-10 rounded-full overflow-hidden flex items-center justify-center text-xl shrink-0 border ${palette.border}`}
-          style={{ background: 'rgba(0,0,0,0.5)' }}
-        >
-          {template.profile_image_url ? (
-            <img src={template.profile_image_url} alt={template.title} className="w-full h-full object-cover" />
-          ) : (
-            <span>{template.icon || '🤖'}</span>
-          )}
-        </div>
-        <div>
-          <p className={`text-[10px] font-semibold uppercase tracking-wider ${palette.text}`}>Template selecionado</p>
-          <p className="text-[13px] text-white font-medium">{template.title}</p>
-        </div>
-      </div>
-
-      {/* Agent identity */}
-      <div className="space-y-3">
-        <div className="flex items-center gap-4">
-          <div
-            className="relative group cursor-pointer shrink-0"
-            onClick={() => document.getElementById(`avatar-step2-${userId}`)?.click()}
-          >
-            <AgentAvatar name={agentName} url={avatarUrl} color={color} size={64} />
-            <div className="absolute inset-0 rounded-full bg-black/60 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-              {uploading
-                ? <Loader2 size={14} className="animate-spin text-white" />
-                : <Upload size={14} className="text-white" />}
-            </div>
-            <input
-              id={`avatar-step2-${userId}`}
-              type="file"
-              accept="image/*"
-              className="hidden"
-              onChange={(e) => { const f = e.target.files?.[0]; if (f) onUpload(f); }}
-            />
-          </div>
-          <div className="flex-1 space-y-2.5">
-            <div>
-              <label className="block text-[10px] text-neutral-500 uppercase tracking-wider mb-1.5">
-                Nome de exibição *
-              </label>
-              <input
-                value={displayName}
-                onChange={(e) => setDisplayName(e.target.value)}
-                placeholder="Ex: Júlia - Vendas"
-                className="w-full bg-[#0d0d0d] border border-[#1a1a1a] rounded-lg px-3 py-2.5 text-sm text-white placeholder-neutral-600 focus:border-white/20 outline-none transition-colors"
-              />
-            </div>
-            <div className="flex gap-2">
-              {AGENT_COLORS.map((c) => (
-                <button
-                  key={c}
-                  type="button"
-                  onClick={() => setColor(c)}
-                  className={`w-6 h-6 rounded-full border-2 transition-all duration-200 ${
-                    color === c ? 'border-white scale-110' : 'border-transparent hover:scale-105'
-                  }`}
-                  style={{ background: c, boxShadow: color === c ? `0 0 10px ${c}66` : 'none' }}
-                />
-              ))}
-            </div>
-          </div>
-        </div>
-
-        <div className="grid grid-cols-2 gap-2.5">
-          <div>
-            <label className="block text-[10px] text-neutral-500 uppercase tracking-wider mb-1.5">
-              Nome da persona
-            </label>
-            <input
-              value={personaName}
-              onChange={(e) => setPersonaName(e.target.value)}
-              placeholder="Como ele se apresenta"
-              className="w-full bg-[#0d0d0d] border border-[#1a1a1a] rounded-lg px-3 py-2.5 text-sm text-white placeholder-neutral-600 focus:border-white/20 outline-none transition-colors"
-            />
-          </div>
-          <div>
-            <label className="block text-[10px] text-neutral-500 uppercase tracking-wider mb-1.5">
-              Empresa
-            </label>
-            <input
-              value={companyName}
-              onChange={(e) => setCompanyName(e.target.value)}
-              placeholder="Nome da empresa"
-              className="w-full bg-[#0d0d0d] border border-[#1a1a1a] rounded-lg px-3 py-2.5 text-sm text-white placeholder-neutral-600 focus:border-white/20 outline-none transition-colors"
-            />
-          </div>
-        </div>
-      </div>
-
-      {/* Custom fields — only shown when template defines them */}
-      {template.custom_fields.length > 0 && (
-        <div className="space-y-3 pt-1">
-          <div className="text-[10px] text-neutral-500 uppercase tracking-wider flex items-center gap-1.5">
-            <Sparkles size={9} /> Adapte para o seu negócio
-          </div>
-          {template.custom_fields.map((f) => (
-            <div key={f.key}>
-              <label className="block text-xs text-neutral-300 mb-1.5 font-medium">
-                {f.label}
-                {f.required && <span className="text-red-400 ml-1">*</span>}
-              </label>
-              {f.type === 'textarea' ? (
-                <textarea
-                  value={customFieldValues[f.key] ?? ''}
-                  onChange={(e) => setCustomFieldValues((v) => ({ ...v, [f.key]: e.target.value }))}
-                  placeholder={f.placeholder}
-                  rows={3}
-                  className="w-full bg-[#0d0d0d] border border-[#1a1a1a] rounded-lg px-3 py-2.5 text-sm text-white placeholder-neutral-600 focus:border-white/20 outline-none resize-none transition-colors"
-                />
-              ) : (
-                <input
-                  type={f.type === 'url' ? 'url' : 'text'}
-                  value={customFieldValues[f.key] ?? ''}
-                  onChange={(e) => setCustomFieldValues((v) => ({ ...v, [f.key]: e.target.value }))}
-                  placeholder={f.placeholder}
-                  className="w-full bg-[#0d0d0d] border border-[#1a1a1a] rounded-lg px-3 py-2.5 text-sm text-white placeholder-neutral-600 focus:border-white/20 outline-none transition-colors"
-                />
-              )}
-            </div>
-          ))}
-        </div>
-      )}
-
-      {/* Live preview */}
-      <div>
-        <div className="text-[10px] text-neutral-500 uppercase tracking-wider mb-2 flex items-center gap-1.5">
-          <Sparkles size={9} /> Preview
-        </div>
-        <ChatPreview
-          agentName={agentName}
-          avatarUrl={avatarUrl}
-          color={color}
-        />
       </div>
     </div>
   );
@@ -367,81 +119,47 @@ type Props = {
   onCreated: (inst: Instance) => void;
 };
 
+function applyVars(prompt: string, vars: CustomVar[]): string {
+  let out = prompt;
+  for (const { key, value } of vars) {
+    if (key.trim()) out = out.replaceAll(`{{${key.trim()}}}`, value);
+  }
+  return out;
+}
+
 export function CreateAgentModal({ userId, onClose, onCreated }: Props) {
-  const [step, setStep] = useState(1);
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState('');
 
-  // Template selection (step 1)
-  const [templates, setTemplates] = useState<AgentTemplate[]>([]);
-  const [loadingTemplates, setLoadingTemplates] = useState(true);
-  const [selectedTemplateId, setSelectedTemplateId] = useState<string | null>(null);
-
-  // Customization (step 2)
   const [displayName, setDisplayName] = useState('');
   const [personaName, setPersonaName] = useState('');
   const [companyName, setCompanyName] = useState('');
   const [avatarUrl, setAvatarUrl] = useState('');
   const [color, setColor] = useState(AGENT_COLORS[0]);
-  const [customFieldValues, setCustomFieldValues] = useState<Record<string, string>>({});
-
-  // Inherited from template (not shown in UI)
   const [tone, setTone] = useState('friendly');
   const [language, setLanguage] = useState('pt-BR');
   const [emojiUsage, setEmojiUsage] = useState('moderate');
-
-  const selectedTemplate = templates.find((t) => t.id === selectedTemplateId) ?? null;
-  const selectedIndex = templates.findIndex((t) => t.id === selectedTemplateId);
-
-  const customFieldsValid = selectedTemplate
-    ? selectedTemplate.custom_fields.every(
-        (f) => !f.required || (customFieldValues[f.key] ?? '').trim().length > 0
-      )
-    : true;
-
-  const canNext1 = !!selectedTemplate;
-  const canFinish = displayName.trim().length >= 2 && customFieldsValid;
+  const [basePrompt, setBasePrompt] = useState('');
+  const [customVars, setCustomVars] = useState<CustomVar[]>([]);
+  const [showAdvanced, setShowAdvanced] = useState(false);
 
   const bodyRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    (async () => {
-      setLoadingTemplates(true);
-      const { data } = await supabase
-        .from('agent_templates')
-        .select('*')
-        .eq('is_active', true)
-        .order('sort_order', { ascending: true });
-      const list = (data as AgentTemplate[]) || [];
-      setTemplates(list);
-      if (list.length > 0) setSelectedTemplateId(list[0].id);
-      setLoadingTemplates(false);
-    })();
-  }, []);
+  const canCreate = displayName.trim().length >= 2;
 
-  // Inherit template defaults silently
-  useEffect(() => {
-    if (!selectedTemplate) return;
-    const ds = selectedTemplate.default_settings;
-    if (ds.tone) setTone(ds.tone);
-    if (ds.language) setLanguage(ds.language);
-    if (ds.emoji_usage) setEmojiUsage(ds.emoji_usage);
-    setCustomFieldValues({});
-  }, [selectedTemplateId]);
-
-  const mergedBase = selectedTemplate
-    ? mergeTemplatePrompt(selectedTemplate.base_prompt, customFieldValues)
-    : '';
-
-  const builtPrompt = buildSystemPrompt({
-    persona_name: personaName || displayName,
-    company_name: companyName,
-    tone,
-    language,
-    emoji_usage: emojiUsage,
-    base: mergedBase,
-  });
+  const addVar = () => setCustomVars((v) => [...v, { key: '', value: '' }]);
+  const updateVar = (i: number, u: CustomVar) => setCustomVars((v) => v.map((x, idx) => idx === i ? u : x));
+  const removeVar = (i: number) => setCustomVars((v) => v.filter((_, idx) => idx !== i));
+  const moveVar = (i: number, dir: -1 | 1) => {
+    setCustomVars((v) => {
+      const arr = [...v];
+      const j = i + dir;
+      if (j < 0 || j >= arr.length) return arr;
+      [arr[i], arr[j]] = [arr[j], arr[i]];
+      return arr;
+    });
+  };
 
   const handleUpload = async (file: File) => {
     setError('');
@@ -466,6 +184,16 @@ export function CreateAgentModal({ userId, onClose, onCreated }: Props) {
     setSaving(true);
     setError('');
     try {
+      const resolvedBase = applyVars(basePrompt, customVars);
+      const systemPrompt = buildSystemPrompt({
+        persona_name: personaName || displayName,
+        company_name: companyName,
+        tone,
+        language,
+        emoji_usage: emojiUsage,
+        base: resolvedBase,
+      });
+
       const instance_name = `aura_${Date.now().toString(36)}`;
       const { data, error: insErr } = await supabase
         .from('instances')
@@ -480,7 +208,7 @@ export function CreateAgentModal({ userId, onClose, onCreated }: Props) {
           tone,
           language,
           emoji_usage: emojiUsage,
-          system_prompt: builtPrompt,
+          system_prompt: systemPrompt,
           response_delay: 3000,
           overflow_keyword: 'humano',
         })
@@ -496,116 +224,242 @@ export function CreateAgentModal({ userId, onClose, onCreated }: Props) {
     }
   };
 
-  const STEP_LABELS = ['Especialista', 'Personalizar'];
+  const agentName = personaName || displayName || 'Agente';
 
   return (
     <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center p-4">
       <div className="bg-[#080808] border border-white/[0.08] rounded-2xl w-full max-w-xl max-h-[90vh] overflow-hidden flex flex-col shadow-2xl">
 
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-white/[0.06]">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-white/[0.06] shrink-0">
           <div>
             <div className="text-sm text-white font-semibold tracking-tight">Criar novo agente</div>
-            <div className="text-[11px] text-neutral-500 mt-0.5">Passo {step} de 2</div>
+            <div className="text-[11px] text-neutral-500 mt-0.5">Configure como desejar.</div>
           </div>
           <button onClick={onClose} className="text-neutral-600 hover:text-white transition-colors p-1 rounded-lg hover:bg-white/5">
             <X size={15} />
           </button>
         </div>
 
-        {/* Progress */}
-        <div className="px-6 pt-3.5 pb-0">
-          <div className="flex gap-1.5">
-            {[1, 2].map((n) => (
-              <div
-                key={n}
-                className={`flex-1 h-0.5 rounded-full transition-all duration-500 ${
-                  step > n ? 'bg-white' : step === n ? 'bg-white/70' : 'bg-white/10'
-                }`}
-              />
-            ))}
-          </div>
-          <div className="flex justify-between mt-2 mb-1">
-            {STEP_LABELS.map((label, i) => (
-              <span
-                key={label}
-                className={`text-[10px] uppercase tracking-wider transition-colors duration-300 ${
-                  step === i + 1 ? 'text-white' : step > i + 1 ? 'text-neutral-500' : 'text-neutral-700'
-                }`}
-              >
-                {label}
-              </span>
-            ))}
-          </div>
-        </div>
-
         {/* Body */}
-        <div ref={bodyRef} className="flex-1 overflow-y-auto px-6 py-5">
-          {step === 1 && (
-            <StepTemplate
-              templates={templates}
-              loading={loadingTemplates}
-              selectedId={selectedTemplateId}
-              onSelect={(id) => setSelectedTemplateId(id)}
-            />
-          )}
+        <div ref={bodyRef} className="flex-1 overflow-y-auto px-6 py-5 space-y-5">
 
-          {step === 2 && selectedTemplate && (
-            <StepCustomize
-              template={selectedTemplate}
-              index={selectedIndex}
-              displayName={displayName}
-              setDisplayName={setDisplayName}
-              personaName={personaName}
-              setPersonaName={setPersonaName}
-              companyName={companyName}
-              setCompanyName={setCompanyName}
-              avatarUrl={avatarUrl}
-              setAvatarUrl={setAvatarUrl}
-              color={color}
-              setColor={setColor}
-              customFieldValues={customFieldValues}
-              setCustomFieldValues={setCustomFieldValues}
-              uploading={uploading}
-              onUpload={handleUpload}
-              userId={userId}
+          {/* Identity */}
+          <div className="flex items-center gap-4">
+            <div
+              className="relative group cursor-pointer shrink-0"
+              onClick={() => document.getElementById(`avatar-modal-${userId}`)?.click()}
+            >
+              <AgentAvatar name={agentName} url={avatarUrl} color={color} size={64} />
+              <div className="absolute inset-0 rounded-full bg-black/60 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                {uploading
+                  ? <Loader2 size={14} className="animate-spin text-white" />
+                  : <Upload size={14} className="text-white" />}
+              </div>
+              <input
+                id={`avatar-modal-${userId}`}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={(e) => { const f = e.target.files?.[0]; if (f) handleUpload(f); }}
+              />
+            </div>
+
+            <div className="flex-1 space-y-2.5">
+              <div>
+                <label className="block text-[10px] text-neutral-500 uppercase tracking-wider mb-1.5">
+                  Nome de exibição *
+                </label>
+                <input
+                  value={displayName}
+                  onChange={(e) => setDisplayName(e.target.value)}
+                  placeholder="Ex: Júlia - Vendas"
+                  className="w-full bg-[#0d0d0d] border border-[#1a1a1a] rounded-lg px-3 py-2.5 text-sm text-white placeholder-neutral-600 focus:border-white/20 outline-none transition-colors"
+                />
+              </div>
+              <div className="flex gap-2">
+                {AGENT_COLORS.map((c) => (
+                  <button
+                    key={c}
+                    type="button"
+                    onClick={() => setColor(c)}
+                    className={`w-6 h-6 rounded-full border-2 transition-all duration-200 ${
+                      color === c ? 'border-white scale-110' : 'border-transparent hover:scale-105'
+                    }`}
+                    style={{ background: c, boxShadow: color === c ? `0 0 10px ${c}66` : 'none' }}
+                  />
+                ))}
+              </div>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-2.5">
+            <div>
+              <label className="block text-[10px] text-neutral-500 uppercase tracking-wider mb-1.5">
+                Nome da persona
+              </label>
+              <input
+                value={personaName}
+                onChange={(e) => setPersonaName(e.target.value)}
+                placeholder="Como ele se apresenta"
+                className="w-full bg-[#0d0d0d] border border-[#1a1a1a] rounded-lg px-3 py-2.5 text-sm text-white placeholder-neutral-600 focus:border-white/20 outline-none transition-colors"
+              />
+            </div>
+            <div>
+              <label className="block text-[10px] text-neutral-500 uppercase tracking-wider mb-1.5">
+                Empresa
+              </label>
+              <input
+                value={companyName}
+                onChange={(e) => setCompanyName(e.target.value)}
+                placeholder="Nome da empresa"
+                className="w-full bg-[#0d0d0d] border border-[#1a1a1a] rounded-lg px-3 py-2.5 text-sm text-white placeholder-neutral-600 focus:border-white/20 outline-none transition-colors"
+              />
+            </div>
+          </div>
+
+          {/* Prompt */}
+          <div>
+            <label className="block text-[10px] text-neutral-500 uppercase tracking-wider mb-1.5">
+              Prompt / Instruções
+            </label>
+            <p className="text-[11px] text-neutral-600 mb-2">
+              Use <code className="bg-[#111] px-1 rounded text-neutral-400 font-mono">{'{{variavel}}'}</code> para inserir valores das variáveis abaixo.
+            </p>
+            <textarea
+              value={basePrompt}
+              onChange={(e) => setBasePrompt(e.target.value)}
+              rows={5}
+              placeholder="Você é um atendente especializado em... O cardápio está em {{link_cardapio}}."
+              className="w-full bg-[#0d0d0d] border border-[#1a1a1a] rounded-lg px-3 py-2.5 text-sm text-white placeholder-neutral-600 focus:border-white/20 outline-none resize-none transition-colors font-mono leading-relaxed"
             />
-          )}
+          </div>
+
+          {/* Custom variables */}
+          <div>
+            <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center gap-1.5">
+                <Sparkles size={10} className="text-neutral-600" />
+                <span className="text-[10px] text-neutral-500 uppercase tracking-wider">Variáveis personalizadas</span>
+              </div>
+              <button
+                type="button"
+                onClick={addVar}
+                className="text-[10px] text-neutral-400 hover:text-white border border-[#1a1a1a] hover:border-[#262626] rounded px-2 py-1 flex items-center gap-1 transition-colors"
+              >
+                <Plus size={9} /> Adicionar
+              </button>
+            </div>
+
+            {customVars.length === 0 ? (
+              <div className="border border-dashed border-[#1a1a1a] rounded-lg py-4 text-center text-[11px] text-neutral-700">
+                Nenhuma variável. Clique em "Adicionar" para criar uma.
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {customVars.map((v, i) => (
+                  <VarRow
+                    key={i}
+                    v={v}
+                    index={i}
+                    total={customVars.length}
+                    onChange={(u) => updateVar(i, u)}
+                    onRemove={() => removeVar(i)}
+                    onMove={(dir) => moveVar(i, dir)}
+                  />
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Advanced settings */}
+          <div className="border border-[#1a1a1a] rounded-xl overflow-hidden">
+            <button
+              type="button"
+              onClick={() => setShowAdvanced((v) => !v)}
+              className="w-full flex items-center justify-between px-4 py-3 text-left hover:bg-white/[0.02] transition-colors"
+            >
+              <span className="text-[10px] text-neutral-500 uppercase tracking-wider">Configurações avançadas</span>
+              {showAdvanced ? <ChevronUp size={12} className="text-neutral-600" /> : <ChevronDown size={12} className="text-neutral-600" />}
+            </button>
+
+            {showAdvanced && (
+              <div className="px-4 pb-4 space-y-3 border-t border-[#1a1a1a] pt-4">
+                <div className="grid grid-cols-3 gap-3">
+                  <div>
+                    <label className="block text-[10px] text-neutral-500 uppercase tracking-wider mb-1.5">Tom</label>
+                    <select
+                      value={tone}
+                      onChange={(e) => setTone(e.target.value)}
+                      className="w-full bg-[#0a0a0a] border border-[#1a1a1a] rounded-lg px-2 py-2 text-xs text-white focus:outline-none focus:border-neutral-600"
+                    >
+                      <option value="friendly">Amigável</option>
+                      <option value="professional">Profissional</option>
+                      <option value="casual">Descontraído</option>
+                      <option value="technical">Técnico</option>
+                      <option value="warm">Acolhedor</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-[10px] text-neutral-500 uppercase tracking-wider mb-1.5">Idioma</label>
+                    <select
+                      value={language}
+                      onChange={(e) => setLanguage(e.target.value)}
+                      className="w-full bg-[#0a0a0a] border border-[#1a1a1a] rounded-lg px-2 py-2 text-xs text-white focus:outline-none focus:border-neutral-600"
+                    >
+                      <option value="pt-BR">Português (BR)</option>
+                      <option value="en-US">English (US)</option>
+                      <option value="es">Español</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-[10px] text-neutral-500 uppercase tracking-wider mb-1.5">Emojis</label>
+                    <select
+                      value={emojiUsage}
+                      onChange={(e) => setEmojiUsage(e.target.value)}
+                      className="w-full bg-[#0a0a0a] border border-[#1a1a1a] rounded-lg px-2 py-2 text-xs text-white focus:outline-none focus:border-neutral-600"
+                    >
+                      <option value="none">Nenhum</option>
+                      <option value="moderate">Moderado</option>
+                      <option value="expressive">Expressivo</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Live preview */}
+          <div>
+            <div className="text-[10px] text-neutral-500 uppercase tracking-wider mb-2 flex items-center gap-1.5">
+              <Sparkles size={9} /> Preview
+            </div>
+            <ChatPreview agentName={agentName} avatarUrl={avatarUrl} color={color} />
+          </div>
 
           {error && (
-            <div className="mt-4 text-xs text-red-400 bg-red-950/30 border border-red-900/40 rounded-xl px-3 py-2.5">
+            <div className="text-xs text-red-400 bg-red-950/30 border border-red-900/40 rounded-xl px-3 py-2.5">
               {error}
             </div>
           )}
         </div>
 
         {/* Footer */}
-        <div className="flex items-center justify-between px-6 py-4 border-t border-white/[0.06] gap-3">
+        <div className="flex items-center justify-between px-6 py-4 border-t border-white/[0.06] gap-3 shrink-0">
           <button
-            onClick={() => (step > 1 ? setStep(step - 1) : onClose())}
+            onClick={onClose}
             className="text-neutral-500 hover:text-white text-xs flex items-center gap-1.5 transition-colors px-3 py-2 rounded-lg hover:bg-white/5"
           >
-            <ArrowLeft size={12} /> {step > 1 ? 'Voltar' : 'Cancelar'}
+            Cancelar
           </button>
-
-          {step < 2 ? (
-            <button
-              onClick={() => setStep(2)}
-              disabled={!canNext1}
-              className="bg-white text-black rounded-xl px-5 py-2 text-xs font-semibold flex items-center gap-1.5 hover:bg-neutral-200 transition-all duration-200 disabled:opacity-30 shadow-[0_0_20px_rgba(255,255,255,0.08)]"
-            >
-              Personalizar <ArrowRight size={12} />
-            </button>
-          ) : (
-            <button
-              onClick={handleCreate}
-              disabled={saving || !canFinish}
-              className="bg-white text-black rounded-xl px-5 py-2 text-xs font-semibold flex items-center gap-1.5 hover:bg-neutral-200 transition-all duration-200 disabled:opacity-30 shadow-[0_0_20px_rgba(255,255,255,0.08)]"
-            >
-              {saving ? <Loader2 size={12} className="animate-spin" /> : <Check size={12} />}
-              Criar agente
-            </button>
-          )}
+          <button
+            onClick={handleCreate}
+            disabled={saving || !canCreate}
+            className="bg-white text-black rounded-xl px-5 py-2 text-xs font-semibold flex items-center gap-1.5 hover:bg-neutral-200 transition-all duration-200 disabled:opacity-30 shadow-[0_0_20px_rgba(255,255,255,0.08)]"
+          >
+            {saving ? <Loader2 size={12} className="animate-spin" /> : <Check size={12} />}
+            Criar agente
+          </button>
         </div>
       </div>
     </div>
