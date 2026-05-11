@@ -58,11 +58,11 @@ export function AuthPage() {
         aria-hidden="true"
       />
 
-      <div className="absolute top-8 left-8 z-10">
-        <Logo />
-      </div>
-
       <div className="w-full max-w-sm animate-fade-in relative z-10">
+        <div className="flex justify-center mb-10">
+          <Logo size={56} />
+        </div>
+
         <div className="mb-10">
           <h1 className="text-3xl font-semibold text-white tracking-tight leading-tight">
             {mode === 'signin' ? 'Bem-vindo de volta' : 'Criar conta'}
