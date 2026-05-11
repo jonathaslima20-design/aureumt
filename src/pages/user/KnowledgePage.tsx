@@ -3,7 +3,7 @@ import {
   Database, UploadCloud, Link, Mic, MicOff, Trash2,
   ToggleLeft, ToggleRight, Loader2, FileText, Globe,
   AudioLines, Plus, X, CheckCircle2, AlertCircle, ArrowLeft,
-  Eye, RefreshCw, ChevronDown, ChevronUp, Filter, Users,
+  Eye, RefreshCw, ChevronDown, ChevronUp, Filter, Users, Pencil, Save,
 } from 'lucide-react';
 import { supabase, KnowledgeBase, KnowledgeSource } from '../../lib/supabase';
 import { useAuth } from '../../context/AuthContext';
@@ -303,6 +303,21 @@ function KnowledgeBaseDetail({
     setSources((prev) => prev.filter((s) => s.id !== id));
   };
 
+  const updateSourceContent = async (id: string, newContent: string, newTitle: string) => {
+    const { error } = await supabase
+      .from('knowledge_sources')
+      .update({ content: newContent, title: newTitle })
+      .eq('id', id);
+    if (error) throw new Error(error.message);
+    setSources((prev) =>
+      prev.map((s) =>
+        s.id === id
+          ? { ...s, content: newContent, title: newTitle, metadata: { ...s.metadata, char_count: newContent.length } }
+          : s
+      )
+    );
+  };
+
   const reprocessUrl = async (source: KnowledgeSource) => {
     const sourceUrl = source.metadata?.url as string;
     if (!sourceUrl) return;
@@ -407,6 +422,7 @@ function KnowledgeBaseDetail({
           onToggle={toggleSource}
           onDelete={deleteSource}
           onReprocessUrl={reprocessUrl}
+          onUpdate={updateSourceContent}
           typeIcon={typeIcon}
         />
       )}
@@ -436,7 +452,7 @@ function KnowledgeBaseDetail({
 }
 
 function SourcesList({
-  sources, loading, newSourceId, onToggle, onDelete, onReprocessUrl, typeIcon,
+  sources, loading, newSourceId, onToggle, onDelete, onReprocessUrl, onUpdate, typeIcon,
 }: {
   sources: KnowledgeSource[];
   loading: boolean;
@@ -444,10 +460,12 @@ function SourcesList({
   onToggle: (id: string, active: boolean) => void;
   onDelete: (id: string) => void;
   onReprocessUrl: (source: KnowledgeSource) => void;
+  onUpdate: (id: string, content: string, title: string) => Promise<void>;
   typeIcon: (type: string) => JSX.Element;
 }) {
   const [filter, setFilter] = useState<SourceFilter>('all');
   const [previewSource, setPreviewSource] = useState<KnowledgeSource | null>(null);
+  const [editSource, setEditSource] = useState<KnowledgeSource | null>(null);
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
   const [expandedId, setExpandedId] = useState<string | null>(null);
 
@@ -574,6 +592,13 @@ function SourcesList({
                     >
                       <Eye size={14} />
                     </button>
+                    <button
+                      onClick={() => setEditSource(s)}
+                      className="text-neutral-600 hover:text-amber-400 transition-colors p-1"
+                      title="Editar conteúdo"
+                    >
+                      <Pencil size={13} />
+                    </button>
                     {s.type === 'url' && s.metadata?.url && (
                       <button
                         onClick={() => onReprocessUrl(s)}
@@ -644,6 +669,17 @@ function SourcesList({
       {previewSource && (
         <SourcePreviewModal source={previewSource} onClose={() => setPreviewSource(null)} typeIcon={typeIcon} />
       )}
+      {editSource && (
+        <SourceEditModal
+          source={editSource}
+          onClose={() => setEditSource(null)}
+          onSave={async (id, content, title) => {
+            await onUpdate(id, content, title);
+            setEditSource(null);
+          }}
+          typeIcon={typeIcon}
+        />
+      )}
     </>
   );
 }
@@ -691,6 +727,104 @@ function SourcePreviewModal({
           <pre className="text-xs text-neutral-300 leading-relaxed whitespace-pre-wrap font-sans">
             {source.content || 'Sem conteúdo disponível'}
           </pre>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function SourceEditModal({
+  source, onClose, onSave, typeIcon,
+}: {
+  source: KnowledgeSource;
+  onClose: () => void;
+  onSave: (id: string, content: string, title: string) => Promise<void>;
+  typeIcon: (type: string) => JSX.Element;
+}) {
+  const [title, setTitle] = useState(source.title);
+  const [content, setContent] = useState(source.content || '');
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const handleSave = async () => {
+    if (!title.trim() || !content.trim()) return;
+    setSaving(true);
+    setError(null);
+    try {
+      await onSave(source.id, content.trim(), title.trim());
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Erro ao salvar');
+      setSaving(false);
+    }
+  };
+
+  const charCount = content.length;
+  const changed = title !== source.title || content !== (source.content || '');
+
+  return (
+    <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+      <div className="bg-[#141414] border border-[#242424] rounded-2xl w-full max-w-2xl max-h-[90vh] flex flex-col">
+        <div className="flex items-center justify-between px-5 py-4 border-b border-[#242424] shrink-0">
+          <div className="flex items-center gap-2 min-w-0">
+            {typeIcon(source.type)}
+            <span className="text-sm text-white font-medium">Editar conteúdo</span>
+          </div>
+          <button onClick={onClose} className="text-neutral-500 hover:text-white transition-colors ml-3 shrink-0">
+            <X size={16} />
+          </button>
+        </div>
+
+        <div className="flex-1 overflow-y-auto p-5 space-y-4">
+          <div>
+            <label className="block text-xs text-neutral-400 mb-1.5">Título</label>
+            <input
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              className="w-full bg-[#0d0d0d] border border-[#1c1c1c] rounded-lg px-3 py-2.5 text-sm text-white placeholder:text-neutral-600 focus:outline-none focus:border-[#363636] transition-colors"
+            />
+          </div>
+          <div>
+            <div className="flex items-center justify-between mb-1.5">
+              <label className="text-xs text-neutral-400">Conteúdo</label>
+              <span className="text-[10px] text-neutral-600">{charCount.toLocaleString('pt-BR')} caracteres</span>
+            </div>
+            <textarea
+              value={content}
+              onChange={(e) => setContent(e.target.value)}
+              rows={16}
+              className="w-full bg-[#0d0d0d] border border-[#1c1c1c] rounded-lg px-3 py-2.5 text-xs text-neutral-300 placeholder:text-neutral-600 focus:outline-none focus:border-[#363636] transition-colors resize-none leading-relaxed font-mono"
+              placeholder="Conteúdo da fonte..."
+            />
+            <p className="text-[10px] text-neutral-600 mt-1.5">
+              Edite diretamente o texto — útil para corrigir preços, horários ou qualquer informação desatualizada.
+            </p>
+          </div>
+
+          {error && (
+            <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-red-950/30 border border-red-900/40 text-red-300 text-xs">
+              <AlertCircle size={13} /> {error}
+            </div>
+          )}
+        </div>
+
+        <div className="px-5 py-4 border-t border-[#242424] flex gap-2 shrink-0">
+          <button
+            onClick={onClose}
+            className="flex-1 border border-[#242424] text-neutral-400 hover:text-white rounded-lg py-2.5 text-sm transition-colors"
+          >
+            Cancelar
+          </button>
+          <button
+            onClick={handleSave}
+            disabled={saving || !changed || !title.trim() || !content.trim()}
+            className="flex-1 bg-white text-black rounded-lg py-2.5 text-sm font-medium flex items-center justify-center gap-2 hover:bg-neutral-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {saving ? (
+              <><Loader2 size={13} className="animate-spin" /> Salvando...</>
+            ) : (
+              <><Save size={13} /> Salvar alterações</>
+            )}
+          </button>
         </div>
       </div>
     </div>
@@ -807,8 +941,15 @@ function FileUpload({
     setQueue((prev) => prev.filter((_, i) => i !== index));
   };
 
+  const retryError = (index: number) => {
+    setQueue((prev) => prev.map((item, i) =>
+      i === index && item.status === 'error' ? { ...item, status: 'pending', step: 'idle', error: undefined } : item
+    ));
+  };
+
   const hasFiles = queue.length > 0;
   const pendingCount = queue.filter((q) => q.status === 'pending').length;
+  const errorCount = queue.filter((q) => q.status === 'error').length;
 
   return (
     <div className="space-y-4">
@@ -867,9 +1008,23 @@ function FileUpload({
                   </div>
                 </div>
                 {item.status === 'pending' && (
-                  <button onClick={() => removeFromQueue(i)} className="text-neutral-600 hover:text-neutral-300 transition-colors">
+                  <button onClick={() => removeFromQueue(i)} className="text-neutral-600 hover:text-neutral-300 transition-colors" title="Remover">
                     <X size={13} />
                   </button>
+                )}
+                {item.status === 'error' && (
+                  <div className="flex items-center gap-1 shrink-0">
+                    <button
+                      onClick={() => retryError(i)}
+                      className="text-[10px] text-amber-400 hover:text-amber-300 border border-amber-900/40 rounded px-1.5 py-0.5 transition-colors"
+                      title="Tentar novamente"
+                    >
+                      Tentar novamente
+                    </button>
+                    <button onClick={() => removeFromQueue(i)} className="text-neutral-600 hover:text-neutral-300 transition-colors">
+                      <X size={13} />
+                    </button>
+                  </div>
                 )}
                 {item.status === 'done' && <CheckCircle2 size={14} className="text-emerald-400 shrink-0" />}
               </div>
@@ -884,6 +1039,18 @@ function FileUpload({
         )}
       </div>
 
+      {hasFiles && errorCount > 0 && pendingCount === 0 && !processing && (
+        <button
+          onClick={() => {
+            setQueue((prev) => prev.map((item) =>
+              item.status === 'error' ? { ...item, status: 'pending', step: 'idle', error: undefined } : item
+            ));
+          }}
+          className="w-full border border-amber-900/40 text-amber-400 hover:text-amber-300 rounded-lg py-2.5 text-sm font-medium flex items-center justify-center gap-2 transition-colors"
+        >
+          <RefreshCw size={14} /> Tentar novamente ({errorCount} erro{errorCount !== 1 ? 's' : ''})
+        </button>
+      )}
       {hasFiles && pendingCount > 0 && (
         <button
           onClick={handleStart}
