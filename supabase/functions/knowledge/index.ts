@@ -62,7 +62,7 @@ async function extractTextWithGemini(
         { text: instruction },
       ],
     }],
-    generationConfig: { temperature: 0.1, maxOutputTokens: 8000 },
+    generationConfig: { temperature: 0.1, maxOutputTokens: 16000 },
   };
 
   const res = await fetch(url, {
@@ -88,7 +88,7 @@ function cleanExtractedText(raw: string): string {
     .trim();
 }
 
-async function scrapeUrl(sourceUrl: string): Promise<string> {
+async function scrapeUrlDirect(sourceUrl: string): Promise<string> {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 15000);
 
@@ -121,6 +121,8 @@ async function scrapeUrl(sourceUrl: string): Promise<string> {
       .replace(/<header[^>]*>[\s\S]*?<\/header>/gi, "")
       .replace(/<aside[^>]*>[\s\S]*?<\/aside>/gi, "")
       .replace(/<noscript[^>]*>[\s\S]*?<\/noscript>/gi, "")
+      .replace(/<dialog[^>]*>[\s\S]*?<\/dialog>/gi, "")
+      .replace(/<[^>]*class="[^"]*(?:cookie|popup|banner|modal|overlay)[^"]*"[^>]*>[\s\S]*?<\/[^>]+>/gi, "")
       .replace(/<[^>]+>/g, " ")
       .replace(/&nbsp;/g, " ")
       .replace(/&amp;/g, "&")
@@ -131,10 +133,46 @@ async function scrapeUrl(sourceUrl: string): Promise<string> {
       .replace(/\s+/g, " ")
       .trim();
 
-    return stripped.slice(0, 50000);
+    return stripped.slice(0, 80000);
   } finally {
     clearTimeout(timeout);
   }
+}
+
+async function scrapeUrlViaJina(sourceUrl: string): Promise<string> {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 20000);
+
+  try {
+    const jinaUrl = `https://r.jina.ai/${sourceUrl}`;
+    const res = await fetch(jinaUrl, {
+      headers: {
+        "Accept": "text/plain",
+        "User-Agent": "Mozilla/5.0",
+      },
+      signal: controller.signal,
+    });
+
+    if (!res.ok) throw new Error(`Jina error: ${res.status}`);
+    const text = await res.text();
+    return text.slice(0, 80000);
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
+async function scrapeUrl(sourceUrl: string): Promise<string> {
+  const direct = await scrapeUrlDirect(sourceUrl);
+  if (direct.length >= 500) return direct;
+
+  try {
+    const jina = await scrapeUrlViaJina(sourceUrl);
+    if (jina.length > direct.length) return jina;
+  } catch {
+    // fallback to direct result
+  }
+
+  return direct;
 }
 
 Deno.serve(async (req: Request) => {
@@ -209,6 +247,10 @@ Deno.serve(async (req: Request) => {
         return jsonResponse({ error: "missing file or knowledge_base_id" }, 400);
       }
 
+      if (file.size > 15 * 1024 * 1024) {
+        return jsonResponse({ error: "Arquivo muito grande. Limite: 15MB" }, 400);
+      }
+
       const allowed = await verifyKnowledgeBaseOwnership(admin, knowledgeBaseId, user.id);
       if (!allowed) return jsonResponse({ error: "forbidden" }, 403);
 
@@ -217,7 +259,6 @@ Deno.serve(async (req: Request) => {
 
       const buffer = await file.arrayBuffer();
       const bytes = new Uint8Array(buffer);
-      // btoa safe for large buffers
       let binary = "";
       const chunkSize = 8192;
       for (let i = 0; i < bytes.length; i += chunkSize) {
@@ -243,7 +284,7 @@ Deno.serve(async (req: Request) => {
         return jsonResponse({ error: "Nao foi possivel extrair texto do arquivo" }, 400);
       }
 
-      const cleanedContent = cleanExtractedText(content).slice(0, 100000);
+      const cleanedContent = cleanExtractedText(content).slice(0, 150000);
 
       const { data: source, error: insertErr } = await admin
         .from("knowledge_sources")

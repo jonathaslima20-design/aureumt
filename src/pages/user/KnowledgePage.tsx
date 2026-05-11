@@ -3,12 +3,14 @@ import {
   Database, UploadCloud, Link, Mic, MicOff, Trash2,
   ToggleLeft, ToggleRight, Loader2, FileText, Globe,
   AudioLines, Plus, X, CheckCircle2, AlertCircle, ArrowLeft,
+  Eye, RefreshCw, ChevronDown, ChevronUp, Filter, Users,
 } from 'lucide-react';
 import { supabase, KnowledgeBase, KnowledgeSource } from '../../lib/supabase';
 import { useAuth } from '../../context/AuthContext';
 
 type FeedbackState = { type: 'success' | 'error'; msg: string } | null;
 type KBTab = 'sources' | 'upload' | 'url' | 'audio';
+type SourceFilter = 'all' | 'file' | 'url' | 'audio';
 
 export function KnowledgePage() {
   const { profile } = useAuth();
@@ -20,6 +22,8 @@ export function KnowledgePage() {
   const [newDesc, setNewDesc] = useState('');
   const [creating, setCreating] = useState(false);
   const [sourceCounts, setSourceCounts] = useState<Record<string, number>>({});
+  const [lastAdded, setLastAdded] = useState<Record<string, string>>({});
+  const [agentCounts, setAgentCounts] = useState<Record<string, number>>({});
 
   const fetchBases = async () => {
     setLoading(true);
@@ -31,16 +35,34 @@ export function KnowledgePage() {
     setBases(list);
 
     if (list.length > 0) {
+      const ids = list.map((b) => b.id);
+
       const { data: counts } = await supabase
         .from('knowledge_sources')
-        .select('knowledge_base_id')
-        .in('knowledge_base_id', list.map((b) => b.id))
+        .select('knowledge_base_id, created_at')
+        .in('knowledge_base_id', ids)
         .eq('is_active', true);
-      const map: Record<string, number> = {};
-      (counts || []).forEach((r: { knowledge_base_id: string }) => {
-        map[r.knowledge_base_id] = (map[r.knowledge_base_id] || 0) + 1;
+
+      const countMap: Record<string, number> = {};
+      const lastMap: Record<string, string> = {};
+      (counts || []).forEach((r: { knowledge_base_id: string; created_at: string }) => {
+        countMap[r.knowledge_base_id] = (countMap[r.knowledge_base_id] || 0) + 1;
+        if (!lastMap[r.knowledge_base_id] || r.created_at > lastMap[r.knowledge_base_id]) {
+          lastMap[r.knowledge_base_id] = r.created_at;
+        }
       });
-      setSourceCounts(map);
+      setSourceCounts(countMap);
+      setLastAdded(lastMap);
+
+      const { data: links } = await supabase
+        .from('instance_knowledge_bases')
+        .select('knowledge_base_id')
+        .in('knowledge_base_id', ids);
+      const agentMap: Record<string, number> = {};
+      (links || []).forEach((r: { knowledge_base_id: string }) => {
+        agentMap[r.knowledge_base_id] = (agentMap[r.knowledge_base_id] || 0) + 1;
+      });
+      setAgentCounts(agentMap);
     }
     setLoading(false);
   };
@@ -132,13 +154,21 @@ export function KnowledgePage() {
                 <div className="w-9 h-9 rounded-xl bg-[#141414] border border-[#242424] flex items-center justify-center shrink-0">
                   <Database size={15} className="text-neutral-400" />
                 </div>
-                <button
-                  onClick={(e) => { e.stopPropagation(); deleteBase(base); }}
-                  className="text-neutral-700 hover:text-red-400 transition-colors opacity-0 group-hover:opacity-100 p-1"
-                  title="Excluir base"
-                >
-                  <Trash2 size={13} />
-                </button>
+                <div className="flex items-center gap-1.5">
+                  {agentCounts[base.id] > 0 && (
+                    <span className="flex items-center gap-1 text-[10px] text-emerald-400 bg-emerald-950/40 border border-emerald-900/40 rounded-full px-2 py-0.5">
+                      <Users size={9} />
+                      {agentCounts[base.id]}
+                    </span>
+                  )}
+                  <button
+                    onClick={(e) => { e.stopPropagation(); deleteBase(base); }}
+                    className="text-neutral-700 hover:text-red-400 transition-colors opacity-0 group-hover:opacity-100 p-1"
+                    title="Excluir base"
+                  >
+                    <Trash2 size={13} />
+                  </button>
+                </div>
               </div>
               <div>
                 <div className="text-sm font-medium text-white">{base.name}</div>
@@ -150,7 +180,11 @@ export function KnowledgePage() {
                 <span>
                   {sourceCounts[base.id] ?? 0} fonte{(sourceCounts[base.id] ?? 0) !== 1 ? 's' : ''} ativa{(sourceCounts[base.id] ?? 0) !== 1 ? 's' : ''}
                 </span>
-                <span>{new Date(base.created_at).toLocaleDateString('pt-BR')}</span>
+                <span>
+                  {lastAdded[base.id]
+                    ? `Atualizada ${new Date(lastAdded[base.id]).toLocaleDateString('pt-BR')}`
+                    : new Date(base.created_at).toLocaleDateString('pt-BR')}
+                </span>
               </div>
             </button>
           ))}
@@ -227,6 +261,7 @@ function KnowledgeBaseDetail({
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState<KBTab>('sources');
   const [feedback, setFeedback] = useState<FeedbackState>(null);
+  const [newSourceId, setNewSourceId] = useState<string | null>(null);
 
   const fetchSources = async () => {
     const { data } = await supabase
@@ -245,7 +280,17 @@ function KnowledgeBaseDetail({
 
   const showFeedback = (type: 'success' | 'error', msg: string) => {
     setFeedback({ type, msg });
-    setTimeout(() => setFeedback(null), 4000);
+    setTimeout(() => setFeedback(null), 5000);
+  };
+
+  const handleDone = (sourceId?: string) => {
+    fetchSources().then(() => {
+      setTab('sources');
+      if (sourceId) {
+        setNewSourceId(sourceId);
+        setTimeout(() => setNewSourceId(null), 3000);
+      }
+    });
   };
 
   const toggleSource = async (id: string, currentActive: boolean) => {
@@ -256,6 +301,29 @@ function KnowledgeBaseDetail({
   const deleteSource = async (id: string) => {
     await supabase.from('knowledge_sources').delete().eq('id', id);
     setSources((prev) => prev.filter((s) => s.id !== id));
+  };
+
+  const reprocessUrl = async (source: KnowledgeSource) => {
+    const sourceUrl = source.metadata?.url as string;
+    if (!sourceUrl) return;
+    showFeedback('success', 'Reprocessando URL...');
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) throw new Error('Not authenticated');
+      const apiUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/knowledge?action=scrape_url`;
+      const res = await fetch(apiUrl, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${session.access_token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ knowledge_base_id: base.id, source_url: sourceUrl, title: source.title }),
+      });
+      const data = await res.json();
+      if (!res.ok || data.error) throw new Error(data.error || 'Erro ao reprocessar');
+      await supabase.from('knowledge_sources').delete().eq('id', source.id);
+      showFeedback('success', 'URL reprocessada com sucesso');
+      fetchSources();
+    } catch (e) {
+      showFeedback('error', e instanceof Error ? e.message : 'Erro ao reprocessar');
+    }
   };
 
   const typeIcon = (type: string) => {
@@ -335,29 +403,31 @@ function KnowledgeBaseDetail({
         <SourcesList
           sources={sources}
           loading={loading}
+          newSourceId={newSourceId}
           onToggle={toggleSource}
           onDelete={deleteSource}
+          onReprocessUrl={reprocessUrl}
           typeIcon={typeIcon}
         />
       )}
       {tab === 'upload' && (
         <FileUpload
           knowledgeBaseId={base.id}
-          onDone={() => { fetchSources(); setTab('sources'); }}
+          onDone={handleDone}
           onFeedback={showFeedback}
         />
       )}
       {tab === 'url' && (
         <UrlScrape
           knowledgeBaseId={base.id}
-          onDone={() => { fetchSources(); setTab('sources'); }}
+          onDone={handleDone}
           onFeedback={showFeedback}
         />
       )}
       {tab === 'audio' && (
         <AudioRecorder
           knowledgeBaseId={base.id}
-          onDone={() => { fetchSources(); setTab('sources'); }}
+          onDone={handleDone}
           onFeedback={showFeedback}
         />
       )}
@@ -366,14 +436,21 @@ function KnowledgeBaseDetail({
 }
 
 function SourcesList({
-  sources, loading, onToggle, onDelete, typeIcon,
+  sources, loading, newSourceId, onToggle, onDelete, onReprocessUrl, typeIcon,
 }: {
   sources: KnowledgeSource[];
   loading: boolean;
+  newSourceId: string | null;
   onToggle: (id: string, active: boolean) => void;
   onDelete: (id: string) => void;
+  onReprocessUrl: (source: KnowledgeSource) => void;
   typeIcon: (type: string) => JSX.Element;
 }) {
+  const [filter, setFilter] = useState<SourceFilter>('all');
+  const [previewSource, setPreviewSource] = useState<KnowledgeSource | null>(null);
+  const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
+  const [expandedId, setExpandedId] = useState<string | null>(null);
+
   if (loading) {
     return (
       <div className="flex justify-center py-12">
@@ -394,146 +471,440 @@ function SourcesList({
     );
   }
 
+  const activeCount = sources.filter((s) => s.is_active).length;
+  const inactiveCount = sources.length - activeCount;
+  const filtered = filter === 'all' ? sources : sources.filter((s) => s.type === filter);
+
+  const typeCounts = sources.reduce((acc, s) => {
+    acc[s.type] = (acc[s.type] || 0) + 1;
+    return acc;
+  }, {} as Record<string, number>);
+
   return (
-    <div className="space-y-2">
-      {sources.map((s) => (
-        <div
-          key={s.id}
-          className={`flex items-center gap-3 px-4 py-3 rounded-lg border transition-colors ${
-            s.is_active ? 'bg-[#141414] border-[#242424]' : 'bg-[#0a0a0a] border-[#1a1a1a] opacity-60'
-          }`}
-        >
-          {typeIcon(s.type)}
-          <div className="flex-1 min-w-0">
-            <div className="text-sm text-white truncate">{s.title}</div>
-            <div className="text-[11px] text-neutral-600 mt-0.5">
-              {s.type === 'file' && `${((s.metadata?.size_bytes as number) / 1024).toFixed(0)} KB`}
-              {s.type === 'url' && (s.metadata?.url as string)}
-              {s.type === 'audio' && `${((s.metadata?.char_count as number) || 0)} caracteres transcritos`}
-              {' · '}
-              {new Date(s.created_at).toLocaleDateString('pt-BR')}
-            </div>
-          </div>
-          <button
-            onClick={() => onToggle(s.id, s.is_active)}
-            className="text-neutral-500 hover:text-white transition-colors"
-            title={s.is_active ? 'Desativar' : 'Ativar'}
-          >
-            {s.is_active ? (
-              <ToggleRight size={20} className="text-emerald-400" />
-            ) : (
-              <ToggleLeft size={20} />
+    <>
+      <div className="space-y-3">
+        <div className="flex items-center justify-between gap-3 flex-wrap">
+          <div className="text-xs text-neutral-500">
+            <span className="text-white font-medium">{activeCount}</span> ativa{activeCount !== 1 ? 's' : ''}
+            {inactiveCount > 0 && (
+              <span className="ml-1.5 text-neutral-600">· {inactiveCount} inativa{inactiveCount !== 1 ? 's' : ''}</span>
             )}
-          </button>
-          <button
-            onClick={() => onDelete(s.id)}
-            className="text-neutral-600 hover:text-red-400 transition-colors"
-            title="Excluir"
-          >
-            <Trash2 size={14} />
+          </div>
+          <div className="flex items-center gap-1.5">
+            <Filter size={11} className="text-neutral-600" />
+            {(['all', 'file', 'url', 'audio'] as SourceFilter[]).map((f) => {
+              const labels: Record<SourceFilter, string> = { all: 'Todas', file: 'Arquivo', url: 'URL', audio: 'Voz' };
+              const count = f === 'all' ? sources.length : (typeCounts[f] || 0);
+              if (f !== 'all' && count === 0) return null;
+              return (
+                <button
+                  key={f}
+                  onClick={() => setFilter(f)}
+                  className={`text-[11px] px-2.5 py-1 rounded-md transition-colors ${
+                    filter === f
+                      ? 'bg-[#1e1e1e] text-white border border-[#2e2e2e]'
+                      : 'text-neutral-500 hover:text-neutral-300'
+                  }`}
+                >
+                  {labels[f]} {count > 0 && <span className="ml-0.5 opacity-60">({count})</span>}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        <div className="space-y-2">
+          {filtered.map((s) => {
+            const isNew = s.id === newSourceId;
+            const charCount = (s.metadata?.char_count as number) || s.content?.length || 0;
+            const isExpanded = expandedId === s.id;
+
+            return (
+              <div
+                key={s.id}
+                className={`rounded-lg border transition-all duration-500 ${
+                  isNew
+                    ? 'border-emerald-700/60 bg-emerald-950/20 ring-1 ring-emerald-700/30'
+                    : s.is_active
+                    ? 'bg-[#141414] border-[#242424]'
+                    : 'bg-[#0a0a0a] border-[#1a1a1a] opacity-60'
+                }`}
+              >
+                <div className="flex items-center gap-3 px-4 py-3">
+                  {typeIcon(s.type)}
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => setPreviewSource(s)}
+                        className="text-sm text-white truncate hover:text-neutral-300 transition-colors text-left"
+                      >
+                        {s.title}
+                      </button>
+                      {isNew && (
+                        <span className="text-[10px] text-emerald-400 bg-emerald-950/60 border border-emerald-800/40 rounded-full px-1.5 py-0.5 shrink-0">
+                          novo
+                        </span>
+                      )}
+                    </div>
+                    <div className="text-[11px] text-neutral-600 mt-0.5 flex items-center gap-2 flex-wrap">
+                      {s.type === 'file' && (
+                        <span>{((s.metadata?.size_bytes as number) / 1024).toFixed(0)} KB</span>
+                      )}
+                      {s.type === 'url' && (
+                        <span className="truncate max-w-[200px]">{s.metadata?.url as string}</span>
+                      )}
+                      {charCount > 0 && (
+                        <span className="text-neutral-700">{charCount.toLocaleString('pt-BR')} caracteres</span>
+                      )}
+                      <span className="text-neutral-700">{new Date(s.created_at).toLocaleDateString('pt-BR')}</span>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-1 shrink-0">
+                    <button
+                      onClick={() => setExpandedId(isExpanded ? null : s.id)}
+                      className="text-neutral-600 hover:text-neutral-300 transition-colors p-1"
+                      title="Ver prévia"
+                    >
+                      {isExpanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+                    </button>
+                    <button
+                      onClick={() => setPreviewSource(s)}
+                      className="text-neutral-600 hover:text-neutral-300 transition-colors p-1"
+                      title="Ver conteúdo completo"
+                    >
+                      <Eye size={14} />
+                    </button>
+                    {s.type === 'url' && s.metadata?.url && (
+                      <button
+                        onClick={() => onReprocessUrl(s)}
+                        className="text-neutral-600 hover:text-blue-400 transition-colors p-1"
+                        title="Reprocessar URL"
+                      >
+                        <RefreshCw size={13} />
+                      </button>
+                    )}
+                    <button
+                      onClick={() => onToggle(s.id, s.is_active)}
+                      className="text-neutral-500 hover:text-white transition-colors p-1"
+                      title={s.is_active ? 'Desativar' : 'Ativar'}
+                    >
+                      {s.is_active ? (
+                        <ToggleRight size={20} className="text-emerald-400" />
+                      ) : (
+                        <ToggleLeft size={20} />
+                      )}
+                    </button>
+                    {deleteConfirm === s.id ? (
+                      <div className="flex items-center gap-1">
+                        <button
+                          onClick={() => { onDelete(s.id); setDeleteConfirm(null); }}
+                          className="text-[10px] text-red-400 hover:text-red-300 border border-red-900/40 rounded px-1.5 py-0.5 transition-colors"
+                        >
+                          Confirmar
+                        </button>
+                        <button
+                          onClick={() => setDeleteConfirm(null)}
+                          className="text-[10px] text-neutral-500 hover:text-white border border-[#242424] rounded px-1.5 py-0.5 transition-colors"
+                        >
+                          Cancelar
+                        </button>
+                      </div>
+                    ) : (
+                      <button
+                        onClick={() => setDeleteConfirm(s.id)}
+                        className="text-neutral-600 hover:text-red-400 transition-colors p-1"
+                        title="Excluir"
+                      >
+                        <Trash2 size={14} />
+                      </button>
+                    )}
+                  </div>
+                </div>
+                {isExpanded && (
+                  <div className="px-4 pb-3 border-t border-[#1a1a1a] mt-1 pt-3">
+                    <p className="text-xs text-neutral-400 leading-relaxed whitespace-pre-wrap line-clamp-6">
+                      {s.content?.slice(0, 600) || 'Sem conteúdo'}
+                      {(s.content?.length || 0) > 600 && (
+                        <button
+                          onClick={() => setPreviewSource(s)}
+                          className="text-blue-400 hover:text-blue-300 ml-1"
+                        >
+                          ver mais...
+                        </button>
+                      )}
+                    </p>
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      {previewSource && (
+        <SourcePreviewModal source={previewSource} onClose={() => setPreviewSource(null)} typeIcon={typeIcon} />
+      )}
+    </>
+  );
+}
+
+function SourcePreviewModal({
+  source, onClose, typeIcon,
+}: {
+  source: KnowledgeSource;
+  onClose: () => void;
+  typeIcon: (type: string) => JSX.Element;
+}) {
+  const charCount = (source.metadata?.char_count as number) || source.content?.length || 0;
+
+  return (
+    <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+      <div className="bg-[#141414] border border-[#242424] rounded-2xl w-full max-w-2xl max-h-[80vh] flex flex-col">
+        <div className="flex items-center justify-between px-5 py-4 border-b border-[#242424] shrink-0">
+          <div className="flex items-center gap-2 min-w-0">
+            {typeIcon(source.type)}
+            <span className="text-sm text-white font-medium truncate">{source.title}</span>
+          </div>
+          <button onClick={onClose} className="text-neutral-500 hover:text-white transition-colors ml-3 shrink-0">
+            <X size={16} />
           </button>
         </div>
-      ))}
+        <div className="px-5 py-3 border-b border-[#1a1a1a] flex items-center gap-4 text-[11px] text-neutral-500 shrink-0 flex-wrap">
+          <span className="capitalize">{source.type === 'file' ? 'Arquivo' : source.type === 'url' ? 'URL' : 'Voz'}</span>
+          {source.type === 'file' && source.metadata?.size_bytes && (
+            <span>{((source.metadata.size_bytes as number) / 1024).toFixed(0)} KB</span>
+          )}
+          {source.type === 'url' && source.metadata?.url && (
+            <a
+              href={source.metadata.url as string}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-blue-400 hover:text-blue-300 truncate max-w-[300px]"
+            >
+              {source.metadata.url as string}
+            </a>
+          )}
+          {charCount > 0 && <span>{charCount.toLocaleString('pt-BR')} caracteres extraídos</span>}
+          <span>{new Date(source.created_at).toLocaleDateString('pt-BR')}</span>
+        </div>
+        <div className="flex-1 overflow-y-auto p-5">
+          <pre className="text-xs text-neutral-300 leading-relaxed whitespace-pre-wrap font-sans">
+            {source.content || 'Sem conteúdo disponível'}
+          </pre>
+        </div>
+      </div>
     </div>
   );
+}
+
+type UploadStep = 'idle' | 'uploading' | 'extracting' | 'saving' | 'done';
+
+interface QueuedFile {
+  file: File;
+  status: 'pending' | 'processing' | 'done' | 'error';
+  step: UploadStep;
+  error?: string;
+  charCount?: number;
 }
 
 function FileUpload({
   knowledgeBaseId, onDone, onFeedback,
 }: {
   knowledgeBaseId: string;
-  onDone: () => void;
+  onDone: (sourceId?: string) => void;
   onFeedback: (type: 'success' | 'error', msg: string) => void;
 }) {
-  const [uploading, setUploading] = useState(false);
+  const [queue, setQueue] = useState<QueuedFile[]>([]);
   const [dragOver, setDragOver] = useState(false);
+  const [processing, setProcessing] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  const processFile = async (file: File) => {
-    if (file.size > 5 * 1024 * 1024) {
-      onFeedback('error', 'Arquivo muito grande. Limite: 5MB');
-      return;
-    }
+  const STEP_LABELS: Record<UploadStep, string> = {
+    idle: '',
+    uploading: 'Enviando arquivo...',
+    extracting: 'Extraindo texto com IA...',
+    saving: 'Salvando na base...',
+    done: 'Concluído',
+  };
+
+  const validateFile = (file: File): string | null => {
+    if (file.size > 15 * 1024 * 1024) return 'Arquivo muito grande. Limite: 15MB';
     const allowed = ['application/pdf', 'text/plain', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'];
-    if (!allowed.includes(file.type) && !file.name.endsWith('.txt') && !file.name.endsWith('.pdf') && !file.name.endsWith('.docx')) {
-      onFeedback('error', 'Formato não suportado. Use PDF, TXT ou DOCX.');
-      return;
+    const validExt = file.name.endsWith('.txt') || file.name.endsWith('.pdf') || file.name.endsWith('.docx');
+    if (!allowed.includes(file.type) && !validExt) return 'Formato não suportado. Use PDF, TXT ou DOCX.';
+    return null;
+  };
+
+  const addFiles = (files: FileList | File[]) => {
+    const arr = Array.from(files);
+    const newItems: QueuedFile[] = [];
+    for (const file of arr) {
+      const err = validateFile(file);
+      newItems.push({ file, status: err ? 'error' : 'pending', step: 'idle', error: err || undefined });
+    }
+    setQueue((prev) => [...prev, ...newItems]);
+  };
+
+  const updateQueueItem = (index: number, patch: Partial<QueuedFile>) => {
+    setQueue((prev) => prev.map((item, i) => i === index ? { ...item, ...patch } : item));
+  };
+
+  const processQueue = async (currentQueue: QueuedFile[]) => {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) { onFeedback('error', 'Sessão expirada'); return; }
+
+    setProcessing(true);
+    let lastSourceId: string | undefined;
+    let doneCount = 0;
+
+    for (let i = 0; i < currentQueue.length; i++) {
+      const item = currentQueue[i];
+      if (item.status !== 'pending') continue;
+
+      updateQueueItem(i, { status: 'processing', step: 'uploading' });
+
+      try {
+        const formData = new FormData();
+        formData.append('file', item.file);
+        formData.append('knowledge_base_id', knowledgeBaseId);
+        formData.append('title', item.file.name);
+
+        updateQueueItem(i, { step: 'extracting' });
+
+        const apiUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/knowledge?action=process_file`;
+        const res = await fetch(apiUrl, {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${session.access_token}` },
+          body: formData,
+        });
+
+        updateQueueItem(i, { step: 'saving' });
+        const data = await res.json();
+        if (!res.ok || data.error) throw new Error(data.error || 'Erro ao processar arquivo');
+
+        const charCount = data.source?.metadata?.char_count as number | undefined;
+        updateQueueItem(i, { status: 'done', step: 'done', charCount });
+        lastSourceId = data.source?.id;
+        doneCount++;
+      } catch (e) {
+        updateQueueItem(i, { status: 'error', step: 'idle', error: e instanceof Error ? e.message : 'Erro desconhecido' });
+      }
     }
 
-    setUploading(true);
-    try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) throw new Error('Not authenticated');
-
-      const formData = new FormData();
-      formData.append('file', file);
-      formData.append('knowledge_base_id', knowledgeBaseId);
-      formData.append('title', file.name);
-
-      const apiUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/knowledge?action=process_file`;
-      const res = await fetch(apiUrl, {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${session.access_token}` },
-        body: formData,
-      });
-
-      const data = await res.json();
-      if (!res.ok || data.error) throw new Error(data.error || 'Erro ao processar arquivo');
-
-      onFeedback('success', `"${file.name}" processado com sucesso`);
-      onDone();
-    } catch (e) {
-      onFeedback('error', e instanceof Error ? e.message : 'Erro desconhecido');
-    } finally {
-      setUploading(false);
+    setProcessing(false);
+    if (doneCount > 0) {
+      onFeedback('success', `${doneCount} arquivo${doneCount !== 1 ? 's' : ''} processado${doneCount !== 1 ? 's' : ''} com sucesso`);
+      onDone(lastSourceId);
+      setTimeout(() => setQueue([]), 1500);
     }
   };
 
-  const handleDrop = (e: React.DragEvent) => {
-    e.preventDefault();
-    setDragOver(false);
-    const file = e.dataTransfer.files[0];
-    if (file) processFile(file);
+  const handleStart = () => {
+    processQueue(queue);
   };
+
+  const removeFromQueue = (index: number) => {
+    setQueue((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  const hasFiles = queue.length > 0;
+  const pendingCount = queue.filter((q) => q.status === 'pending').length;
 
   return (
     <div className="space-y-4">
       <div
         onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
         onDragLeave={() => setDragOver(false)}
-        onDrop={handleDrop}
-        onClick={() => inputRef.current?.click()}
-        className={`border-2 border-dashed rounded-xl p-10 text-center cursor-pointer transition-colors ${
+        onDrop={(e) => { e.preventDefault(); setDragOver(false); if (e.dataTransfer.files.length) addFiles(e.dataTransfer.files); }}
+        onClick={() => !hasFiles && inputRef.current?.click()}
+        className={`border-2 border-dashed rounded-xl p-8 text-center transition-colors ${
           dragOver ? 'border-blue-500/50 bg-blue-950/10' : 'border-[#242424] hover:border-[#2e2e2e] bg-[#080808]'
-        }`}
+        } ${hasFiles ? 'cursor-default' : 'cursor-pointer'}`}
       >
-        {uploading ? (
-          <div className="flex flex-col items-center gap-3">
-            <Loader2 size={24} className="animate-spin text-blue-400" />
-            <p className="text-sm text-neutral-400">Processando documento...</p>
-            <p className="text-xs text-neutral-600">A IA está extraindo o conteúdo</p>
-          </div>
-        ) : (
+        {!hasFiles ? (
           <div className="flex flex-col items-center gap-3">
             <div className="w-12 h-12 rounded-full bg-[#141414] border border-[#242424] flex items-center justify-center">
               <UploadCloud size={20} className="text-neutral-400" />
             </div>
             <div>
-              <p className="text-sm text-neutral-300">Arraste um arquivo aqui ou clique para selecionar</p>
-              <p className="text-xs text-neutral-600 mt-1">PDF, TXT ou DOCX - Até 5MB</p>
+              <p className="text-sm text-neutral-300">Arraste arquivos aqui ou clique para selecionar</p>
+              <p className="text-xs text-neutral-600 mt-1">PDF, TXT ou DOCX — Até 15MB por arquivo — Múltiplos permitidos</p>
             </div>
+          </div>
+        ) : (
+          <div className="space-y-2 text-left">
+            {queue.map((item, i) => (
+              <div key={i} className={`flex items-center gap-3 px-3 py-2.5 rounded-lg border ${
+                item.status === 'done' ? 'border-emerald-900/40 bg-emerald-950/20' :
+                item.status === 'error' ? 'border-red-900/40 bg-red-950/20' :
+                item.status === 'processing' ? 'border-blue-900/40 bg-blue-950/10' :
+                'border-[#242424] bg-[#0d0d0d]'
+              }`}>
+                <FileText size={14} className={
+                  item.status === 'done' ? 'text-emerald-400' :
+                  item.status === 'error' ? 'text-red-400' :
+                  item.status === 'processing' ? 'text-blue-400' :
+                  'text-neutral-500'
+                } />
+                <div className="flex-1 min-w-0">
+                  <div className="text-xs text-white truncate">{item.file.name}</div>
+                  <div className="text-[10px] mt-0.5">
+                    {item.status === 'error' && <span className="text-red-400">{item.error}</span>}
+                    {item.status === 'processing' && (
+                      <span className="text-blue-400 flex items-center gap-1">
+                        <Loader2 size={9} className="animate-spin" />
+                        {STEP_LABELS[item.step]}
+                      </span>
+                    )}
+                    {item.status === 'done' && (
+                      <span className="text-emerald-400">
+                        Concluído{item.charCount ? ` · ${item.charCount.toLocaleString('pt-BR')} caracteres` : ''}
+                      </span>
+                    )}
+                    {item.status === 'pending' && (
+                      <span className="text-neutral-600">{(item.file.size / 1024).toFixed(0)} KB</span>
+                    )}
+                  </div>
+                </div>
+                {item.status === 'pending' && (
+                  <button onClick={() => removeFromQueue(i)} className="text-neutral-600 hover:text-neutral-300 transition-colors">
+                    <X size={13} />
+                  </button>
+                )}
+                {item.status === 'done' && <CheckCircle2 size={14} className="text-emerald-400 shrink-0" />}
+              </div>
+            ))}
+            <button
+              onClick={() => inputRef.current?.click()}
+              className="text-xs text-neutral-500 hover:text-neutral-300 transition-colors flex items-center gap-1.5 mt-1"
+            >
+              <Plus size={11} /> Adicionar mais arquivos
+            </button>
           </div>
         )}
       </div>
+
+      {hasFiles && pendingCount > 0 && (
+        <button
+          onClick={handleStart}
+          disabled={processing}
+          className="w-full bg-white text-black rounded-lg py-2.5 text-sm font-medium flex items-center justify-center gap-2 hover:bg-neutral-200 transition-colors disabled:opacity-50"
+        >
+          {processing ? (
+            <><Loader2 size={14} className="animate-spin" /> Processando...</>
+          ) : (
+            <><UploadCloud size={14} /> Processar {pendingCount} arquivo{pendingCount !== 1 ? 's' : ''}</>
+          )}
+        </button>
+      )}
+
       <input
         ref={inputRef}
         type="file"
+        multiple
         accept=".pdf,.txt,.docx,application/pdf,text/plain,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
         className="hidden"
-        onChange={(e) => {
-          const file = e.target.files?.[0];
-          if (file) processFile(file);
-        }}
+        onChange={(e) => { if (e.target.files?.length) { addFiles(e.target.files); e.target.value = ''; } }}
       />
     </div>
   );
@@ -543,7 +914,7 @@ function UrlScrape({
   knowledgeBaseId, onDone, onFeedback,
 }: {
   knowledgeBaseId: string;
-  onDone: () => void;
+  onDone: (sourceId?: string) => void;
   onFeedback: (type: 'success' | 'error', msg: string) => void;
 }) {
   const [url, setUrl] = useState('');
@@ -571,10 +942,11 @@ function UrlScrape({
       const data = await res.json();
       if (!res.ok || data.error) throw new Error(data.error || 'Erro ao extrair conteúdo');
 
-      onFeedback('success', 'Conteúdo da URL extraído com sucesso');
+      const charCount = data.source?.metadata?.char_count as number | undefined;
+      onFeedback('success', `Conteúdo extraído com sucesso${charCount ? ` · ${charCount.toLocaleString('pt-BR')} caracteres` : ''}`);
       setUrl('');
       setTitle('');
-      onDone();
+      onDone(data.source?.id);
     } catch (e) {
       onFeedback('error', e instanceof Error ? e.message : 'Erro desconhecido');
     } finally {
@@ -628,7 +1000,7 @@ function AudioRecorder({
   knowledgeBaseId, onDone, onFeedback,
 }: {
   knowledgeBaseId: string;
-  onDone: () => void;
+  onDone: (sourceId?: string) => void;
   onFeedback: (type: 'success' | 'error', msg: string) => void;
 }) {
   const [recording, setRecording] = useState(false);
@@ -693,10 +1065,11 @@ function AudioRecorder({
       const data = await res.json();
       if (!res.ok || data.error) throw new Error(data.error || 'Erro ao transcrever');
 
-      onFeedback('success', 'Áudio transcrito e adicionado à base de conhecimento');
+      const charCount = data.source?.metadata?.char_count as number | undefined;
+      onFeedback('success', `Áudio transcrito${charCount ? ` · ${charCount.toLocaleString('pt-BR')} caracteres` : ''}`);
       setTitle('');
       setElapsed(0);
-      onDone();
+      onDone(data.source?.id);
     } catch (e) {
       onFeedback('error', e instanceof Error ? e.message : 'Erro desconhecido');
     } finally {
