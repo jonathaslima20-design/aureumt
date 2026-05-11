@@ -95,14 +95,12 @@ function ChatPreview({
   agentName,
   avatarUrl,
   color,
-  templateTitle,
 }: {
   agentName: string;
   avatarUrl: string;
   color: string;
-  templateTitle: string;
 }) {
-  const greeting = `Olá! Eu sou ${agentName}${templateTitle ? `, especialista em ${templateTitle.toLowerCase()}` : ''}. Como posso te ajudar?`;
+  const greeting = `Olá! Eu sou ${agentName}. Como posso te ajudar hoje?`;
 
   return (
     <div className="rounded-xl border border-white/[0.07] bg-[#060606] overflow-hidden">
@@ -316,7 +314,6 @@ function StepCustomize({
           agentName={agentName}
           avatarUrl={avatarUrl}
           color={color}
-          templateTitle={template.title}
         />
       </div>
     </div>
