@@ -175,6 +175,64 @@ async function scrapeUrl(sourceUrl: string): Promise<string> {
   return direct;
 }
 
+/**
+ * Upsert the single consolidated knowledge_source for a knowledge base.
+ * If it doesn't exist, create it. If it does, append the new content to the end.
+ * Returns the updated/created source row.
+ */
+async function appendToConsolidatedSource(
+  admin: ReturnType<typeof createClient>,
+  knowledgeBaseId: string,
+  newContent: string,
+  sectionHeader: string
+): Promise<Record<string, unknown>> {
+  const { data: existing } = await admin
+    .from("knowledge_sources")
+    .select("id, content")
+    .eq("knowledge_base_id", knowledgeBaseId)
+    .eq("type", "consolidated")
+    .maybeSingle();
+
+  const separator = "\n\n---\n\n";
+  const section = `### ${sectionHeader}\n${newContent}`;
+
+  if (existing) {
+    const updatedContent = existing.content
+      ? existing.content + separator + section
+      : section;
+
+    const { data: updated, error } = await admin
+      .from("knowledge_sources")
+      .update({
+        content: updatedContent,
+        metadata: { char_count: updatedContent.length },
+        is_active: true,
+      })
+      .eq("id", existing.id)
+      .select()
+      .single();
+
+    if (error) throw new Error(error.message);
+    return updated as Record<string, unknown>;
+  } else {
+    const { data: created, error } = await admin
+      .from("knowledge_sources")
+      .insert({
+        knowledge_base_id: knowledgeBaseId,
+        type: "consolidated",
+        title: "Fonte de Conhecimento",
+        content: section,
+        is_active: true,
+        metadata: { char_count: section.length },
+      })
+      .select()
+      .single();
+
+    if (error) throw new Error(error.message);
+    return created as Record<string, unknown>;
+  }
+}
+
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { status: 200, headers: corsHeaders });
@@ -219,21 +277,31 @@ Deno.serve(async (req: Request) => {
       }
 
       const cleanedContent = cleanExtractedText(content);
+      const entryTitle = title || source_url;
+      const sectionHeader = `${entryTitle} (URL)`;
 
-      const { data: source, error: insertErr } = await admin
-        .from("knowledge_sources")
+      const consolidatedSource = await appendToConsolidatedSource(
+        admin,
+        knowledge_base_id,
+        cleanedContent,
+        sectionHeader
+      );
+
+      const { data: historyEntry, error: histErr } = await admin
+        .from("knowledge_source_history")
         .insert({
           knowledge_base_id,
           type: "url",
-          title: title || source_url,
-          content: cleanedContent,
+          title: entryTitle,
+          contributed_content: cleanedContent,
           metadata: { url: source_url, char_count: cleanedContent.length },
         })
         .select()
         .single();
 
-      if (insertErr) return jsonResponse({ error: insertErr.message }, 500);
-      return jsonResponse({ ok: true, source });
+      if (histErr) console.error("History insert error:", histErr.message);
+
+      return jsonResponse({ ok: true, source: consolidatedSource, history: historyEntry });
     }
 
     // ── process_file ──────────────────────────────────────────────────────────
@@ -285,21 +353,31 @@ Deno.serve(async (req: Request) => {
       }
 
       const cleanedContent = cleanExtractedText(content).slice(0, 150000);
+      const entryTitle = title || file.name;
+      const sectionHeader = `${entryTitle} (ARQUIVO)`;
 
-      const { data: source, error: insertErr } = await admin
-        .from("knowledge_sources")
+      const consolidatedSource = await appendToConsolidatedSource(
+        admin,
+        knowledgeBaseId,
+        cleanedContent,
+        sectionHeader
+      );
+
+      const { data: historyEntry, error: histErr } = await admin
+        .from("knowledge_source_history")
         .insert({
           knowledge_base_id: knowledgeBaseId,
           type: "file",
-          title: title || file.name,
-          content: cleanedContent,
+          title: entryTitle,
+          contributed_content: cleanedContent,
           metadata: { filename: file.name, mime_type: mime, size_bytes: buffer.byteLength, char_count: cleanedContent.length },
         })
         .select()
         .single();
 
-      if (insertErr) return jsonResponse({ error: insertErr.message }, 500);
-      return jsonResponse({ ok: true, source });
+      if (histErr) console.error("History insert error:", histErr.message);
+
+      return jsonResponse({ ok: true, source: consolidatedSource, history: historyEntry });
     }
 
     // ── transcribe_audio ──────────────────────────────────────────────────────
@@ -341,21 +419,81 @@ Deno.serve(async (req: Request) => {
       }
 
       const cleanedContent = cleanExtractedText(content);
+      const entryTitle = title || "Gravacao de voz";
+      const sectionHeader = `${entryTitle} (VOZ)`;
 
-      const { data: source, error: insertErr } = await admin
-        .from("knowledge_sources")
+      const consolidatedSource = await appendToConsolidatedSource(
+        admin,
+        knowledgeBaseId,
+        cleanedContent,
+        sectionHeader
+      );
+
+      const { data: historyEntry, error: histErr } = await admin
+        .from("knowledge_source_history")
         .insert({
           knowledge_base_id: knowledgeBaseId,
           type: "audio",
-          title: title || "Gravacao de voz",
-          content: cleanedContent,
+          title: entryTitle,
+          contributed_content: cleanedContent,
           metadata: { mime_type: mime, size_bytes: buffer.byteLength, char_count: cleanedContent.length },
         })
         .select()
         .single();
 
-      if (insertErr) return jsonResponse({ error: insertErr.message }, 500);
-      return jsonResponse({ ok: true, source });
+      if (histErr) console.error("History insert error:", histErr.message);
+
+      return jsonResponse({ ok: true, source: consolidatedSource, history: historyEntry });
+    }
+
+    // ── remove_history_entry ──────────────────────────────────────────────────
+    // Removes a history entry and rebuilds the consolidated source from remaining entries.
+    if (action === "remove_history_entry") {
+      const body = await req.json();
+      const { history_id, knowledge_base_id } = body;
+
+      if (!history_id || !knowledge_base_id) {
+        return jsonResponse({ error: "history_id and knowledge_base_id are required" }, 400);
+      }
+
+      const allowed = await verifyKnowledgeBaseOwnership(admin, knowledge_base_id, user.id);
+      if (!allowed) return jsonResponse({ error: "forbidden" }, 403);
+
+      await admin.from("knowledge_source_history").delete().eq("id", history_id);
+
+      // Rebuild consolidated source from remaining history entries in insertion order
+      const { data: remaining } = await admin
+        .from("knowledge_source_history")
+        .select("title, type, contributed_content")
+        .eq("knowledge_base_id", knowledge_base_id)
+        .order("created_at", { ascending: true });
+
+      const typeLabel: Record<string, string> = { file: "ARQUIVO", url: "URL", audio: "VOZ" };
+
+      if (!remaining || remaining.length === 0) {
+        // No entries left — clear the consolidated source content
+        await admin
+          .from("knowledge_sources")
+          .update({ content: "", metadata: { char_count: 0 } })
+          .eq("knowledge_base_id", knowledge_base_id)
+          .eq("type", "consolidated");
+
+        return jsonResponse({ ok: true, charCount: 0 });
+      }
+
+      const rebuilt = remaining
+        .map((e: { title: string; type: string; contributed_content: string }) =>
+          `### ${e.title} (${typeLabel[e.type] || e.type.toUpperCase()})\n${e.contributed_content}`
+        )
+        .join("\n\n---\n\n");
+
+      await admin
+        .from("knowledge_sources")
+        .update({ content: rebuilt, metadata: { char_count: rebuilt.length } })
+        .eq("knowledge_base_id", knowledge_base_id)
+        .eq("type", "consolidated");
+
+      return jsonResponse({ ok: true, charCount: rebuilt.length });
     }
 
     return jsonResponse({ error: "invalid action" }, 400);

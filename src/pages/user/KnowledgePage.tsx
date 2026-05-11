@@ -1,16 +1,10 @@
 import { useEffect, useState, useRef } from 'react';
-import {
-  Database, UploadCloud, Link, Mic, MicOff, Trash2,
-  ToggleLeft, ToggleRight, Loader2, FileText, Globe,
-  AudioLines, Plus, X, CheckCircle2, AlertCircle, ArrowLeft,
-  Eye, RefreshCw, ChevronDown, ChevronUp, Filter, Users, Pencil, Save,
-} from 'lucide-react';
-import { supabase, KnowledgeBase, KnowledgeSource } from '../../lib/supabase';
+import { Database, UploadCloud, Link, Mic, MicOff, Trash2, Loader2, FileText, Globe, AudioLines, Plus, X, CheckCircle2, AlertCircle, ArrowLeft, RefreshCw, Users, Save, File as FileEdit } from 'lucide-react';
+import { supabase, KnowledgeBase, KnowledgeSource, KnowledgeSourceHistory } from '../../lib/supabase';
 import { useAuth } from '../../context/AuthContext';
 
 type FeedbackState = { type: 'success' | 'error'; msg: string } | null;
 type KBTab = 'sources' | 'upload' | 'url' | 'audio';
-type SourceFilter = 'all' | 'file' | 'url' | 'audio';
 
 export function KnowledgePage() {
   const { profile } = useAuth();
@@ -21,9 +15,9 @@ export function KnowledgePage() {
   const [newName, setNewName] = useState('');
   const [newDesc, setNewDesc] = useState('');
   const [creating, setCreating] = useState(false);
-  const [sourceCounts, setSourceCounts] = useState<Record<string, number>>({});
   const [lastAdded, setLastAdded] = useState<Record<string, string>>({});
   const [agentCounts, setAgentCounts] = useState<Record<string, number>>({});
+  const [charCounts, setCharCounts] = useState<Record<string, number>>({});
 
   const fetchBases = async () => {
     setLoading(true);
@@ -37,22 +31,20 @@ export function KnowledgePage() {
     if (list.length > 0) {
       const ids = list.map((b) => b.id);
 
-      const { data: counts } = await supabase
+      const { data: consolidated } = await supabase
         .from('knowledge_sources')
-        .select('knowledge_base_id, created_at')
+        .select('knowledge_base_id, metadata, created_at')
         .in('knowledge_base_id', ids)
-        .eq('is_active', true);
+        .eq('type', 'consolidated');
 
-      const countMap: Record<string, number> = {};
       const lastMap: Record<string, string> = {};
-      (counts || []).forEach((r: { knowledge_base_id: string; created_at: string }) => {
-        countMap[r.knowledge_base_id] = (countMap[r.knowledge_base_id] || 0) + 1;
-        if (!lastMap[r.knowledge_base_id] || r.created_at > lastMap[r.knowledge_base_id]) {
-          lastMap[r.knowledge_base_id] = r.created_at;
-        }
+      const charMap: Record<string, number> = {};
+      (consolidated || []).forEach((r: { knowledge_base_id: string; metadata: Record<string, unknown>; created_at: string }) => {
+        lastMap[r.knowledge_base_id] = r.created_at;
+        charMap[r.knowledge_base_id] = (r.metadata?.char_count as number) || 0;
       });
-      setSourceCounts(countMap);
       setLastAdded(lastMap);
+      setCharCounts(charMap);
 
       const { data: links } = await supabase
         .from('instance_knowledge_bases')
@@ -178,7 +170,9 @@ export function KnowledgePage() {
               </div>
               <div className="mt-auto flex items-center justify-between text-[11px] text-neutral-600">
                 <span>
-                  {sourceCounts[base.id] ?? 0} fonte{(sourceCounts[base.id] ?? 0) !== 1 ? 's' : ''} ativa{(sourceCounts[base.id] ?? 0) !== 1 ? 's' : ''}
+                  {charCounts[base.id]
+                    ? `${charCounts[base.id].toLocaleString('pt-BR')} caracteres`
+                    : 'Sem conteúdo'}
                 </span>
                 <span>
                   {lastAdded[base.id]
@@ -248,6 +242,10 @@ export function KnowledgePage() {
   );
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// KnowledgeBaseDetail
+// ─────────────────────────────────────────────────────────────────────────────
+
 function KnowledgeBaseDetail({
   base,
   onBack,
@@ -257,25 +255,34 @@ function KnowledgeBaseDetail({
   onBack: () => void;
   onDelete: () => void;
 }) {
-  const [sources, setSources] = useState<KnowledgeSource[]>([]);
+  const [consolidatedSource, setConsolidatedSource] = useState<KnowledgeSource | null>(null);
+  const [history, setHistory] = useState<KnowledgeSourceHistory[]>([]);
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState<KBTab>('sources');
   const [feedback, setFeedback] = useState<FeedbackState>(null);
-  const [newSourceId, setNewSourceId] = useState<string | null>(null);
 
-  const fetchSources = async () => {
-    const { data } = await supabase
-      .from('knowledge_sources')
-      .select('*')
-      .eq('knowledge_base_id', base.id)
-      .order('created_at', { ascending: false });
-    setSources(data || []);
+  const fetchData = async () => {
+    setLoading(true);
+    const [{ data: sources }, { data: hist }] = await Promise.all([
+      supabase
+        .from('knowledge_sources')
+        .select('*')
+        .eq('knowledge_base_id', base.id)
+        .eq('type', 'consolidated')
+        .maybeSingle(),
+      supabase
+        .from('knowledge_source_history')
+        .select('*')
+        .eq('knowledge_base_id', base.id)
+        .order('created_at', { ascending: false }),
+    ]);
+    setConsolidatedSource(sources as KnowledgeSource | null);
+    setHistory(hist || []);
     setLoading(false);
   };
 
   useEffect(() => {
-    setLoading(true);
-    fetchSources();
+    fetchData();
   }, [base.id]);
 
   const showFeedback = (type: 'success' | 'error', msg: string) => {
@@ -283,70 +290,61 @@ function KnowledgeBaseDetail({
     setTimeout(() => setFeedback(null), 5000);
   };
 
-  const handleDone = (sourceId?: string) => {
-    fetchSources().then(() => {
-      setTab('sources');
-      if (sourceId) {
-        setNewSourceId(sourceId);
-        setTimeout(() => setNewSourceId(null), 3000);
-      }
-    });
+  const handleDone = () => {
+    fetchData();
+    showFeedback('success', 'Conteúdo adicionado à Fonte de Conhecimento');
   };
 
-  const toggleSource = async (id: string, currentActive: boolean) => {
-    await supabase.from('knowledge_sources').update({ is_active: !currentActive }).eq('id', id);
-    setSources((prev) => prev.map((s) => (s.id === id ? { ...s, is_active: !currentActive } : s)));
-  };
-
-  const deleteSource = async (id: string) => {
-    await supabase.from('knowledge_sources').delete().eq('id', id);
-    setSources((prev) => prev.filter((s) => s.id !== id));
-  };
-
-  const updateSourceContent = async (id: string, newContent: string, newTitle: string) => {
+  const updateConsolidatedContent = async (newContent: string) => {
+    if (!consolidatedSource) return;
     const { error } = await supabase
       .from('knowledge_sources')
-      .update({ content: newContent, title: newTitle })
-      .eq('id', id);
+      .update({ content: newContent, metadata: { char_count: newContent.length } })
+      .eq('id', consolidatedSource.id);
     if (error) throw new Error(error.message);
-    setSources((prev) =>
-      prev.map((s) =>
-        s.id === id
-          ? { ...s, content: newContent, title: newTitle, metadata: { ...s.metadata, char_count: newContent.length } }
-          : s
-      )
-    );
+    setConsolidatedSource((prev) => prev ? { ...prev, content: newContent, metadata: { char_count: newContent.length } } : prev);
   };
 
-  const reprocessUrl = async (source: KnowledgeSource) => {
-    const sourceUrl = source.metadata?.url as string;
+  const removeHistoryEntry = async (entry: KnowledgeSourceHistory) => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) throw new Error('Not authenticated');
+      const apiUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/knowledge?action=remove_history_entry`;
+      const res = await fetch(apiUrl, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${session.access_token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ history_id: entry.id, knowledge_base_id: base.id }),
+      });
+      const data = await res.json();
+      if (!res.ok || data.error) throw new Error(data.error || 'Erro ao remover');
+      showFeedback('success', 'Contribuição removida e fonte reconstruída');
+      fetchData();
+    } catch (e) {
+      showFeedback('error', e instanceof Error ? e.message : 'Erro ao remover');
+    }
+  };
+
+  const reprocessUrl = async (entry: KnowledgeSourceHistory) => {
+    const sourceUrl = entry.metadata?.url as string;
     if (!sourceUrl) return;
     showFeedback('success', 'Reprocessando URL...');
     try {
+      // Remove old entry first, then re-scrape
+      await removeHistoryEntry(entry);
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) throw new Error('Not authenticated');
       const apiUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/knowledge?action=scrape_url`;
       const res = await fetch(apiUrl, {
         method: 'POST',
         headers: { Authorization: `Bearer ${session.access_token}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ knowledge_base_id: base.id, source_url: sourceUrl, title: source.title }),
+        body: JSON.stringify({ knowledge_base_id: base.id, source_url: sourceUrl, title: entry.title }),
       });
       const data = await res.json();
       if (!res.ok || data.error) throw new Error(data.error || 'Erro ao reprocessar');
-      await supabase.from('knowledge_sources').delete().eq('id', source.id);
       showFeedback('success', 'URL reprocessada com sucesso');
-      fetchSources();
+      fetchData();
     } catch (e) {
       showFeedback('error', e instanceof Error ? e.message : 'Erro ao reprocessar');
-    }
-  };
-
-  const typeIcon = (type: string) => {
-    switch (type) {
-      case 'file': return <FileText size={14} className="text-blue-400" />;
-      case 'url': return <Globe size={14} className="text-emerald-400" />;
-      case 'audio': return <AudioLines size={14} className="text-amber-400" />;
-      default: return <Database size={14} className="text-neutral-400" />;
     }
   };
 
@@ -393,443 +391,269 @@ function KnowledgeBaseDetail({
 
       <div className="flex gap-1 bg-[#141414] border border-[#242424] rounded-lg p-1">
         {([
-          { key: 'sources', label: 'Fontes', icon: Database },
+          { key: 'sources', label: 'Fontes', icon: FileEdit },
           { key: 'upload', label: 'Arquivo', icon: UploadCloud },
           { key: 'url', label: 'URL', icon: Link },
           { key: 'audio', label: 'Voz', icon: Mic },
         ] as { key: KBTab; label: string; icon: typeof Database }[]).map((t) => {
           const Icon = t.icon;
+          const histCount = t.key !== 'sources'
+            ? history.filter((h) => {
+                if (t.key === 'upload') return h.type === 'file';
+                return h.type === t.key;
+              }).length
+            : null;
           return (
             <button
               key={t.key}
               onClick={() => setTab(t.key)}
-              className={`flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-md text-xs font-medium transition-colors ${
+              className={`flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-md text-xs font-medium transition-colors relative ${
                 tab === t.key ? 'bg-[#1e1e1e] text-white' : 'text-neutral-500 hover:text-neutral-300'
               }`}
             >
               <Icon size={13} />
               {t.label}
+              {histCount !== null && histCount > 0 && (
+                <span className="text-[10px] bg-[#2a2a2a] text-neutral-400 rounded-full px-1.5 py-0.5 leading-none">
+                  {histCount}
+                </span>
+              )}
             </button>
           );
         })}
       </div>
 
-      {tab === 'sources' && (
-        <SourcesList
-          sources={sources}
-          loading={loading}
-          newSourceId={newSourceId}
-          onToggle={toggleSource}
-          onDelete={deleteSource}
-          onReprocessUrl={reprocessUrl}
-          onUpdate={updateSourceContent}
-          typeIcon={typeIcon}
-        />
-      )}
-      {tab === 'upload' && (
-        <FileUpload
-          knowledgeBaseId={base.id}
-          onDone={handleDone}
-          onFeedback={showFeedback}
-        />
-      )}
-      {tab === 'url' && (
-        <UrlScrape
-          knowledgeBaseId={base.id}
-          onDone={handleDone}
-          onFeedback={showFeedback}
-        />
-      )}
-      {tab === 'audio' && (
-        <AudioRecorder
-          knowledgeBaseId={base.id}
-          onDone={handleDone}
-          onFeedback={showFeedback}
-        />
+      {loading ? (
+        <div className="flex justify-center py-12">
+          <Loader2 size={18} className="animate-spin text-neutral-600" />
+        </div>
+      ) : (
+        <>
+          {tab === 'sources' && (
+            <ConsolidatedEditor
+              source={consolidatedSource}
+              onUpdate={updateConsolidatedContent}
+            />
+          )}
+          {tab === 'upload' && (
+            <FileUpload
+              knowledgeBaseId={base.id}
+              history={history.filter((h) => h.type === 'file')}
+              onDone={handleDone}
+              onFeedback={showFeedback}
+              onRemove={removeHistoryEntry}
+            />
+          )}
+          {tab === 'url' && (
+            <UrlScrape
+              knowledgeBaseId={base.id}
+              history={history.filter((h) => h.type === 'url')}
+              onDone={handleDone}
+              onFeedback={showFeedback}
+              onRemove={removeHistoryEntry}
+              onReprocess={reprocessUrl}
+            />
+          )}
+          {tab === 'audio' && (
+            <AudioRecorder
+              knowledgeBaseId={base.id}
+              history={history.filter((h) => h.type === 'audio')}
+              onDone={handleDone}
+              onFeedback={showFeedback}
+              onRemove={removeHistoryEntry}
+            />
+          )}
+        </>
       )}
     </div>
   );
 }
 
-function SourcesList({
-  sources, loading, newSourceId, onToggle, onDelete, onReprocessUrl, onUpdate, typeIcon,
+// ─────────────────────────────────────────────────────────────────────────────
+// ConsolidatedEditor — the single editable knowledge source
+// ─────────────────────────────────────────────────────────────────────────────
+
+function ConsolidatedEditor({
+  source,
+  onUpdate,
 }: {
-  sources: KnowledgeSource[];
-  loading: boolean;
-  newSourceId: string | null;
-  onToggle: (id: string, active: boolean) => void;
-  onDelete: (id: string) => void;
-  onReprocessUrl: (source: KnowledgeSource) => void;
-  onUpdate: (id: string, content: string, title: string) => Promise<void>;
-  typeIcon: (type: string) => JSX.Element;
+  source: KnowledgeSource | null;
+  onUpdate: (content: string) => Promise<void>;
 }) {
-  const [filter, setFilter] = useState<SourceFilter>('all');
-  const [previewSource, setPreviewSource] = useState<KnowledgeSource | null>(null);
-  const [editSource, setEditSource] = useState<KnowledgeSource | null>(null);
-  const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
-  const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [content, setContent] = useState(source?.content || '');
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [saved, setSaved] = useState(false);
 
-  if (loading) {
-    return (
-      <div className="flex justify-center py-12">
-        <Loader2 size={18} className="animate-spin text-neutral-600" />
-      </div>
-    );
-  }
+  useEffect(() => {
+    setContent(source?.content || '');
+  }, [source?.id]);
 
-  if (sources.length === 0) {
+  if (!source) {
     return (
       <div className="border border-dashed border-[#242424] rounded-xl p-12 text-center">
-        <Database size={28} className="mx-auto text-neutral-700 mb-3" />
-        <p className="text-sm text-neutral-500">Nenhuma fonte de conhecimento ainda</p>
+        <FileEdit size={28} className="mx-auto text-neutral-700 mb-3" />
+        <p className="text-sm text-neutral-500">Nenhum conteúdo ainda</p>
         <p className="text-xs text-neutral-600 mt-1">
-          Adicione arquivos, URLs ou gravações para treinar seu agente
+          Use as abas Arquivo, URL ou Voz para adicionar conteúdo a esta base.
         </p>
       </div>
     );
   }
 
-  const activeCount = sources.filter((s) => s.is_active).length;
-  const inactiveCount = sources.length - activeCount;
-  const filtered = filter === 'all' ? sources : sources.filter((s) => s.type === filter);
-
-  const typeCounts = sources.reduce((acc, s) => {
-    acc[s.type] = (acc[s.type] || 0) + 1;
-    return acc;
-  }, {} as Record<string, number>);
-
-  return (
-    <>
-      <div className="space-y-3">
-        <div className="flex items-center justify-between gap-3 flex-wrap">
-          <div className="text-xs text-neutral-500">
-            <span className="text-white font-medium">{activeCount}</span> ativa{activeCount !== 1 ? 's' : ''}
-            {inactiveCount > 0 && (
-              <span className="ml-1.5 text-neutral-600">· {inactiveCount} inativa{inactiveCount !== 1 ? 's' : ''}</span>
-            )}
-          </div>
-          <div className="flex items-center gap-1.5">
-            <Filter size={11} className="text-neutral-600" />
-            {(['all', 'file', 'url', 'audio'] as SourceFilter[]).map((f) => {
-              const labels: Record<SourceFilter, string> = { all: 'Todas', file: 'Arquivo', url: 'URL', audio: 'Voz' };
-              const count = f === 'all' ? sources.length : (typeCounts[f] || 0);
-              if (f !== 'all' && count === 0) return null;
-              return (
-                <button
-                  key={f}
-                  onClick={() => setFilter(f)}
-                  className={`text-[11px] px-2.5 py-1 rounded-md transition-colors ${
-                    filter === f
-                      ? 'bg-[#1e1e1e] text-white border border-[#2e2e2e]'
-                      : 'text-neutral-500 hover:text-neutral-300'
-                  }`}
-                >
-                  {labels[f]} {count > 0 && <span className="ml-0.5 opacity-60">({count})</span>}
-                </button>
-              );
-            })}
-          </div>
-        </div>
-
-        <div className="space-y-2">
-          {filtered.map((s) => {
-            const isNew = s.id === newSourceId;
-            const charCount = (s.metadata?.char_count as number) || s.content?.length || 0;
-            const isExpanded = expandedId === s.id;
-
-            return (
-              <div
-                key={s.id}
-                className={`rounded-lg border transition-all duration-500 ${
-                  isNew
-                    ? 'border-emerald-700/60 bg-emerald-950/20 ring-1 ring-emerald-700/30'
-                    : s.is_active
-                    ? 'bg-[#141414] border-[#242424]'
-                    : 'bg-[#0a0a0a] border-[#1a1a1a] opacity-60'
-                }`}
-              >
-                <div className="flex items-center gap-3 px-4 py-3">
-                  {typeIcon(s.type)}
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2">
-                      <button
-                        onClick={() => setPreviewSource(s)}
-                        className="text-sm text-white truncate hover:text-neutral-300 transition-colors text-left"
-                      >
-                        {s.title}
-                      </button>
-                      {isNew && (
-                        <span className="text-[10px] text-emerald-400 bg-emerald-950/60 border border-emerald-800/40 rounded-full px-1.5 py-0.5 shrink-0">
-                          novo
-                        </span>
-                      )}
-                    </div>
-                    <div className="text-[11px] text-neutral-600 mt-0.5 flex items-center gap-2 flex-wrap">
-                      {s.type === 'file' && (
-                        <span>{((s.metadata?.size_bytes as number) / 1024).toFixed(0)} KB</span>
-                      )}
-                      {s.type === 'url' && (
-                        <span className="truncate max-w-[200px]">{s.metadata?.url as string}</span>
-                      )}
-                      {charCount > 0 && (
-                        <span className="text-neutral-700">{charCount.toLocaleString('pt-BR')} caracteres</span>
-                      )}
-                      <span className="text-neutral-700">{new Date(s.created_at).toLocaleDateString('pt-BR')}</span>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-1 shrink-0">
-                    <button
-                      onClick={() => setExpandedId(isExpanded ? null : s.id)}
-                      className="text-neutral-600 hover:text-neutral-300 transition-colors p-1"
-                      title="Ver prévia"
-                    >
-                      {isExpanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
-                    </button>
-                    <button
-                      onClick={() => setPreviewSource(s)}
-                      className="text-neutral-600 hover:text-neutral-300 transition-colors p-1"
-                      title="Ver conteúdo completo"
-                    >
-                      <Eye size={14} />
-                    </button>
-                    <button
-                      onClick={() => setEditSource(s)}
-                      className="text-neutral-600 hover:text-amber-400 transition-colors p-1"
-                      title="Editar conteúdo"
-                    >
-                      <Pencil size={13} />
-                    </button>
-                    {s.type === 'url' && s.metadata?.url && (
-                      <button
-                        onClick={() => onReprocessUrl(s)}
-                        className="text-neutral-600 hover:text-blue-400 transition-colors p-1"
-                        title="Reprocessar URL"
-                      >
-                        <RefreshCw size={13} />
-                      </button>
-                    )}
-                    <button
-                      onClick={() => onToggle(s.id, s.is_active)}
-                      className="text-neutral-500 hover:text-white transition-colors p-1"
-                      title={s.is_active ? 'Desativar' : 'Ativar'}
-                    >
-                      {s.is_active ? (
-                        <ToggleRight size={20} className="text-emerald-400" />
-                      ) : (
-                        <ToggleLeft size={20} />
-                      )}
-                    </button>
-                    {deleteConfirm === s.id ? (
-                      <div className="flex items-center gap-1">
-                        <button
-                          onClick={() => { onDelete(s.id); setDeleteConfirm(null); }}
-                          className="text-[10px] text-red-400 hover:text-red-300 border border-red-900/40 rounded px-1.5 py-0.5 transition-colors"
-                        >
-                          Confirmar
-                        </button>
-                        <button
-                          onClick={() => setDeleteConfirm(null)}
-                          className="text-[10px] text-neutral-500 hover:text-white border border-[#242424] rounded px-1.5 py-0.5 transition-colors"
-                        >
-                          Cancelar
-                        </button>
-                      </div>
-                    ) : (
-                      <button
-                        onClick={() => setDeleteConfirm(s.id)}
-                        className="text-neutral-600 hover:text-red-400 transition-colors p-1"
-                        title="Excluir"
-                      >
-                        <Trash2 size={14} />
-                      </button>
-                    )}
-                  </div>
-                </div>
-                {isExpanded && (
-                  <div className="px-4 pb-3 border-t border-[#1a1a1a] mt-1 pt-3">
-                    <p className="text-xs text-neutral-400 leading-relaxed whitespace-pre-wrap line-clamp-6">
-                      {s.content?.slice(0, 600) || 'Sem conteúdo'}
-                      {(s.content?.length || 0) > 600 && (
-                        <button
-                          onClick={() => setPreviewSource(s)}
-                          className="text-blue-400 hover:text-blue-300 ml-1"
-                        >
-                          ver mais...
-                        </button>
-                      )}
-                    </p>
-                  </div>
-                )}
-              </div>
-            );
-          })}
-        </div>
-      </div>
-
-      {previewSource && (
-        <SourcePreviewModal source={previewSource} onClose={() => setPreviewSource(null)} typeIcon={typeIcon} />
-      )}
-      {editSource && (
-        <SourceEditModal
-          source={editSource}
-          onClose={() => setEditSource(null)}
-          onSave={async (id, content, title) => {
-            await onUpdate(id, content, title);
-            setEditSource(null);
-          }}
-          typeIcon={typeIcon}
-        />
-      )}
-    </>
-  );
-}
-
-function SourcePreviewModal({
-  source, onClose, typeIcon,
-}: {
-  source: KnowledgeSource;
-  onClose: () => void;
-  typeIcon: (type: string) => JSX.Element;
-}) {
-  const charCount = (source.metadata?.char_count as number) || source.content?.length || 0;
-
-  return (
-    <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
-      <div className="bg-[#141414] border border-[#242424] rounded-2xl w-full max-w-2xl max-h-[80vh] flex flex-col">
-        <div className="flex items-center justify-between px-5 py-4 border-b border-[#242424] shrink-0">
-          <div className="flex items-center gap-2 min-w-0">
-            {typeIcon(source.type)}
-            <span className="text-sm text-white font-medium truncate">{source.title}</span>
-          </div>
-          <button onClick={onClose} className="text-neutral-500 hover:text-white transition-colors ml-3 shrink-0">
-            <X size={16} />
-          </button>
-        </div>
-        <div className="px-5 py-3 border-b border-[#1a1a1a] flex items-center gap-4 text-[11px] text-neutral-500 shrink-0 flex-wrap">
-          <span className="capitalize">{source.type === 'file' ? 'Arquivo' : source.type === 'url' ? 'URL' : 'Voz'}</span>
-          {source.type === 'file' && source.metadata?.size_bytes && (
-            <span>{((source.metadata.size_bytes as number) / 1024).toFixed(0)} KB</span>
-          )}
-          {source.type === 'url' && source.metadata?.url && (
-            <a
-              href={source.metadata.url as string}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-blue-400 hover:text-blue-300 truncate max-w-[300px]"
-            >
-              {source.metadata.url as string}
-            </a>
-          )}
-          {charCount > 0 && <span>{charCount.toLocaleString('pt-BR')} caracteres extraídos</span>}
-          <span>{new Date(source.created_at).toLocaleDateString('pt-BR')}</span>
-        </div>
-        <div className="flex-1 overflow-y-auto p-5">
-          <pre className="text-xs text-neutral-300 leading-relaxed whitespace-pre-wrap font-sans">
-            {source.content || 'Sem conteúdo disponível'}
-          </pre>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function SourceEditModal({
-  source, onClose, onSave, typeIcon,
-}: {
-  source: KnowledgeSource;
-  onClose: () => void;
-  onSave: (id: string, content: string, title: string) => Promise<void>;
-  typeIcon: (type: string) => JSX.Element;
-}) {
-  const [title, setTitle] = useState(source.title);
-  const [content, setContent] = useState(source.content || '');
-  const [saving, setSaving] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const charCount = content.length;
+  const changed = content !== (source.content || '');
 
   const handleSave = async () => {
-    if (!title.trim() || !content.trim()) return;
+    if (!changed) return;
     setSaving(true);
     setError(null);
     try {
-      await onSave(source.id, content.trim(), title.trim());
+      await onUpdate(content.trim());
+      setSaved(true);
+      setTimeout(() => setSaved(false), 2500);
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Erro ao salvar');
+    } finally {
       setSaving(false);
     }
   };
 
-  const charCount = content.length;
-  const changed = title !== source.title || content !== (source.content || '');
-
   return (
-    <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
-      <div className="bg-[#141414] border border-[#242424] rounded-2xl w-full max-w-2xl max-h-[90vh] flex flex-col">
-        <div className="flex items-center justify-between px-5 py-4 border-b border-[#242424] shrink-0">
-          <div className="flex items-center gap-2 min-w-0">
-            {typeIcon(source.type)}
-            <span className="text-sm text-white font-medium">Editar conteúdo</span>
-          </div>
-          <button onClick={onClose} className="text-neutral-500 hover:text-white transition-colors ml-3 shrink-0">
-            <X size={16} />
-          </button>
+    <div className="space-y-3">
+      <div className="flex items-center justify-between flex-wrap gap-2">
+        <div className="flex items-center gap-2">
+          <FileEdit size={14} className="text-neutral-400" />
+          <span className="text-sm text-white font-medium">Fonte de Conhecimento</span>
         </div>
+        <span className="text-[11px] text-neutral-600">
+          {charCount.toLocaleString('pt-BR')} caracteres
+        </span>
+      </div>
 
-        <div className="flex-1 overflow-y-auto p-5 space-y-4">
-          <div>
-            <label className="block text-xs text-neutral-400 mb-1.5">Título</label>
-            <input
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              className="w-full bg-[#0d0d0d] border border-[#1c1c1c] rounded-lg px-3 py-2.5 text-sm text-white placeholder:text-neutral-600 focus:outline-none focus:border-[#363636] transition-colors"
-            />
-          </div>
-          <div>
-            <div className="flex items-center justify-between mb-1.5">
-              <label className="text-xs text-neutral-400">Conteúdo</label>
-              <span className="text-[10px] text-neutral-600">{charCount.toLocaleString('pt-BR')} caracteres</span>
-            </div>
-            <textarea
-              value={content}
-              onChange={(e) => setContent(e.target.value)}
-              rows={16}
-              className="w-full bg-[#0d0d0d] border border-[#1c1c1c] rounded-lg px-3 py-2.5 text-xs text-neutral-300 placeholder:text-neutral-600 focus:outline-none focus:border-[#363636] transition-colors resize-none leading-relaxed font-mono"
-              placeholder="Conteúdo da fonte..."
-            />
-            <p className="text-[10px] text-neutral-600 mt-1.5">
-              Edite diretamente o texto — útil para corrigir preços, horários ou qualquer informação desatualizada.
-            </p>
-          </div>
+      <textarea
+        value={content}
+        onChange={(e) => setContent(e.target.value)}
+        rows={22}
+        className="w-full bg-[#0d0d0d] border border-[#1c1c1c] rounded-xl px-4 py-3 text-xs text-neutral-300 placeholder:text-neutral-700 focus:outline-none focus:border-[#363636] transition-colors resize-none leading-relaxed font-mono"
+        placeholder="O conteúdo extraído dos arquivos, URLs e gravações aparecerá aqui. Você pode editar diretamente este texto."
+      />
 
-          {error && (
-            <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-red-950/30 border border-red-900/40 text-red-300 text-xs">
-              <AlertCircle size={13} /> {error}
-            </div>
+      {error && (
+        <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-red-950/30 border border-red-900/40 text-red-300 text-xs">
+          <AlertCircle size={13} /> {error}
+        </div>
+      )}
+
+      <div className="flex justify-end">
+        <button
+          onClick={handleSave}
+          disabled={saving || !changed}
+          className="bg-white text-black rounded-lg px-4 py-2 text-sm font-medium flex items-center gap-2 hover:bg-neutral-200 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+        >
+          {saving ? (
+            <><Loader2 size={13} className="animate-spin" /> Salvando...</>
+          ) : saved ? (
+            <><CheckCircle2 size={13} className="text-emerald-600" /> Salvo</>
+          ) : (
+            <><Save size={13} /> Salvar alterações</>
           )}
-        </div>
-
-        <div className="px-5 py-4 border-t border-[#242424] flex gap-2 shrink-0">
-          <button
-            onClick={onClose}
-            className="flex-1 border border-[#242424] text-neutral-400 hover:text-white rounded-lg py-2.5 text-sm transition-colors"
-          >
-            Cancelar
-          </button>
-          <button
-            onClick={handleSave}
-            disabled={saving || !changed || !title.trim() || !content.trim()}
-            className="flex-1 bg-white text-black rounded-lg py-2.5 text-sm font-medium flex items-center justify-center gap-2 hover:bg-neutral-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {saving ? (
-              <><Loader2 size={13} className="animate-spin" /> Salvando...</>
-            ) : (
-              <><Save size={13} /> Salvar alterações</>
-            )}
-          </button>
-        </div>
+        </button>
       </div>
     </div>
   );
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// HistoryList — shared component for showing upload history per tab
+// ─────────────────────────────────────────────────────────────────────────────
+
+function HistoryList({
+  entries,
+  typeIcon,
+  onRemove,
+  onReprocess,
+}: {
+  entries: KnowledgeSourceHistory[];
+  typeIcon: (type: string) => JSX.Element;
+  onRemove: (entry: KnowledgeSourceHistory) => void;
+  onReprocess?: (entry: KnowledgeSourceHistory) => void;
+}) {
+  const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
+
+  if (entries.length === 0) return null;
+
+  return (
+    <div className="space-y-2">
+      <p className="text-xs text-neutral-600 uppercase tracking-wide">Histórico</p>
+      {entries.map((entry) => {
+        const charCount = (entry.metadata?.char_count as number) || entry.contributed_content?.length || 0;
+        return (
+          <div
+            key={entry.id}
+            className="flex items-center gap-3 px-4 py-3 rounded-lg bg-[#0d0d0d] border border-[#1a1a1a]"
+          >
+            {typeIcon(entry.type)}
+            <div className="flex-1 min-w-0">
+              <div className="text-sm text-neutral-300 truncate">{entry.title}</div>
+              <div className="text-[11px] text-neutral-600 mt-0.5 flex items-center gap-2 flex-wrap">
+                {entry.type === 'file' && entry.metadata?.size_bytes && (
+                  <span>{((entry.metadata.size_bytes as number) / 1024).toFixed(0)} KB</span>
+                )}
+                {entry.type === 'url' && entry.metadata?.url && (
+                  <span className="truncate max-w-[180px]">{entry.metadata.url as string}</span>
+                )}
+                {charCount > 0 && (
+                  <span>{charCount.toLocaleString('pt-BR')} caracteres</span>
+                )}
+                <span>{new Date(entry.created_at).toLocaleDateString('pt-BR')}</span>
+              </div>
+            </div>
+            <div className="flex items-center gap-1 shrink-0">
+              {onReprocess && entry.type === 'url' && entry.metadata?.url && (
+                <button
+                  onClick={() => onReprocess(entry)}
+                  className="text-neutral-600 hover:text-blue-400 transition-colors p-1"
+                  title="Reprocessar URL"
+                >
+                  <RefreshCw size={13} />
+                </button>
+              )}
+              {deleteConfirm === entry.id ? (
+                <div className="flex items-center gap-1">
+                  <button
+                    onClick={() => { onRemove(entry); setDeleteConfirm(null); }}
+                    className="text-[10px] text-red-400 hover:text-red-300 border border-red-900/40 rounded px-1.5 py-0.5 transition-colors"
+                  >
+                    Confirmar
+                  </button>
+                  <button
+                    onClick={() => setDeleteConfirm(null)}
+                    className="text-[10px] text-neutral-500 hover:text-white border border-[#242424] rounded px-1.5 py-0.5 transition-colors"
+                  >
+                    Cancelar
+                  </button>
+                </div>
+              ) : (
+                <button
+                  onClick={() => setDeleteConfirm(entry.id)}
+                  className="text-neutral-600 hover:text-red-400 transition-colors p-1"
+                  title="Remover contribuição"
+                >
+                  <Trash2 size={13} />
+                </button>
+              )}
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// FileUpload
+// ─────────────────────────────────────────────────────────────────────────────
 
 type UploadStep = 'idle' | 'uploading' | 'extracting' | 'saving' | 'done';
 
@@ -842,11 +666,13 @@ interface QueuedFile {
 }
 
 function FileUpload({
-  knowledgeBaseId, onDone, onFeedback,
+  knowledgeBaseId, history, onDone, onFeedback, onRemove,
 }: {
   knowledgeBaseId: string;
-  onDone: (sourceId?: string) => void;
+  history: KnowledgeSourceHistory[];
+  onDone: () => void;
   onFeedback: (type: 'success' | 'error', msg: string) => void;
+  onRemove: (entry: KnowledgeSourceHistory) => void;
 }) {
   const [queue, setQueue] = useState<QueuedFile[]>([]);
   const [dragOver, setDragOver] = useState(false);
@@ -871,11 +697,10 @@ function FileUpload({
 
   const addFiles = (files: FileList | File[]) => {
     const arr = Array.from(files);
-    const newItems: QueuedFile[] = [];
-    for (const file of arr) {
+    const newItems: QueuedFile[] = arr.map((file) => {
       const err = validateFile(file);
-      newItems.push({ file, status: err ? 'error' : 'pending', step: 'idle', error: err || undefined });
-    }
+      return { file, status: err ? 'error' : 'pending', step: 'idle', error: err || undefined };
+    });
     setQueue((prev) => [...prev, ...newItems]);
   };
 
@@ -888,7 +713,6 @@ function FileUpload({
     if (!session) { onFeedback('error', 'Sessão expirada'); return; }
 
     setProcessing(true);
-    let lastSourceId: string | undefined;
     let doneCount = 0;
 
     for (let i = 0; i < currentQueue.length; i++) {
@@ -916,9 +740,8 @@ function FileUpload({
         const data = await res.json();
         if (!res.ok || data.error) throw new Error(data.error || 'Erro ao processar arquivo');
 
-        const charCount = data.source?.metadata?.char_count as number | undefined;
+        const charCount = data.history?.metadata?.char_count as number | undefined;
         updateQueueItem(i, { status: 'done', step: 'done', charCount });
-        lastSourceId = data.source?.id;
         doneCount++;
       } catch (e) {
         updateQueueItem(i, { status: 'error', step: 'idle', error: e instanceof Error ? e.message : 'Erro desconhecido' });
@@ -927,20 +750,12 @@ function FileUpload({
 
     setProcessing(false);
     if (doneCount > 0) {
-      onFeedback('success', `${doneCount} arquivo${doneCount !== 1 ? 's' : ''} processado${doneCount !== 1 ? 's' : ''} com sucesso`);
-      onDone(lastSourceId);
+      onDone();
       setTimeout(() => setQueue([]), 1500);
     }
   };
 
-  const handleStart = () => {
-    processQueue(queue);
-  };
-
-  const removeFromQueue = (index: number) => {
-    setQueue((prev) => prev.filter((_, i) => i !== index));
-  };
-
+  const removeFromQueue = (index: number) => setQueue((prev) => prev.filter((_, i) => i !== index));
   const retryError = (index: number) => {
     setQueue((prev) => prev.map((item, i) =>
       i === index && item.status === 'error' ? { ...item, status: 'pending', step: 'idle', error: undefined } : item
@@ -950,6 +765,8 @@ function FileUpload({
   const hasFiles = queue.length > 0;
   const pendingCount = queue.filter((q) => q.status === 'pending').length;
   const errorCount = queue.filter((q) => q.status === 'error').length;
+
+  const typeIcon = () => <FileText size={14} className="text-blue-400 shrink-0" />;
 
   return (
     <div className="space-y-4">
@@ -999,7 +816,7 @@ function FileUpload({
                     )}
                     {item.status === 'done' && (
                       <span className="text-emerald-400">
-                        Concluído{item.charCount ? ` · ${item.charCount.toLocaleString('pt-BR')} caracteres` : ''}
+                        Adicionado à Fonte{item.charCount ? ` · ${item.charCount.toLocaleString('pt-BR')} caracteres` : ''}
                       </span>
                     )}
                     {item.status === 'pending' && (
@@ -1008,7 +825,7 @@ function FileUpload({
                   </div>
                 </div>
                 {item.status === 'pending' && (
-                  <button onClick={() => removeFromQueue(i)} className="text-neutral-600 hover:text-neutral-300 transition-colors" title="Remover">
+                  <button onClick={() => removeFromQueue(i)} className="text-neutral-600 hover:text-neutral-300 transition-colors">
                     <X size={13} />
                   </button>
                 )}
@@ -1017,7 +834,6 @@ function FileUpload({
                     <button
                       onClick={() => retryError(i)}
                       className="text-[10px] text-amber-400 hover:text-amber-300 border border-amber-900/40 rounded px-1.5 py-0.5 transition-colors"
-                      title="Tentar novamente"
                     >
                       Tentar novamente
                     </button>
@@ -1041,11 +857,9 @@ function FileUpload({
 
       {hasFiles && errorCount > 0 && pendingCount === 0 && !processing && (
         <button
-          onClick={() => {
-            setQueue((prev) => prev.map((item) =>
-              item.status === 'error' ? { ...item, status: 'pending', step: 'idle', error: undefined } : item
-            ));
-          }}
+          onClick={() => setQueue((prev) => prev.map((item) =>
+            item.status === 'error' ? { ...item, status: 'pending', step: 'idle', error: undefined } : item
+          ))}
           className="w-full border border-amber-900/40 text-amber-400 hover:text-amber-300 rounded-lg py-2.5 text-sm font-medium flex items-center justify-center gap-2 transition-colors"
         >
           <RefreshCw size={14} /> Tentar novamente ({errorCount} erro{errorCount !== 1 ? 's' : ''})
@@ -1053,7 +867,7 @@ function FileUpload({
       )}
       {hasFiles && pendingCount > 0 && (
         <button
-          onClick={handleStart}
+          onClick={() => processQueue(queue)}
           disabled={processing}
           className="w-full bg-white text-black rounded-lg py-2.5 text-sm font-medium flex items-center justify-center gap-2 hover:bg-neutral-200 transition-colors disabled:opacity-50"
         >
@@ -1073,16 +887,29 @@ function FileUpload({
         className="hidden"
         onChange={(e) => { if (e.target.files?.length) { addFiles(e.target.files); e.target.value = ''; } }}
       />
+
+      <HistoryList
+        entries={history}
+        typeIcon={typeIcon}
+        onRemove={onRemove}
+      />
     </div>
   );
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// UrlScrape
+// ─────────────────────────────────────────────────────────────────────────────
+
 function UrlScrape({
-  knowledgeBaseId, onDone, onFeedback,
+  knowledgeBaseId, history, onDone, onFeedback, onRemove, onReprocess,
 }: {
   knowledgeBaseId: string;
-  onDone: (sourceId?: string) => void;
+  history: KnowledgeSourceHistory[];
+  onDone: () => void;
   onFeedback: (type: 'success' | 'error', msg: string) => void;
+  onRemove: (entry: KnowledgeSourceHistory) => void;
+  onReprocess: (entry: KnowledgeSourceHistory) => void;
 }) {
   const [url, setUrl] = useState('');
   const [title, setTitle] = useState('');
@@ -1109,17 +936,17 @@ function UrlScrape({
       const data = await res.json();
       if (!res.ok || data.error) throw new Error(data.error || 'Erro ao extrair conteúdo');
 
-      const charCount = data.source?.metadata?.char_count as number | undefined;
-      onFeedback('success', `Conteúdo extraído com sucesso${charCount ? ` · ${charCount.toLocaleString('pt-BR')} caracteres` : ''}`);
       setUrl('');
       setTitle('');
-      onDone(data.source?.id);
+      onDone();
     } catch (e) {
       onFeedback('error', e instanceof Error ? e.message : 'Erro desconhecido');
     } finally {
       setScraping(false);
     }
   };
+
+  const typeIcon = () => <Globe size={14} className="text-emerald-400 shrink-0" />;
 
   return (
     <div className="space-y-4">
@@ -1157,18 +984,31 @@ function UrlScrape({
         </button>
       </div>
       <p className="text-xs text-neutral-600 px-1">
-        O sistema irá extrair o texto principal da página. Funciona melhor com páginas de conteúdo (sobre, FAQ, blog).
+        O sistema irá extrair o texto principal da página e adicioná-lo à Fonte de Conhecimento.
       </p>
+
+      <HistoryList
+        entries={history}
+        typeIcon={typeIcon}
+        onRemove={onRemove}
+        onReprocess={onReprocess}
+      />
     </div>
   );
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// AudioRecorder
+// ─────────────────────────────────────────────────────────────────────────────
+
 function AudioRecorder({
-  knowledgeBaseId, onDone, onFeedback,
+  knowledgeBaseId, history, onDone, onFeedback, onRemove,
 }: {
   knowledgeBaseId: string;
-  onDone: (sourceId?: string) => void;
+  history: KnowledgeSourceHistory[];
+  onDone: () => void;
   onFeedback: (type: 'success' | 'error', msg: string) => void;
+  onRemove: (entry: KnowledgeSourceHistory) => void;
 }) {
   const [recording, setRecording] = useState(false);
   const [processing, setProcessing] = useState(false);
@@ -1232,11 +1072,9 @@ function AudioRecorder({
       const data = await res.json();
       if (!res.ok || data.error) throw new Error(data.error || 'Erro ao transcrever');
 
-      const charCount = data.source?.metadata?.char_count as number | undefined;
-      onFeedback('success', `Áudio transcrito${charCount ? ` · ${charCount.toLocaleString('pt-BR')} caracteres` : ''}`);
       setTitle('');
       setElapsed(0);
-      onDone(data.source?.id);
+      onDone();
     } catch (e) {
       onFeedback('error', e instanceof Error ? e.message : 'Erro desconhecido');
     } finally {
@@ -1249,6 +1087,8 @@ function AudioRecorder({
     const s = (secs % 60).toString().padStart(2, '0');
     return `${m}:${s}`;
   };
+
+  const typeIcon = () => <AudioLines size={14} className="text-amber-400 shrink-0" />;
 
   return (
     <div className="space-y-4">
@@ -1290,7 +1130,7 @@ function AudioRecorder({
                 <Mic size={24} className="text-neutral-500" />
               </div>
               <p className="text-xs text-neutral-500 text-center max-w-xs">
-                Grave uma explicação sobre sua empresa, produtos ou serviços. O áudio será transcrito e usado como contexto pela IA.
+                Grave uma explicação sobre sua empresa, produtos ou serviços. O áudio será transcrito e adicionado à Fonte de Conhecimento.
               </p>
               <button
                 onClick={startRecording}
@@ -1302,6 +1142,12 @@ function AudioRecorder({
           )}
         </div>
       </div>
+
+      <HistoryList
+        entries={history}
+        typeIcon={typeIcon}
+        onRemove={onRemove}
+      />
     </div>
   );
 }

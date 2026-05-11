@@ -209,10 +209,20 @@ export type KnowledgeSource = {
   id: string;
   instance_id: string | null;
   knowledge_base_id: string | null;
-  type: 'file' | 'url' | 'audio';
+  type: 'file' | 'url' | 'audio' | 'consolidated';
   title: string;
   content: string;
   metadata: Record<string, unknown>;
   is_active: boolean;
+  created_at: string;
+};
+
+export type KnowledgeSourceHistory = {
+  id: string;
+  knowledge_base_id: string;
+  type: 'file' | 'url' | 'audio';
+  title: string;
+  contributed_content: string;
+  metadata: Record<string, unknown>;
   created_at: string;
 };
