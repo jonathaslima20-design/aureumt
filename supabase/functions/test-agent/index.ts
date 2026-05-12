@@ -277,11 +277,14 @@ Deno.serve(async (req: Request) => {
       );
     }
 
-    // Clean pipe separators used for fragmentation in webhook (test returns full text)
-    const cleanReply = reply.replace(/\|/g, "\n").replace(/\n{3,}/g, "\n\n").trim();
+    // Fragment reply the same way as the webhook does for WhatsApp
+    const fragments = reply
+      .split(/\||\n/)
+      .map((f: string) => f.trim())
+      .filter((f: string) => f.length > 0);
 
     return new Response(
-      JSON.stringify({ reply: cleanReply }),
+      JSON.stringify({ reply: fragments.length > 0 ? fragments[0] : reply, fragments }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (err) {

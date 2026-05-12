@@ -997,7 +997,10 @@ function AgentTestModal({ instance, onClose }: { instance: Instance; onClose: ()
         }),
       });
       const data = await res.json();
-      setMessages((prev) => [...prev, { role: 'assistant', content: data.reply || data.error || 'Sem resposta' }]);
+      const fragments: string[] = data.fragments && data.fragments.length > 0
+        ? data.fragments
+        : [data.reply || data.error || 'Sem resposta'];
+      setMessages((prev) => [...prev, ...fragments.map((f: string) => ({ role: 'assistant' as const, content: f }))]);
     } catch {
       setMessages((prev) => [...prev, { role: 'assistant', content: 'Erro ao conectar com o agente.' }]);
     } finally {
