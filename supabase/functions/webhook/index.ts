@@ -460,10 +460,54 @@ Deno.serve(async (req) => {
       const overflow = ((instance.overflow_keyword as string) || "").trim().toLowerCase();
       if (overflow && text.toLowerCase().includes(overflow)) {
         await admin.from("instances").update({ flow_status: "paused" }).eq("id", instance.id);
+        await admin.from("notifications").insert({
+          user_id: instance.user_id,
+          instance_id: instance.id,
+          type: "overflow",
+          title: "Transbordo detectado",
+          body: `Cliente ${customerNumber} solicitou atendimento humano`,
+          customer_number: customerNumber,
+        });
         return;
       }
 
       if (instance.flow_status !== "active") return;
+
+      // ── Business hours check ───────────────────────────────────────────────
+      const bh = instance.business_hours as { enabled?: boolean; timezone?: string; schedule?: Record<string, { start: string; end: string; active: boolean }>; away_message?: string } | null;
+      if (bh?.enabled && bh.schedule) {
+        const tz = bh.timezone || "America/Sao_Paulo";
+        const now = new Date(new Date().toLocaleString("en-US", { timeZone: tz }));
+        const dayKeys = ["sun", "mon", "tue", "wed", "thu", "fri", "sat"];
+        const todayKey = dayKeys[now.getDay()];
+        const daySched = bh.schedule[todayKey];
+        let outsideHours = !daySched?.active;
+        if (daySched?.active) {
+          const nowMins = now.getHours() * 60 + now.getMinutes();
+          const [sh, sm] = daySched.start.split(":").map(Number);
+          const [eh, em] = daySched.end.split(":").map(Number);
+          if (nowMins < sh * 60 + sm || nowMins > eh * 60 + em) outsideHours = true;
+        }
+        if (outsideHours && bh.away_message) {
+          const connCreds = await loadCreds(admin, instance.user_id as string);
+          if (connCreds.url && connCreds.key) {
+            await fetch(`${connCreds.url}/message/sendText/${instanceName}`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json", apikey: connCreds.key },
+              body: JSON.stringify({ number: customerNumber, text: bh.away_message }),
+            });
+            await admin.from("chat_logs").insert({
+              instance_id: instance.id,
+              whatsapp_connection_id: connectionId || null,
+              customer_number: customerNumber,
+              direction: "out",
+              message_body: bh.away_message,
+              tokens_used: 0,
+            });
+          }
+          return;
+        }
+      }
 
       // ── Manual override check ──────────────────────────────────────────────
       const { data: convState } = await admin

@@ -1,14 +1,16 @@
 import { useState, useEffect } from 'react';
-import { LayoutDashboard, Link2, MessagesSquare, LogOut, Shield, Menu, X, Bot, Database, CreditCard } from 'lucide-react';
+import { LayoutDashboard, Link2, MessagesSquare, LogOut, Shield, Menu, X, Bot, Database, CreditCard, Sparkles } from 'lucide-react';
 import { Logo } from './Logo';
+import { NotificationsDropdown } from './NotificationsDropdown';
 import { useAuth } from '../context/AuthContext';
 import { supabase, Plan } from '../lib/supabase';
 
-export type PageKey = 'overview' | 'agents' | 'connections' | 'knowledge' | 'chat' | 'plans';
+export type PageKey = 'overview' | 'agents' | 'templates' | 'connections' | 'knowledge' | 'chat' | 'plans';
 
 const ITEMS: { key: PageKey; label: string; icon: typeof LayoutDashboard }[] = [
   { key: 'overview', label: 'Visão Geral', icon: LayoutDashboard },
   { key: 'agents', label: 'Agentes', icon: Bot },
+  { key: 'templates', label: 'Templates', icon: Sparkles },
   { key: 'connections', label: 'Conexões', icon: Link2 },
   { key: 'knowledge', label: 'Base de Conhecimento', icon: Database },
   { key: 'chat', label: 'Chat', icon: MessagesSquare },
@@ -94,6 +96,7 @@ export function Sidebar({
       </nav>
 
       <div className="border-t border-[#202020] p-3 space-y-1">
+        <NotificationsDropdown />
         {profile?.role === 'admin' && onNavAdmin && (
           <button
             onClick={onNavAdmin}

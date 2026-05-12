@@ -11,6 +11,7 @@ import { ConnectionsPage } from './user/ConnectionsPage';
 import { KnowledgePage } from './user/KnowledgePage';
 import { ChatPage } from './user/ChatPage';
 import { PlansPage } from './user/PlansPage';
+import { TemplateGalleryPage } from './user/TemplateGalleryPage';
 
 const STORAGE_KEY = 'auratalk:lastPage';
 
@@ -25,7 +26,7 @@ export function Dashboard({ onNavAdmin }: { onNavAdmin: () => void }) {
 
   const [page, setPage] = useState<PageKey>(() => {
     const saved = localStorage.getItem(STORAGE_KEY) as PageKey | null;
-    const valid: PageKey[] = ['overview', 'agents', 'connections', 'knowledge', 'chat', 'plans'];
+    const valid: PageKey[] = ['overview', 'agents', 'templates', 'connections', 'knowledge', 'chat', 'plans'];
     return saved && valid.includes(saved) ? saved : 'overview';
   });
 
@@ -119,6 +120,17 @@ export function Dashboard({ onNavAdmin }: { onNavAdmin: () => void }) {
             onSelectAgent={(inst) => setSelectedAgent(inst)}
             onInstanceUpdate={(updated) => setInstances((prev) => prev.map((i) => i.id === updated.id ? updated : i))}
             linkedBaseCounts={linkedBaseCounts}
+          />
+        );
+
+      case 'templates':
+        return (
+          <TemplateGalleryPage
+            onAgentCreated={(inst) => {
+              setInstances((prev) => [...prev, inst]);
+              setSelectedAgent(inst);
+              setPage('agents');
+            }}
           />
         );
 

@@ -2,10 +2,10 @@ import { useEffect, useState } from 'react';
 import {
   ArrowLeft, Loader2, Upload, Sparkles, Check, Trash2,
   Save, Pause, Play, Database, Link2, X, Plus, Wifi, WifiOff, ExternalLink,
-  ShieldAlert,
+  ShieldAlert, Clock, MessageSquare, Copy,
 } from 'lucide-react';
 import {
-  supabase, Instance, KnowledgeBase, WhatsappConnection,
+  supabase, Instance, KnowledgeBase, WhatsappConnection, BusinessHours,
   AGENT_COLORS, TONE_OPTIONS, EMOJI_OPTIONS, LANGUAGE_OPTIONS,
   buildSystemPrompt,
 } from '../../lib/supabase';
@@ -23,6 +23,7 @@ type Props = {
 
 export function AgentDetailPage({ instance, onBack, onUpdate, onDelete }: Props) {
   const [tab, setTab] = useState<Tab>('profile');
+  const [showTest, setShowTest] = useState(false);
 
   const tabs: { key: Tab; label: string }[] = [
     { key: 'profile', label: 'Perfil' },
@@ -51,12 +52,20 @@ export function AgentDetailPage({ instance, onBack, onUpdate, onDelete }: Props)
             {instance.display_name || instance.instance_name}
           </span>
         </div>
-        <button
-          onClick={() => onDelete(instance)}
-          className="ml-auto text-neutral-500 hover:text-red-400 border border-[#242424] hover:border-red-900/60 rounded-lg px-3 py-1.5 text-xs flex items-center gap-1.5 transition-colors"
-        >
-          <Trash2 size={12} /> Excluir agente
-        </button>
+        <div className="ml-auto flex items-center gap-2">
+          <button
+            onClick={() => setShowTest(true)}
+            className="text-neutral-400 hover:text-white border border-[#242424] hover:border-[#363636] rounded-lg px-3 py-1.5 text-xs flex items-center gap-1.5 transition-colors"
+          >
+            <MessageSquare size={12} /> Testar agente
+          </button>
+          <button
+            onClick={() => onDelete(instance)}
+            className="text-neutral-500 hover:text-red-400 border border-[#242424] hover:border-red-900/60 rounded-lg px-3 py-1.5 text-xs flex items-center gap-1.5 transition-colors"
+          >
+            <Trash2 size={12} /> Excluir agente
+          </button>
+        </div>
       </div>
 
       <div className="flex gap-1 bg-[#141414] border border-[#242424] rounded-lg p-1 w-fit">
@@ -77,6 +86,10 @@ export function AgentDetailPage({ instance, onBack, onUpdate, onDelete }: Props)
       {tab === 'knowledge' && <KnowledgeTab instance={instance} onUpdate={onUpdate} />}
       {tab === 'connections' && <ConnectionsTab instance={instance} onNavConnections={onUpdate} />}
       {tab === 'advanced' && <AdvancedTab instance={instance} onUpdate={onUpdate} />}
+
+      {showTest && (
+        <AgentTestModal instance={instance} onClose={() => setShowTest(false)} />
+      )}
     </div>
   );
 }
@@ -376,6 +389,8 @@ function AdvancedTab({ instance, onUpdate }: { instance: Instance; onUpdate: () 
           {instance.flow_status === 'active' ? 'Fluxo ativo' : 'Fluxo pausado'}
         </button>
       </div>
+
+      <BusinessHoursSection instance={instance} onUpdate={onUpdate} />
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 space-y-5 border border-[#242424] rounded-xl bg-[#141414] p-6">
@@ -777,6 +792,298 @@ function ConnectionsTab({ instance, onNavConnections }: { instance: Instance; on
           })}
         </div>
       )}
+    </div>
+  );
+}
+
+// ─── Business Hours Section ──────────────────────────────────────────────────
+
+const DAYS = [
+  { key: 'mon', label: 'Segunda' },
+  { key: 'tue', label: 'Terça' },
+  { key: 'wed', label: 'Quarta' },
+  { key: 'thu', label: 'Quinta' },
+  { key: 'fri', label: 'Sexta' },
+  { key: 'sat', label: 'Sábado' },
+  { key: 'sun', label: 'Domingo' },
+];
+
+const TIMEZONES = [
+  'America/Sao_Paulo',
+  'America/Fortaleza',
+  'America/Manaus',
+  'America/Cuiaba',
+  'America/Rio_Branco',
+];
+
+const DEFAULT_HOURS: BusinessHours = {
+  enabled: false,
+  timezone: 'America/Sao_Paulo',
+  schedule: Object.fromEntries(DAYS.map((d) => [d.key, { start: '08:00', end: '18:00', active: d.key !== 'sat' && d.key !== 'sun' }])),
+  away_message: 'Estamos fora do horário de atendimento. Retornaremos em breve!',
+};
+
+function BusinessHoursSection({ instance, onUpdate }: { instance: Instance; onUpdate: () => void }) {
+  const [hours, setHours] = useState<BusinessHours>(() => (instance.business_hours as BusinessHours) || DEFAULT_HOURS);
+  const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
+
+  useEffect(() => {
+    setHours((instance.business_hours as BusinessHours) || DEFAULT_HOURS);
+  }, [instance.id]);
+
+  const updateSchedule = (dayKey: string, field: 'start' | 'end' | 'active', value: string | boolean) => {
+    setHours((prev) => ({
+      ...prev,
+      schedule: {
+        ...prev.schedule,
+        [dayKey]: { ...prev.schedule[dayKey], [field]: value },
+      },
+    }));
+  };
+
+  const copyToAll = () => {
+    const firstActive = DAYS.find((d) => hours.schedule[d.key]?.active);
+    if (!firstActive) return;
+    const source = hours.schedule[firstActive.key];
+    setHours((prev) => ({
+      ...prev,
+      schedule: Object.fromEntries(DAYS.map((d) => [d.key, { ...prev.schedule[d.key], start: source.start, end: source.end }])),
+    }));
+  };
+
+  const save = async () => {
+    setSaving(true);
+    await supabase
+      .from('instances')
+      .update({ business_hours: hours })
+      .eq('id', instance.id);
+    setSaving(false);
+    setSaved(true);
+    setTimeout(() => setSaved(false), 2000);
+    onUpdate();
+  };
+
+  return (
+    <div className="border border-[#242424] rounded-xl bg-[#141414] p-6 space-y-4">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <Clock size={14} className="text-neutral-400" />
+          <span className="text-sm text-white font-medium">Horário de Funcionamento</span>
+        </div>
+        <button
+          onClick={() => setHours((prev) => ({ ...prev, enabled: !prev.enabled }))}
+          className={`text-xs px-3 py-1.5 rounded-lg border transition-colors ${
+            hours.enabled
+              ? 'border-emerald-900/40 bg-emerald-950/30 text-emerald-400'
+              : 'border-[#242424] text-neutral-500'
+          }`}
+        >
+          {hours.enabled ? 'Ativo' : 'Desativado'}
+        </button>
+      </div>
+
+      {hours.enabled && (
+        <div className="space-y-4 pt-2">
+          <div className="flex items-center gap-3">
+            <label className="text-xs text-neutral-400">Fuso horário</label>
+            <select
+              value={hours.timezone}
+              onChange={(e) => setHours((prev) => ({ ...prev, timezone: e.target.value }))}
+              className="bg-[#0d0d0d] border border-[#1c1c1c] rounded-lg px-3 py-1.5 text-xs text-white focus:border-[#363636] outline-none"
+            >
+              {TIMEZONES.map((tz) => (
+                <option key={tz} value={tz}>{tz.replace('America/', '')}</option>
+              ))}
+            </select>
+            <button
+              onClick={copyToAll}
+              className="ml-auto text-[11px] text-neutral-500 hover:text-white flex items-center gap-1 transition-colors"
+            >
+              <Copy size={10} /> Copiar para todos
+            </button>
+          </div>
+
+          <div className="space-y-1.5">
+            {DAYS.map((day) => {
+              const sched = hours.schedule[day.key];
+              return (
+                <div key={day.key} className="flex items-center gap-3">
+                  <button
+                    onClick={() => updateSchedule(day.key, 'active', !sched?.active)}
+                    className={`w-16 text-xs text-left transition-colors ${sched?.active ? 'text-white' : 'text-neutral-600 line-through'}`}
+                  >
+                    {day.label}
+                  </button>
+                  {sched?.active ? (
+                    <>
+                      <input
+                        type="time"
+                        value={sched.start}
+                        onChange={(e) => updateSchedule(day.key, 'start', e.target.value)}
+                        className="bg-[#0d0d0d] border border-[#1c1c1c] rounded px-2 py-1 text-xs text-white focus:border-[#363636] outline-none"
+                      />
+                      <span className="text-neutral-600 text-xs">ate</span>
+                      <input
+                        type="time"
+                        value={sched.end}
+                        onChange={(e) => updateSchedule(day.key, 'end', e.target.value)}
+                        className="bg-[#0d0d0d] border border-[#1c1c1c] rounded px-2 py-1 text-xs text-white focus:border-[#363636] outline-none"
+                      />
+                    </>
+                  ) : (
+                    <span className="text-[11px] text-neutral-600">Fechado</span>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+
+          <div>
+            <label className="block text-xs text-neutral-400 mb-1.5">Mensagem de ausencia</label>
+            <textarea
+              value={hours.away_message}
+              onChange={(e) => setHours((prev) => ({ ...prev, away_message: e.target.value }))}
+              rows={2}
+              className="w-full bg-[#0d0d0d] border border-[#1c1c1c] rounded-lg px-3 py-2 text-sm text-white focus:border-[#363636] outline-none transition-colors resize-none"
+            />
+          </div>
+
+          <button
+            onClick={save}
+            disabled={saving}
+            className="bg-white text-black rounded-lg px-4 py-2 text-xs font-medium flex items-center gap-2 hover:bg-neutral-200 transition-colors disabled:opacity-50"
+          >
+            {saving ? <Loader2 size={12} className="animate-spin" /> : saved ? <Check size={12} /> : <Save size={12} />}
+            {saved ? 'Salvo' : 'Salvar horario'}
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── Agent Test Modal ────────────────────────────────────────────────────────
+
+type TestMessage = { role: 'user' | 'assistant'; content: string };
+
+function AgentTestModal({ instance, onClose }: { instance: Instance; onClose: () => void }) {
+  const [messages, setMessages] = useState<TestMessage[]>([]);
+  const [input, setInput] = useState('');
+  const [loading, setLoading] = useState(false);
+
+  const send = async () => {
+    const text = input.trim();
+    if (!text || loading) return;
+    setInput('');
+    const updated = [...messages, { role: 'user' as const, content: text }];
+    setMessages(updated);
+    setLoading(true);
+
+    try {
+      const apiUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/test-agent`;
+      const res = await fetch(apiUrl, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          instance_id: instance.id,
+          message: text,
+          conversation_history: updated,
+        }),
+      });
+      const data = await res.json();
+      setMessages((prev) => [...prev, { role: 'assistant', content: data.reply || data.error || 'Sem resposta' }]);
+    } catch {
+      setMessages((prev) => [...prev, { role: 'assistant', content: 'Erro ao conectar com o agente.' }]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 bg-[#050505] flex flex-col animate-fade-in">
+      <div className="border-b border-[#242424] px-6 py-4 flex items-center gap-4 bg-[#0d0d0d]">
+        <AgentAvatar
+          name={instance.display_name || instance.instance_name}
+          url={instance.avatar_url}
+          color={instance.color}
+          size={36}
+        />
+        <div className="flex-1 min-w-0">
+          <div className="text-sm text-white font-medium truncate">
+            {instance.display_name || instance.instance_name}
+          </div>
+          <div className="text-[11px] text-amber-400 font-medium uppercase tracking-wider">Modo Teste</div>
+        </div>
+        <button
+          onClick={() => setMessages([])}
+          className="text-xs text-neutral-500 hover:text-white border border-[#242424] hover:border-[#363636] rounded-lg px-3 py-1.5 transition-colors"
+        >
+          Limpar
+        </button>
+        <button
+          onClick={onClose}
+          className="text-neutral-500 hover:text-white transition-colors"
+        >
+          <X size={18} />
+        </button>
+      </div>
+
+      <div className="flex-1 overflow-y-auto px-6 py-6 space-y-4">
+        {messages.length === 0 && (
+          <div className="text-center py-20">
+            <MessageSquare size={32} className="mx-auto text-neutral-700 mb-3" strokeWidth={1.5} />
+            <p className="text-sm text-neutral-500">Envie uma mensagem para testar o agente</p>
+            <p className="text-xs text-neutral-600 mt-1">Nenhuma mensagem sera enviada ao WhatsApp</p>
+          </div>
+        )}
+        {messages.map((msg, i) => (
+          <div key={i} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+            <div
+              className={`max-w-[70%] rounded-2xl px-4 py-2.5 text-sm leading-relaxed ${
+                msg.role === 'user'
+                  ? 'bg-white text-black rounded-br-md'
+                  : 'bg-[#1a1a1a] border border-[#242424] text-neutral-200 rounded-bl-md'
+              }`}
+            >
+              {msg.content}
+            </div>
+          </div>
+        ))}
+        {loading && (
+          <div className="flex justify-start">
+            <div className="bg-[#1a1a1a] border border-[#242424] rounded-2xl rounded-bl-md px-4 py-3">
+              <div className="flex gap-1">
+                <div className="w-2 h-2 bg-neutral-500 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+                <div className="w-2 h-2 bg-neutral-500 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+                <div className="w-2 h-2 bg-neutral-500 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+
+      <div className="border-t border-[#242424] px-6 py-4 bg-[#0d0d0d]">
+        <div className="flex gap-3 max-w-3xl mx-auto">
+          <input
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); } }}
+            placeholder="Digite uma mensagem de teste..."
+            className="flex-1 bg-[#141414] border border-[#242424] rounded-xl px-4 py-3 text-sm text-white placeholder-neutral-600 focus:border-[#363636] outline-none transition-colors"
+          />
+          <button
+            onClick={send}
+            disabled={!input.trim() || loading}
+            className="bg-white text-black rounded-xl px-5 py-3 text-sm font-medium hover:bg-neutral-200 transition-colors disabled:opacity-50"
+          >
+            Enviar
+          </button>
+        </div>
+      </div>
     </div>
   );
 }

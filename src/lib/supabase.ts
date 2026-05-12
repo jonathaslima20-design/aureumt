@@ -60,6 +60,7 @@ export type Instance = {
   emoji_usage: string;
   signature: string;
   is_multimodal_active: boolean;
+  business_hours: BusinessHours | null;
 };
 
 export type WhatsappConnection = {
@@ -258,5 +259,59 @@ export type UserPlan = {
   status: 'active' | 'cancelled' | 'expired';
   starts_at: string;
   expires_at: string | null;
+  created_at: string;
+};
+
+export type AgentTemplate = {
+  id: string;
+  title: string;
+  description: string;
+  icon: string;
+  profile_image_url: string | null;
+  base_prompt: string;
+  default_settings: {
+    tone: string;
+    language: string;
+    emoji_usage: string;
+  };
+  custom_fields: Array<{
+    key: string;
+    label: string;
+    placeholder: string;
+    type: 'text' | 'textarea' | 'url';
+    required: boolean;
+  }>;
+  sort_order: number;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+};
+
+export type BusinessHours = {
+  enabled: boolean;
+  timezone: string;
+  schedule: Record<string, { start: string; end: string; active: boolean }>;
+  away_message: string;
+};
+
+export type Notification = {
+  id: string;
+  user_id: string;
+  instance_id: string;
+  type: 'overflow' | 'keyword_alert';
+  title: string;
+  body: string;
+  customer_number: string;
+  is_read: boolean;
+  created_at: string;
+};
+
+export type ConversionEvent = {
+  id: string;
+  instance_id: string;
+  whatsapp_connection_id: string | null;
+  customer_number: string;
+  event_type: 'lead_captured' | 'resolved' | 'abandoned' | 'sale_influenced';
+  metadata: Record<string, unknown>;
   created_at: string;
 };
