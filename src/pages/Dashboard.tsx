@@ -117,6 +117,7 @@ export function Dashboard({ onNavAdmin }: { onNavAdmin: () => void }) {
             instances={instances}
             onCreateAgent={() => setShowCreate(true)}
             onSelectAgent={(inst) => setSelectedAgent(inst)}
+            onInstanceUpdate={(updated) => setInstances((prev) => prev.map((i) => i.id === updated.id ? updated : i))}
             linkedBaseCounts={linkedBaseCounts}
           />
         );

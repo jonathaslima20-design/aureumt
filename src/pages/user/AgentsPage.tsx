@@ -1,12 +1,13 @@
 import { useState } from 'react';
-import { Plus, Link2, Play, Pause, ChevronRight, Database } from 'lucide-react';
-import { Instance } from '../../lib/supabase';
+import { Plus, Link2, Play, Pause, ChevronRight, Database, Power } from 'lucide-react';
+import { supabase, Instance } from '../../lib/supabase';
 import { AgentAvatar } from '../../components/AgentAvatar';
 
 type Props = {
   instances: Instance[];
   onCreateAgent: () => void;
   onSelectAgent: (instance: Instance) => void;
+  onInstanceUpdate: (updated: Instance) => void;
   linkedBaseCounts: Record<string, number>;
 };
 
@@ -17,7 +18,7 @@ const TONE_LABELS: Record<string, string> = {
   technical: 'Técnico',
   warm: 'Acolhedor',
 };
-export function AgentsPage({ instances, onCreateAgent, onSelectAgent, linkedBaseCounts }: Props) {
+export function AgentsPage({ instances, onCreateAgent, onSelectAgent, onInstanceUpdate, linkedBaseCounts }: Props) {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between flex-wrap gap-3">
@@ -57,6 +58,7 @@ export function AgentsPage({ instances, onCreateAgent, onSelectAgent, linkedBase
               instance={inst}
               linkedBases={linkedBaseCounts[inst.id] ?? 0}
               onClick={() => onSelectAgent(inst)}
+              onToggleStatus={onInstanceUpdate}
             />
           ))}
         </div>
@@ -70,17 +72,35 @@ function AgentCard({
   instance,
   linkedBases,
   onClick,
+  onToggleStatus,
 }: {
   instance: Instance;
   linkedBases: number;
   onClick: () => void;
+  onToggleStatus: (updated: Instance) => void;
 }) {
+  const [toggling, setToggling] = useState(false);
   const name = instance.display_name || instance.instance_name;
   const isActive = instance.flow_status === 'active';
 
   const color = instance.color || '#3b82f6';
   const glowColor = `${color}22`;
   const glowBorder = `${color}40`;
+
+  const handleToggle = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (toggling) return;
+    setToggling(true);
+    const newStatus = isActive ? 'paused' : 'active';
+    const { error } = await supabase
+      .from('instances')
+      .update({ flow_status: newStatus })
+      .eq('id', instance.id);
+    if (!error) {
+      onToggleStatus({ ...instance, flow_status: newStatus });
+    }
+    setToggling(false);
+  };
 
   return (
     <button
@@ -137,11 +157,22 @@ function AgentCard({
           </span>
         </div>
 
-        {instance.tone && (
-          <span className="text-[11px] text-neutral-500">
-            {TONE_LABELS[instance.tone] || instance.tone}
-          </span>
-        )}
+        <div
+          role="switch"
+          aria-checked={isActive}
+          aria-label={isActive ? 'Desativar agente' : 'Ativar agente'}
+          onClick={handleToggle}
+          className={`relative flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-medium cursor-pointer transition-all ${
+            toggling ? 'opacity-50 pointer-events-none' : ''
+          } ${
+            isActive
+              ? 'bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20'
+              : 'bg-neutral-700/30 text-neutral-400 hover:bg-neutral-700/50'
+          }`}
+        >
+          <Power size={11} />
+          {isActive ? 'Ligado' : 'Desligado'}
+        </div>
       </div>
 
       <div className="flex items-center gap-2 mt-auto pt-1">
