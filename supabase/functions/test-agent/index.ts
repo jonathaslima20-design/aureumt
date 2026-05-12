@@ -277,8 +277,24 @@ Deno.serve(async (req: Request) => {
       );
     }
 
+    // Sanitize WhatsApp formatting
+    const sanitizeWhatsApp = (text: string): string => {
+      let s = text;
+      s = s.replace(/\*\*(.+?)\*\*/g, '*$1*');
+      s = s.replace(/__(.+?)__/g, '_$1_');
+      s = s.replace(/~~(.+?)~~/g, '~$1~');
+      s = s.replace(/^#{1,6}\s*/gm, '');
+      s = s.replace(/\*\s+([^*]+?)\*/g, '*$1*');
+      s = s.replace(/\*([^*]+?)\s+\*/g, '*$1*');
+      s = s.replace(/```[^`]*```/gs, (m) => m.replace(/```/g, ''));
+      s = s.replace(/`([^`]+)`/g, '$1');
+      return s;
+    };
+
+    const sanitized = sanitizeWhatsApp(reply);
+
     // Fragment reply the same way as the webhook does for WhatsApp
-    const fragments = reply
+    const fragments = sanitized
       .split(/\||\n/)
       .map((f: string) => f.trim())
       .filter((f: string) => f.length > 0);
