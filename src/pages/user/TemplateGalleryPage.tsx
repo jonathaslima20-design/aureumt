@@ -34,16 +34,16 @@ export function TemplateGalleryPage({ onAgentCreated }: Props) {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       <div>
-        <h1 className="text-2xl font-semibold text-white tracking-tight">Templates</h1>
-        <p className="text-sm text-neutral-500 mt-1">
+        <h1 className="text-xl sm:text-2xl font-semibold text-white tracking-tight">Templates</h1>
+        <p className="text-xs sm:text-sm text-neutral-500 mt-1">
           Escolha um modelo pronto para criar seu agente rapidamente.
         </p>
       </div>
 
       {templates.length === 0 ? (
-        <div className="border border-dashed border-[#242424] rounded-xl py-16 text-center bg-[#0d0d0d]">
+        <div className="border border-dashed border-[#242424] rounded-xl py-12 sm:py-16 text-center bg-[#0d0d0d] px-4">
           <Sparkles size={24} className="mx-auto text-neutral-700 mb-3" strokeWidth={1.5} />
           <p className="text-sm text-neutral-500 mb-1">Nenhum template disponivel</p>
           <p className="text-xs text-neutral-600">
@@ -51,7 +51,7 @@ export function TemplateGalleryPage({ onAgentCreated }: Props) {
           </p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3 sm:gap-4">
           {templates.map((t) => (
             <TemplateCard key={t.id} template={t} onUse={() => setSelected(t)} />
           ))}
@@ -75,7 +75,7 @@ function TemplateCard({ template, onUse }: { template: AgentTemplate; onUse: () 
 
   return (
     <div className="bg-[#141414] border border-[#242424] rounded-xl overflow-hidden hover:border-[#2e2e2e] transition-all group">
-      <div className="p-5 space-y-3">
+      <div className="p-4 sm:p-5 space-y-3">
         <div className="flex items-start gap-3">
           {template.profile_image_url ? (
             <img
@@ -202,9 +202,9 @@ function UseTemplateModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 animate-fade-in">
-      <div className="bg-[#141414] border border-[#242424] rounded-2xl w-full max-w-md overflow-hidden">
-        <div className="flex items-center justify-between px-6 py-4 border-b border-[#242424]">
+    <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-end sm:items-center justify-center sm:p-4 animate-fade-in">
+      <div className="bg-[#141414] border border-[#242424] rounded-t-2xl sm:rounded-2xl w-full max-w-md overflow-hidden max-h-[90vh] sm:max-h-none">
+        <div className="flex items-center justify-between px-4 sm:px-6 py-4 border-b border-[#242424]">
           <div className="flex items-center gap-3">
             {template.profile_image_url ? (
               <img src={template.profile_image_url} alt="" className="w-8 h-8 rounded-full object-cover" />
@@ -223,7 +223,7 @@ function UseTemplateModal({
           </button>
         </div>
 
-        <div className="p-6 space-y-4 max-h-[60vh] overflow-y-auto">
+        <div className="p-4 sm:p-6 space-y-4 max-h-[70vh] sm:max-h-[60vh] overflow-y-auto">
           <div>
             <label className="block text-xs text-neutral-400 mb-1.5">Nome do agente *</label>
             <input

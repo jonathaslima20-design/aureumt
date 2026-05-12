@@ -150,12 +150,12 @@ export function OverviewPage({ instance }: { instance: Instance }) {
         </div>
       </div>
 
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2 sm:gap-3">
         <MetricCard icon={MessageSquare} label="Msgs hoje" value={metrics.messagesToday.toString()} />
         <MetricCard icon={Users} label="Contatos" value={metrics.activeContacts.toString()} />
         <MetricCard icon={AlertTriangle} label="Transbordo" value={`${metrics.overflowRate}%`} />
         <MetricCard icon={CheckCircle2} label="Resolucao" value={`${metrics.resolutionRate}%`} accent="emerald" />
-        <MetricCard icon={TrendingUp} label="Msgs/conversa" value={metrics.avgMsgsPerConversation.toString()} />
+        <MetricCard icon={TrendingUp} label="Msgs/conv." value={metrics.avgMsgsPerConversation.toString()} />
         <MetricCard icon={Clock} label="Tempo resp." value={metrics.avgResponseTime} />
       </div>
 
@@ -175,11 +175,11 @@ export function OverviewPage({ instance }: { instance: Instance }) {
         </div>
       )}
 
-      <div className="border border-[#242424] rounded-xl bg-[#141414] p-6">
+      <div className="border border-[#242424] rounded-xl bg-[#141414] p-4 sm:p-6">
         <div className="text-xs uppercase tracking-wider text-neutral-500 mb-4">
           Mensagens nos ultimos {period === '7d' ? '7' : '30'} dias
         </div>
-        <div className="flex items-end gap-1 h-40">
+        <div className="flex items-end gap-0.5 sm:gap-1 h-32 sm:h-40">
           {series.map((s) => (
             <div key={s.day} className="flex-1 flex flex-col items-center gap-2 min-w-0">
               <div className="w-full flex-1 flex items-end">
@@ -198,7 +198,7 @@ export function OverviewPage({ instance }: { instance: Instance }) {
         </div>
       </div>
 
-      <div className="border border-[#242424] rounded-xl bg-[#141414] p-6">
+      <div className="border border-[#242424] rounded-xl bg-[#141414] p-4 sm:p-6">
         <div className="text-xs uppercase tracking-wider text-neutral-500 mb-4">Ultimas mensagens</div>
         {last.length === 0 ? (
           <p className="text-xs text-neutral-600 py-6 text-center">Nenhuma mensagem ainda</p>
@@ -207,18 +207,20 @@ export function OverviewPage({ instance }: { instance: Instance }) {
             {last.map((log) => (
               <div
                 key={log.id}
-                className="border border-[#1c1c1c] rounded-lg px-3 py-2.5 flex items-center gap-3 bg-[#0d0d0d]"
+                className="border border-[#1c1c1c] rounded-lg px-3 py-2 sm:py-2.5 flex items-start sm:items-center gap-2 sm:gap-3 bg-[#0d0d0d] flex-wrap sm:flex-nowrap"
               >
-                {log.direction === 'in' ? (
-                  <ArrowDownLeft size={12} className="text-blue-400 shrink-0" />
-                ) : (
-                  <ArrowUpRight size={12} className="text-emerald-400 shrink-0" />
-                )}
-                <span className="text-[11px] text-neutral-500 font-mono shrink-0">
-                  {log.customer_number}
-                </span>
-                <p className="text-xs text-neutral-300 truncate flex-1">{log.message_body}</p>
-                <span className="text-[10px] text-neutral-600 shrink-0">
+                <div className="flex items-center gap-2 shrink-0">
+                  {log.direction === 'in' ? (
+                    <ArrowDownLeft size={12} className="text-blue-400 shrink-0" />
+                  ) : (
+                    <ArrowUpRight size={12} className="text-emerald-400 shrink-0" />
+                  )}
+                  <span className="text-[11px] text-neutral-500 font-mono">
+                    {log.customer_number}
+                  </span>
+                </div>
+                <p className="text-xs text-neutral-300 truncate flex-1 w-full sm:w-auto">{log.message_body}</p>
+                <span className="text-[10px] text-neutral-600 shrink-0 ml-auto">
                   {new Date(log.created_at).toLocaleTimeString('pt-BR', {
                     hour: '2-digit',
                     minute: '2-digit',
@@ -245,12 +247,12 @@ function MetricCard({
   accent?: 'emerald';
 }) {
   return (
-    <div className="border border-[#242424] rounded-xl bg-[#141414] p-4 hover:border-[#2e2e2e] transition-colors">
-      <div className="flex items-center gap-2 text-neutral-500 mb-3">
-        <Icon size={13} strokeWidth={1.8} />
-        <span className="text-[11px] uppercase tracking-wider">{label}</span>
+    <div className="border border-[#242424] rounded-xl bg-[#141414] p-3 sm:p-4 hover:border-[#2e2e2e] transition-colors">
+      <div className="flex items-center gap-1.5 sm:gap-2 text-neutral-500 mb-2 sm:mb-3">
+        <Icon size={12} strokeWidth={1.8} />
+        <span className="text-[10px] sm:text-[11px] uppercase tracking-wider truncate">{label}</span>
       </div>
-      <div className={`text-xl font-semibold tracking-tight ${accent === 'emerald' ? 'text-emerald-400' : 'text-white'}`}>
+      <div className={`text-lg sm:text-xl font-semibold tracking-tight ${accent === 'emerald' ? 'text-emerald-400' : 'text-white'}`}>
         {value}
       </div>
     </div>

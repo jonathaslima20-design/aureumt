@@ -243,8 +243,8 @@ export function CreateAgentModal({ userId, onClose, onCreated }: Props) {
         onCancel={() => setCropSrc(null)}
       />
     )}
-    <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center p-4">
-      <div className="bg-[#080808] border border-white/[0.08] rounded-2xl w-full max-w-xl max-h-[90vh] overflow-hidden flex flex-col shadow-2xl">
+    <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-end sm:items-center justify-center sm:p-4">
+      <div className="bg-[#080808] border border-white/[0.08] rounded-t-2xl sm:rounded-2xl w-full max-w-xl max-h-[92vh] sm:max-h-[90vh] overflow-hidden flex flex-col shadow-2xl">
 
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-white/[0.06] shrink-0">

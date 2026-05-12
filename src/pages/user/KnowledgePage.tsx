@@ -98,17 +98,17 @@ export function KnowledgePage() {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between flex-wrap gap-3">
+    <div className="space-y-4 sm:space-y-6">
+      <div className="flex items-start sm:items-center justify-between flex-wrap gap-3">
         <div>
-          <h1 className="text-2xl font-semibold text-white tracking-tight">Base de Conhecimento</h1>
-          <p className="text-sm text-neutral-500 mt-1">
-            Organize o conhecimento dos seus negócios em bases independentes.
+          <h1 className="text-xl sm:text-2xl font-semibold text-white tracking-tight">Base de Conhecimento</h1>
+          <p className="text-xs sm:text-sm text-neutral-500 mt-1">
+            Organize o conhecimento em bases independentes.
           </p>
         </div>
         <button
           onClick={() => setShowCreate(true)}
-          className="bg-white text-black rounded-lg px-4 py-2.5 text-sm font-medium flex items-center gap-2 hover:bg-neutral-200 transition-colors"
+          className="bg-white text-black rounded-lg px-3 sm:px-4 py-2 sm:py-2.5 text-xs sm:text-sm font-medium flex items-center gap-2 hover:bg-neutral-200 transition-colors"
         >
           <Plus size={14} /> Nova base
         </button>
@@ -135,12 +135,12 @@ export function KnowledgePage() {
           </button>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3 sm:gap-4">
           {bases.map((base) => (
             <button
               key={base.id}
               onClick={() => setSelectedBase(base)}
-              className="group text-left bg-[#141414] border border-[#242424] rounded-2xl p-5 transition-all duration-300 flex flex-col gap-3 aura-card"
+              className="group text-left bg-[#141414] border border-[#242424] rounded-2xl p-4 sm:p-5 transition-all duration-300 flex flex-col gap-3 aura-card"
             >
               <div className="flex items-start justify-between gap-2">
                 <div className="w-9 h-9 rounded-xl bg-[#141414] border border-[#242424] flex items-center justify-center shrink-0">
@@ -389,7 +389,7 @@ function KnowledgeBaseDetail({
         </div>
       )}
 
-      <div className="flex gap-1 bg-[#141414] border border-[#242424] rounded-lg p-1">
+      <div className="flex gap-1 bg-[#141414] border border-[#242424] rounded-lg p-1 overflow-x-auto scrollbar-thin">
         {([
           { key: 'sources', label: 'Fontes', icon: FileEdit },
           { key: 'upload', label: 'Arquivo', icon: UploadCloud },
@@ -407,7 +407,7 @@ function KnowledgeBaseDetail({
             <button
               key={t.key}
               onClick={() => setTab(t.key)}
-              className={`flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-md text-xs font-medium transition-colors relative ${
+              className={`flex-1 flex items-center justify-center gap-1.5 sm:gap-2 px-2 sm:px-3 py-2 rounded-md text-xs font-medium transition-colors relative whitespace-nowrap ${
                 tab === t.key ? 'bg-[#1e1e1e] text-white' : 'text-neutral-500 hover:text-neutral-300'
               }`}
             >
@@ -534,8 +534,8 @@ function ConsolidatedEditor({
       <textarea
         value={content}
         onChange={(e) => setContent(e.target.value)}
-        rows={22}
-        className="w-full bg-[#0d0d0d] border border-[#1c1c1c] rounded-xl px-4 py-3 text-xs text-neutral-300 placeholder:text-neutral-700 focus:outline-none focus:border-[#363636] transition-colors resize-none leading-relaxed font-mono"
+        rows={12}
+        className="w-full bg-[#0d0d0d] border border-[#1c1c1c] rounded-xl px-3 sm:px-4 py-3 text-xs text-neutral-300 placeholder:text-neutral-700 focus:outline-none focus:border-[#363636] transition-colors resize-y leading-relaxed font-mono min-h-[200px] sm:min-h-[400px]"
         placeholder="O conteúdo extraído dos arquivos, URLs e gravações aparecerá aqui. Você pode editar diretamente este texto."
       />
 

@@ -84,22 +84,22 @@ export function PlansPage() {
   }
 
   return (
-    <div className="space-y-8">
-      <div className="text-center max-w-2xl mx-auto">
-        <h1 className="text-2xl font-semibold text-white tracking-tight">Planos</h1>
-        <p className="text-sm text-neutral-500 mt-2 leading-relaxed">
+    <div className="space-y-6 sm:space-y-8">
+      <div className="text-center max-w-2xl mx-auto px-2">
+        <h1 className="text-xl sm:text-2xl font-semibold text-white tracking-tight">Planos</h1>
+        <p className="text-xs sm:text-sm text-neutral-500 mt-2 leading-relaxed">
           Escolha o plano ideal para o seu negocio. Todos incluem suporte e atualizacoes.
         </p>
       </div>
 
       {/* Billing cycle toggle */}
-      <div className="flex justify-center">
-        <div className="inline-flex items-center bg-[#0a0a0a] border border-[#1a1a1a] rounded-xl p-1 gap-0.5">
+      <div className="flex justify-center px-2">
+        <div className="inline-flex items-center bg-[#0a0a0a] border border-[#1a1a1a] rounded-xl p-1 gap-0.5 overflow-x-auto">
           {(['monthly', 'semiannual', 'annual'] as BillingCycle[]).map((c) => (
             <button
               key={c}
               onClick={() => setCycle(c)}
-              className={`px-4 py-2 rounded-lg text-xs font-medium transition-all ${
+              className={`px-3 sm:px-4 py-2 rounded-lg text-xs font-medium transition-all whitespace-nowrap ${
                 cycle === c
                   ? 'bg-white text-black'
                   : 'text-neutral-400 hover:text-white'
@@ -117,7 +117,7 @@ export function PlansPage() {
       </div>
 
       {/* Plans grid */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 max-w-5xl mx-auto">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-3 sm:gap-4 max-w-5xl mx-auto">
         {plans.map((plan) => {
           const price = getPrice(plan, cycle);
           const link = getPaymentLink(plan, cycle);
@@ -127,7 +127,7 @@ export function PlansPage() {
           return (
             <div
               key={plan.id}
-              className={`relative rounded-2xl border p-6 flex flex-col transition-all ${
+              className={`relative rounded-2xl border p-4 sm:p-6 flex flex-col transition-all ${
                 plan.highlight
                   ? 'border-white/20 bg-[#0d0d0d] shadow-[0_0_40px_-12px_rgba(255,255,255,0.1)]'
                   : 'border-[#1a1a1a] bg-[#0a0a0a] hover:border-[#262626]'

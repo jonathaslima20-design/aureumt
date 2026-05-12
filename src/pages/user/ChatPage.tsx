@@ -429,6 +429,7 @@ export function ChatPage({ instance, instances }: { instance: Instance; instance
   const [showQR, setShowQR] = useState(false);
   const [qrQuery, setQrQuery] = useState('');
   const [showQRPanel, setShowQRPanel] = useState(false);
+  const [showMobileThread, setShowMobileThread] = useState(false);
 
   const threadRef = useRef<HTMLDivElement>(null);
   const composeRef = useRef<HTMLTextAreaElement>(null);
@@ -514,6 +515,7 @@ export function ChatPage({ instance, instances }: { instance: Instance; instance
 
   const loadThread = async (number: string) => {
     setLoadingThread(true);
+    setShowMobileThread(true);
     const { data } = await supabase
       .from('chat_logs')
       .select('*')
@@ -621,7 +623,7 @@ export function ChatPage({ instance, instances }: { instance: Instance; instance
 
   return (
     <div className="space-y-4">
-      <div>
+      <div className="hidden lg:block">
         <h1 className="text-2xl font-semibold text-white tracking-tight">Chat</h1>
         <p className="text-sm text-neutral-500 mt-1">
           Histórico por contato com possibilidade de resposta manual.
@@ -632,10 +634,15 @@ export function ChatPage({ instance, instances }: { instance: Instance; instance
         className="border border-[#242424] rounded-xl bg-[#141414] overflow-hidden"
         style={{
           height: 'calc(100vh - 200px)',
-          display: 'grid',
-          gridTemplateColumns: showQRPanel ? '240px 1fr 288px' : '240px 1fr',
+          minHeight: 400,
         }}
       >
+        <div
+          className="h-full hidden lg:grid"
+          style={{
+            gridTemplateColumns: showQRPanel ? '240px 1fr 288px' : '240px 1fr',
+          }}
+        >
         {/* ── LEFT: contacts ── */}
         <div className="border-r border-[#242424] flex flex-col min-w-0 overflow-hidden">
           <div className="p-3 border-b border-[#242424] space-y-2">
@@ -882,6 +889,159 @@ export function ChatPage({ instance, instances }: { instance: Instance; instance
             onInsert={applyQuickReply}
           />
         )}
+        </div>
+
+        {/* ── MOBILE LAYOUT ── */}
+        <div className="lg:hidden h-full flex flex-col">
+          {!showMobileThread ? (
+            /* Mobile: contacts list */
+            <div className="flex flex-col h-full overflow-hidden">
+              <div className="p-3 border-b border-[#242424] space-y-2">
+                <div className="relative">
+                  <Search size={12} className="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-600" />
+                  <input
+                    type="text"
+                    placeholder="Buscar contato"
+                    value={search}
+                    onChange={(e) => setSearch(e.target.value)}
+                    className="w-full bg-[#0d0d0d] border border-[#1c1c1c] rounded-lg pl-8 pr-3 py-2 text-xs text-white placeholder:text-neutral-600 focus:outline-none focus:border-[#363636] transition-colors"
+                  />
+                </div>
+                <div className="flex gap-1 flex-wrap">
+                  <FilterPill active={activeFilter === 'all'} onClick={() => setActiveFilter('all')}>
+                    Todos ({contacts.length})
+                  </FilterPill>
+                  {manualCount > 0 && (
+                    <FilterPill active={activeFilter === 'manual'} onClick={() => setActiveFilter('manual')} amber>
+                      Manual ({manualCount})
+                    </FilterPill>
+                  )}
+                </div>
+              </div>
+              <div className="flex-1 overflow-y-auto scrollbar-thin">
+                {filteredContacts.length === 0 ? (
+                  <div className="text-center py-16 px-4">
+                    <MessagesSquare size={20} className="text-neutral-700 mx-auto mb-3" strokeWidth={1.5} />
+                    <p className="text-xs text-neutral-600">Nenhum contato</p>
+                  </div>
+                ) : (
+                  filteredContacts.map((c) => (
+                    <button
+                      key={c.number}
+                      onClick={() => { setSelected(c.number); loadThread(c.number); }}
+                      className="w-full text-left px-3 py-3 border-b border-[#1a1a1a] hover:bg-[#0d0d0d] transition-colors"
+                    >
+                      <div className="flex items-center justify-between mb-0.5">
+                        <span className="text-xs font-mono text-white truncate flex-1">
+                          {c.name || c.number}
+                        </span>
+                        <span className="text-[10px] text-neutral-600 shrink-0 ml-1">
+                          {new Date(c.lastAt).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
+                        </span>
+                      </div>
+                      <p className="text-[11px] text-neutral-500 truncate">{c.lastMessage}</p>
+                      {c.manual && (
+                        <span className="text-[9px] bg-amber-950/40 border border-amber-900/40 text-amber-400 px-1.5 py-0.5 rounded mt-1 inline-block">
+                          Manual
+                        </span>
+                      )}
+                    </button>
+                  ))
+                )}
+              </div>
+            </div>
+          ) : (
+            /* Mobile: thread view */
+            <div className="flex flex-col h-full overflow-hidden">
+              <div className="px-3 py-2.5 border-b border-[#242424] flex items-center gap-3">
+                <button
+                  onClick={() => setShowMobileThread(false)}
+                  className="text-neutral-400 hover:text-white p-1 transition-colors"
+                >
+                  <X size={16} />
+                </button>
+                <div className="min-w-0 flex-1">
+                  <div className="text-sm text-white font-medium truncate">
+                    {contactName || <span className="font-mono text-xs">{selected}</span>}
+                  </div>
+                  <div className="text-[10px] text-neutral-500">
+                    {selectedContact?.manual ? 'Modo manual' : 'Bot ativo'}
+                  </div>
+                </div>
+                <button
+                  onClick={toggleManual}
+                  className={`text-[10px] px-2.5 py-1.5 rounded-lg border flex items-center gap-1 transition-colors ${
+                    selectedContact?.manual
+                      ? 'bg-amber-950/30 border-amber-900/40 text-amber-400'
+                      : 'border-[#242424] text-neutral-400'
+                  }`}
+                >
+                  <Hand size={10} />
+                  {selectedContact?.manual ? 'Retomar' : 'Manual'}
+                </button>
+              </div>
+
+              <div ref={threadRef} className="flex-1 overflow-y-auto scrollbar-thin p-3 space-y-2.5 bg-[#0a0a0a]">
+                {loadingThread ? (
+                  <div className="flex items-center justify-center py-10">
+                    <Loader2 size={16} className="text-neutral-600 animate-spin" />
+                  </div>
+                ) : (
+                  thread.map((m) => {
+                    const isIn = m.direction === 'in';
+                    return (
+                      <div key={m.id} className={`flex gap-1.5 ${isIn ? 'justify-start' : 'justify-end'}`}>
+                        <div
+                          className={`max-w-[85%] rounded-2xl px-3 py-2 text-[13px] leading-relaxed ${
+                            isIn
+                              ? 'bg-[#1a1a1a] border border-[#242424] text-neutral-200 rounded-tl-sm'
+                              : 'bg-white text-black rounded-tr-sm'
+                          }`}
+                        >
+                          {m.media_type === 'audio' && m.media_url ? (
+                            <audio controls preload="metadata" className="max-w-full h-8" style={{ minWidth: 160 }}>
+                              <source src={m.media_url} />
+                            </audio>
+                          ) : m.media_type === 'image' && m.media_url ? (
+                            <img src={m.media_url} alt="Imagem" className="max-w-full rounded-lg max-h-48 object-contain" />
+                          ) : (
+                            <p className="whitespace-pre-wrap break-words">{m.message_body}</p>
+                          )}
+                          <div className={`text-[9px] mt-1 ${isIn ? 'text-neutral-600' : 'text-neutral-500'}`}>
+                            {new Date(m.created_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })
+                )}
+              </div>
+
+              <div className="p-2.5 border-t border-[#242424] bg-[#141414]">
+                <div className="flex items-end gap-2">
+                  <textarea
+                    ref={composeRef}
+                    value={draft}
+                    onChange={(e) => handleDraftChange(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendReply(); }
+                    }}
+                    placeholder="Mensagem..."
+                    rows={1}
+                    className="flex-1 bg-[#0d0d0d] border border-[#1c1c1c] rounded-lg px-3 py-2.5 text-sm text-white placeholder:text-neutral-600 focus:outline-none focus:border-[#363636] resize-none max-h-24 transition-colors"
+                  />
+                  <button
+                    onClick={sendReply}
+                    disabled={sending || !draft.trim()}
+                    className="bg-white text-black rounded-lg p-2.5 hover:bg-neutral-200 transition-colors disabled:opacity-40"
+                  >
+                    {sending ? <Loader2 size={14} className="animate-spin" /> : <Send size={14} />}
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );

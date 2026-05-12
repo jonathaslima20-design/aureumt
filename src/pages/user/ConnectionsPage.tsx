@@ -82,47 +82,49 @@ export function ConnectionsPage({ instances, onUpdate }: Props) {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between flex-wrap gap-3">
+    <div className="space-y-4 sm:space-y-6">
+      <div className="flex items-start sm:items-center justify-between flex-wrap gap-3">
         <div>
-          <h1 className="text-2xl font-semibold text-white tracking-tight">Conexões WhatsApp</h1>
-          <p className="text-sm text-neutral-500 mt-1">
-            Gerencie os números conectados e atribua agentes a cada um.
+          <h1 className="text-xl sm:text-2xl font-semibold text-white tracking-tight">Conexões WhatsApp</h1>
+          <p className="text-xs sm:text-sm text-neutral-500 mt-1">
+            Gerencie os números conectados e atribua agentes.
           </p>
         </div>
         <button
           onClick={() => { setShowNewForm(true); setCreateError(''); }}
-          className="bg-white text-black rounded-lg px-4 py-2.5 text-sm font-medium flex items-center gap-2 hover:bg-neutral-200 transition-colors"
+          className="bg-white text-black rounded-lg px-3 sm:px-4 py-2 sm:py-2.5 text-xs sm:text-sm font-medium flex items-center gap-2 hover:bg-neutral-200 transition-colors"
         >
           <Plus size={14} /> Nova conexão
         </button>
       </div>
 
       {showNewForm && (
-        <div className="border border-[#242424] rounded-xl bg-[#141414] p-5">
+        <div className="border border-[#242424] rounded-xl bg-[#141414] p-4 sm:p-5">
           <div className="text-sm text-white font-medium mb-3">Nova conexão WhatsApp</div>
-          <div className="flex gap-2">
+          <div className="flex flex-col sm:flex-row gap-2">
             <input
               value={newName}
               onChange={(e) => setNewName(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && handleCreate()}
-              placeholder="Ex: Vendas, Suporte, Número principal..."
+              placeholder="Ex: Vendas, Suporte..."
               className="flex-1 bg-[#0d0d0d] border border-[#1a1a1a] rounded-lg px-3 py-2.5 text-sm text-white placeholder-neutral-600 focus:border-[#2a2a2a] outline-none"
             />
-            <button
-              onClick={handleCreate}
-              disabled={creating || !newName.trim()}
-              className="bg-white text-black rounded-lg px-4 py-2.5 text-sm font-medium flex items-center gap-2 hover:bg-neutral-200 transition-colors disabled:opacity-50"
-            >
-              {creating ? <Loader2 size={13} className="animate-spin" /> : <Check size={13} />}
-              Criar
-            </button>
-            <button
-              onClick={() => { setShowNewForm(false); setNewName(''); }}
-              className="border border-[#242424] text-neutral-400 hover:text-white rounded-lg px-3 py-2.5 transition-colors"
-            >
-              <X size={13} />
-            </button>
+            <div className="flex gap-2">
+              <button
+                onClick={handleCreate}
+                disabled={creating || !newName.trim()}
+                className="flex-1 sm:flex-initial bg-white text-black rounded-lg px-4 py-2.5 text-sm font-medium flex items-center justify-center gap-2 hover:bg-neutral-200 transition-colors disabled:opacity-50"
+              >
+                {creating ? <Loader2 size={13} className="animate-spin" /> : <Check size={13} />}
+                Criar
+              </button>
+              <button
+                onClick={() => { setShowNewForm(false); setNewName(''); }}
+                className="border border-[#242424] text-neutral-400 hover:text-white rounded-lg px-3 py-2.5 transition-colors"
+              >
+                <X size={13} />
+              </button>
+            </div>
           </div>
           {createError && (
             <p className="text-xs text-red-400 mt-2">{createError}</p>
@@ -272,8 +274,8 @@ function ConnectionCard({
 
   return (
     <div className="border border-[#242424] rounded-xl bg-[#141414] overflow-hidden">
-      <div className="p-5">
-        <div className="flex items-start justify-between gap-4 mb-4">
+      <div className="p-4 sm:p-5">
+        <div className="flex items-start justify-between gap-3 sm:gap-4 mb-4">
           <div className="flex items-center gap-3 min-w-0 flex-1">
             <div className={`relative shrink-0 ${isConnected ? 'text-emerald-400' : 'text-neutral-600'}`}>
               {isConnected ? <Wifi size={20} /> : <WifiOff size={20} />}
@@ -389,7 +391,7 @@ function ConnectionCard({
 
         {qr && !isConnected && (
           <div className="bg-white rounded-xl p-3 flex items-center justify-center mb-3">
-            <img src={qr} alt="QR Code" className="w-full max-w-[220px]" />
+            <img src={qr} alt="QR Code" className="w-full max-w-[200px] sm:max-w-[220px]" />
           </div>
         )}
 
@@ -417,9 +419,9 @@ function ConnectionCard({
       </div>
 
       {qr && !isConnected && (
-        <div className="border-t border-[#1a1a1a] px-5 py-3 bg-[#0d0d0d]">
+        <div className="border-t border-[#1a1a1a] px-4 sm:px-5 py-3 bg-[#0d0d0d]">
           <ol className="space-y-1.5 text-[11px] text-neutral-400">
-            {['Abra o WhatsApp no celular', 'Vá em Configurações → Aparelhos conectados', 'Toque em "Conectar um aparelho"', 'Aponte a câmera para o QR Code'].map((s, i) => (
+            {['Abra o WhatsApp no celular', 'Configurações > Aparelhos conectados', 'Toque em "Conectar um aparelho"', 'Aponte a câmera para o QR Code'].map((s, i) => (
               <li key={i} className="flex gap-2">
                 <span className="shrink-0 w-4 h-4 rounded-full border border-[#2e2e2e] flex items-center justify-center text-[9px] text-neutral-500">{i + 1}</span>
                 <span>{s}</span>

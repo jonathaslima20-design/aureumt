@@ -131,12 +131,14 @@ export function Sidebar({
 
   return (
     <>
-      <button
-        onClick={() => setOpenMobile(true)}
-        className="lg:hidden fixed top-4 left-4 z-40 bg-[#0a0a0a] border border-[#1a1a1a] rounded-lg p-2 text-white"
-      >
-        <Menu size={16} />
-      </button>
+      {!openMobile && (
+        <button
+          onClick={() => setOpenMobile(true)}
+          className="lg:hidden fixed top-4 left-4 z-30 bg-[#0a0a0a]/90 backdrop-blur border border-[#1a1a1a] rounded-lg p-2.5 text-white shadow-lg"
+        >
+          <Menu size={18} />
+        </button>
+      )}
 
       <aside className="hidden lg:flex w-60 flex-col bg-[#0d0d0d] border-r border-[#202020] fixed inset-y-0 left-0 z-20 shadow-[4px_0_24px_0_rgba(0,0,0,0.4)]">
         {content}
@@ -148,12 +150,12 @@ export function Sidebar({
             className="absolute inset-0 bg-black/70 backdrop-blur-sm"
             onClick={() => setOpenMobile(false)}
           />
-          <aside className="relative w-64 bg-[#0d0d0d] border-r border-[#202020] flex flex-col shadow-[4px_0_24px_0_rgba(0,0,0,0.4)]">
+          <aside className="relative w-72 max-w-[85vw] bg-[#0d0d0d] border-r border-[#202020] flex flex-col shadow-[4px_0_24px_0_rgba(0,0,0,0.4)] animate-slide-in-left">
             <button
               onClick={() => setOpenMobile(false)}
-              className="absolute top-4 right-4 text-neutral-500 hover:text-white"
+              className="absolute top-4 right-4 z-20 text-neutral-400 hover:text-white p-1 rounded-md hover:bg-[#1a1a1a] transition-colors"
             >
-              <X size={16} />
+              <X size={18} />
             </button>
             {content}
           </aside>

@@ -175,7 +175,7 @@ export function Dashboard({ onNavAdmin }: { onNavAdmin: () => void }) {
       <Sidebar current={page} onChange={handlePageChange} onNavAdmin={onNavAdmin} />
 
       <div className="lg:pl-60">
-        <main className="px-6 lg:px-10 py-8 max-w-7xl">
+        <main className="px-4 sm:px-6 lg:px-10 py-6 pt-16 lg:pt-8 max-w-7xl mx-auto">
           {renderPage()}
         </main>
       </div>

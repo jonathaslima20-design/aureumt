@@ -33,47 +33,47 @@ export function AgentDetailPage({ instance, onBack, onUpdate, onDelete }: Props)
   ];
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center gap-4 flex-wrap">
+    <div className="space-y-4 sm:space-y-6">
+      <div className="flex items-center gap-3 sm:gap-4 flex-wrap">
         <button
           onClick={onBack}
           className="flex items-center gap-1.5 text-neutral-500 hover:text-white text-sm transition-colors"
         >
           <ArrowLeft size={14} /> Agentes
         </button>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2 sm:gap-3">
           <AgentAvatar
             name={instance.display_name || instance.instance_name}
             url={instance.avatar_url}
             color={instance.color}
-            size={32}
+            size={28}
           />
-          <span className="text-white font-medium text-sm">
+          <span className="text-white font-medium text-sm truncate max-w-[120px] sm:max-w-none">
             {instance.display_name || instance.instance_name}
           </span>
         </div>
         <div className="ml-auto flex items-center gap-2">
           <button
             onClick={() => setShowTest(true)}
-            className="text-neutral-400 hover:text-white border border-[#242424] hover:border-[#363636] rounded-lg px-3 py-1.5 text-xs flex items-center gap-1.5 transition-colors"
+            className="text-neutral-400 hover:text-white border border-[#242424] hover:border-[#363636] rounded-lg px-2.5 sm:px-3 py-1.5 text-xs flex items-center gap-1.5 transition-colors"
           >
-            <MessageSquare size={12} /> Testar agente
+            <MessageSquare size={12} /> <span className="hidden sm:inline">Testar agente</span><span className="sm:hidden">Testar</span>
           </button>
           <button
             onClick={() => onDelete(instance)}
-            className="text-neutral-500 hover:text-red-400 border border-[#242424] hover:border-red-900/60 rounded-lg px-3 py-1.5 text-xs flex items-center gap-1.5 transition-colors"
+            className="text-neutral-500 hover:text-red-400 border border-[#242424] hover:border-red-900/60 rounded-lg px-2.5 sm:px-3 py-1.5 text-xs flex items-center gap-1.5 transition-colors"
           >
-            <Trash2 size={12} /> Excluir agente
+            <Trash2 size={12} /> <span className="hidden sm:inline">Excluir agente</span>
           </button>
         </div>
       </div>
 
-      <div className="flex gap-1 bg-[#141414] border border-[#242424] rounded-lg p-1 w-fit">
+      <div className="flex gap-1 bg-[#141414] border border-[#242424] rounded-lg p-1 w-full sm:w-fit overflow-x-auto scrollbar-thin">
         {tabs.map((t) => (
           <button
             key={t.key}
             onClick={() => setTab(t.key)}
-            className={`px-4 py-2 rounded-md text-xs font-medium transition-colors ${
+            className={`px-3 sm:px-4 py-2 rounded-md text-xs font-medium transition-colors whitespace-nowrap flex-1 sm:flex-initial ${
               tab === t.key ? 'bg-[#1e1e1e] text-white' : 'text-neutral-500 hover:text-neutral-300'
             }`}
           >
@@ -174,13 +174,13 @@ function ProfileTab({ instance, onUpdate }: { instance: Instance; onUpdate: () =
         onCancel={() => setCropSrc(null)}
       />
     )}
-    <div className="max-w-2xl space-y-5">
+    <div className="max-w-2xl space-y-4 sm:space-y-5">
       {/* Avatar card */}
-      <div className="bg-[#141414] border border-[#242424] rounded-2xl p-6">
-        <div className="flex items-center gap-5">
-          <AgentAvatar name={displayName} url={avatarUrl} color={color} size={88} />
-          <div className="flex-1 space-y-2">
-            <div className="text-lg text-white font-medium">{displayName || 'Sem nome'}</div>
+      <div className="bg-[#141414] border border-[#242424] rounded-2xl p-4 sm:p-6">
+        <div className="flex items-center gap-3 sm:gap-5">
+          <AgentAvatar name={displayName} url={avatarUrl} color={color} size={64} />
+          <div className="flex-1 min-w-0 space-y-2">
+            <div className="text-base sm:text-lg text-white font-medium truncate">{displayName || 'Sem nome'}</div>
             {personaName && personaName !== displayName && (
               <div className="text-xs text-neutral-500">Apresenta-se como {personaName}</div>
             )}
@@ -204,7 +204,7 @@ function ProfileTab({ instance, onUpdate }: { instance: Instance; onUpdate: () =
       </div>
 
       {/* Identity */}
-      <div className="bg-[#141414] border border-[#242424] rounded-2xl p-6 space-y-4">
+      <div className="bg-[#141414] border border-[#242424] rounded-2xl p-4 sm:p-6 space-y-4">
         <div className="text-sm text-white font-medium">Identidade</div>
         <div>
           <label className="block text-xs text-neutral-400 mb-1.5">Nome de exibição</label>
@@ -236,12 +236,12 @@ function ProfileTab({ instance, onUpdate }: { instance: Instance; onUpdate: () =
         </div>
         <div>
           <label className="block text-xs text-neutral-400 mb-2">Cor de destaque</label>
-          <div className="flex gap-2 flex-wrap">
+          <div className="flex gap-1.5 sm:gap-2 flex-wrap">
             {AGENT_COLORS.map((c) => (
               <button
                 key={c}
                 onClick={() => setColor(c)}
-                className={`w-8 h-8 rounded-full border-2 transition-transform ${
+                className={`w-7 h-7 sm:w-8 sm:h-8 rounded-full border-2 transition-transform ${
                   color === c ? 'border-white scale-110' : 'border-transparent hover:scale-105'
                 }`}
                 style={{ background: c, boxShadow: color === c ? `0 0 12px ${c}66` : 'none' }}
@@ -340,7 +340,7 @@ function AdvancedTab({ instance, onUpdate }: { instance: Instance; onUpdate: () 
   if (!confirmed) {
     return (
       <div className="max-w-lg">
-        <div className="border border-amber-900/40 bg-amber-950/20 rounded-2xl p-6 space-y-4">
+        <div className="border border-amber-900/40 bg-amber-950/20 rounded-2xl p-4 sm:p-6 space-y-4">
           <div className="flex items-start gap-3">
             <div className="w-9 h-9 rounded-full bg-amber-950/60 border border-amber-800/50 flex items-center justify-center shrink-0 mt-0.5">
               <ShieldAlert size={16} className="text-amber-400" />
@@ -368,9 +368,9 @@ function AdvancedTab({ instance, onUpdate }: { instance: Instance; onUpdate: () 
   }
 
   return (
-    <div className="space-y-6 max-w-4xl">
+    <div className="space-y-4 sm:space-y-6 max-w-4xl">
       {/* Flow toggle */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-start sm:items-center justify-between gap-3">
         <div>
           <div className="text-sm text-white font-medium">Comportamento e fluxo</div>
           <p className="text-xs text-neutral-500 mt-0.5">
@@ -392,8 +392,8 @@ function AdvancedTab({ instance, onUpdate }: { instance: Instance; onUpdate: () 
 
       <BusinessHoursSection instance={instance} onUpdate={onUpdate} />
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2 space-y-5 border border-[#242424] rounded-xl bg-[#141414] p-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
+        <div className="lg:col-span-2 space-y-5 border border-[#242424] rounded-xl bg-[#141414] p-4 sm:p-6">
 
           {/* System prompt */}
           <div>
@@ -421,12 +421,12 @@ function AdvancedTab({ instance, onUpdate }: { instance: Instance; onUpdate: () 
             <div className="text-xs uppercase tracking-wider text-neutral-500 pt-2">Personalidade</div>
             <div>
               <label className="block text-xs text-neutral-400 mb-2">Tom de voz</label>
-              <div className="grid grid-cols-3 md:grid-cols-5 gap-2">
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2">
                 {TONE_OPTIONS.map((t) => (
                   <button
                     key={t.value}
                     onClick={() => setTone(t.value)}
-                    className={`px-3 py-2 rounded-lg text-xs border transition-colors ${
+                    className={`px-2.5 sm:px-3 py-2 rounded-lg text-xs border transition-colors ${
                       tone === t.value
                         ? 'bg-white text-black border-white'
                         : 'border-[#242424] text-neutral-400 hover:text-white hover:border-[#2e2e2e]'
@@ -528,7 +528,7 @@ function AdvancedTab({ instance, onUpdate }: { instance: Instance; onUpdate: () 
         </div>
 
         {/* Quick prompts sidebar */}
-        <div className="border border-[#242424] rounded-xl bg-[#141414] p-5 h-fit">
+        <div className="border border-[#242424] rounded-xl bg-[#141414] p-4 sm:p-5 h-fit">
           <div className="flex items-center gap-2 mb-4">
             <Sparkles size={13} className="text-neutral-400" />
             <div className="text-xs uppercase tracking-wider text-neutral-500">Prompts rápidos</div>
@@ -1117,7 +1117,7 @@ function AgentTestModal({ instance, onClose }: { instance: Instance; onClose: ()
 
   return (
     <div className="fixed inset-0 z-50 bg-[#050505] flex flex-col animate-fade-in">
-      <div className="border-b border-[#242424] px-6 py-4 flex items-center gap-4 bg-[#0d0d0d]">
+      <div className="border-b border-[#242424] px-4 sm:px-6 py-3 sm:py-4 flex items-center gap-3 sm:gap-4 bg-[#0d0d0d]">
         <AgentAvatar
           name={instance.display_name || instance.instance_name}
           url={instance.avatar_url}
@@ -1144,9 +1144,9 @@ function AgentTestModal({ instance, onClose }: { instance: Instance; onClose: ()
         </button>
       </div>
 
-      <div ref={scrollRef} className="flex-1 overflow-y-auto px-6 py-6 space-y-4">
+      <div ref={scrollRef} className="flex-1 overflow-y-auto px-3 sm:px-6 py-4 sm:py-6 space-y-3 sm:space-y-4">
         {messages.length === 0 && (
-          <div className="text-center py-20">
+          <div className="text-center py-16 sm:py-20 px-4">
             <MessageSquare size={32} className="mx-auto text-neutral-700 mb-3" strokeWidth={1.5} />
             <p className="text-sm text-neutral-500">Envie uma mensagem ou audio para testar o agente</p>
             <p className="text-xs text-neutral-600 mt-1">Nenhuma mensagem sera enviada ao WhatsApp</p>
@@ -1155,7 +1155,7 @@ function AgentTestModal({ instance, onClose }: { instance: Instance; onClose: ()
         {messages.map((msg, i) => (
           <div key={i} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
             <div
-              className={`max-w-[70%] rounded-2xl px-4 py-2.5 text-sm leading-relaxed ${
+              className={`max-w-[85%] sm:max-w-[70%] rounded-2xl px-3 sm:px-4 py-2 sm:py-2.5 text-sm leading-relaxed ${
                 msg.role === 'user'
                   ? 'bg-white text-black rounded-br-md'
                   : 'bg-[#1a1a1a] border border-[#242424] text-neutral-200 rounded-bl-md'
@@ -1186,13 +1186,13 @@ function AgentTestModal({ instance, onClose }: { instance: Instance; onClose: ()
         )}
       </div>
 
-      <div className="border-t border-[#242424] px-6 py-4 bg-[#0d0d0d]">
-        <div className="flex gap-3 max-w-3xl mx-auto items-center">
+      <div className="border-t border-[#242424] px-3 sm:px-6 py-3 sm:py-4 bg-[#0d0d0d]">
+        <div className="flex gap-2 sm:gap-3 max-w-3xl mx-auto items-center">
           {recording ? (
-            <div className="flex-1 flex items-center gap-3 bg-[#141414] border border-red-900/40 rounded-xl px-4 py-3">
+            <div className="flex-1 flex items-center gap-2 sm:gap-3 bg-[#141414] border border-red-900/40 rounded-xl px-3 sm:px-4 py-3">
               <div className="w-2.5 h-2.5 bg-red-500 rounded-full animate-pulse" />
               <span className="text-sm text-red-400 font-mono">{formatTime(recordingTime)}</span>
-              <span className="text-xs text-neutral-500">Gravando audio...</span>
+              <span className="text-xs text-neutral-500 hidden sm:inline">Gravando audio...</span>
             </div>
           ) : (
             <input

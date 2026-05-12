@@ -20,11 +20,11 @@ const TONE_LABELS: Record<string, string> = {
 };
 export function AgentsPage({ instances, onCreateAgent, onSelectAgent, onInstanceUpdate, linkedBaseCounts }: Props) {
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between flex-wrap gap-3">
+    <div className="space-y-4 sm:space-y-6">
+      <div className="flex items-start sm:items-center justify-between flex-wrap gap-3">
         <div>
-          <h1 className="text-2xl font-semibold text-white tracking-tight">Agentes</h1>
-          <p className="text-sm text-neutral-500 mt-1">
+          <h1 className="text-xl sm:text-2xl font-semibold text-white tracking-tight">Agentes</h1>
+          <p className="text-xs sm:text-sm text-neutral-500 mt-1">
             {instances.length === 0
               ? 'Crie e gerencie seus agentes de IA.'
               : `${instances.length} agente${instances.length !== 1 ? 's' : ''} configurado${instances.length !== 1 ? 's' : ''}.`}
@@ -32,17 +32,17 @@ export function AgentsPage({ instances, onCreateAgent, onSelectAgent, onInstance
         </div>
         <button
           onClick={onCreateAgent}
-          className="bg-white text-black rounded-lg px-4 py-2.5 text-sm font-medium flex items-center gap-2 hover:bg-neutral-200 transition-colors"
+          className="bg-white text-black rounded-lg px-3 sm:px-4 py-2 sm:py-2.5 text-xs sm:text-sm font-medium flex items-center gap-2 hover:bg-neutral-200 transition-colors"
         >
           <Plus size={14} /> {instances.length === 0 ? 'Criar agente' : 'Novo agente'}
         </button>
       </div>
 
       {instances.length === 0 ? (
-        <div className="border border-dashed border-[#242424] rounded-2xl p-16 text-center bg-[#0d0d0d]">
+        <div className="border border-dashed border-[#242424] rounded-2xl p-10 sm:p-16 text-center bg-[#0d0d0d]">
           <div className="text-4xl mb-4">🤖</div>
           <p className="text-sm text-white font-medium mb-1">Nenhum agente ainda</p>
-          <p className="text-xs text-neutral-600 mb-5">Crie seu primeiro agente e configure-o do jeito que quiser.</p>
+          <p className="text-xs text-neutral-600 mb-5">Crie seu primeiro agente e configure-o.</p>
           <button
             onClick={onCreateAgent}
             className="bg-white text-black rounded-lg px-4 py-2.5 text-sm font-medium inline-flex items-center gap-2 hover:bg-neutral-200 transition-colors"
@@ -51,7 +51,7 @@ export function AgentsPage({ instances, onCreateAgent, onSelectAgent, onInstance
           </button>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3 sm:gap-4">
           {instances.map((inst) => (
             <AgentCard
               key={inst.id}
@@ -105,7 +105,7 @@ function AgentCard({
   return (
     <button
       onClick={onClick}
-      className="group text-left bg-[#141414] border border-[#242424] rounded-2xl p-5 transition-all duration-300 flex flex-col gap-4"
+      className="group text-left bg-[#141414] border border-[#242424] rounded-2xl p-4 sm:p-5 transition-all duration-300 flex flex-col gap-3 sm:gap-4"
       onMouseEnter={(e) => {
         (e.currentTarget as HTMLButtonElement).style.boxShadow = `0 0 0 1px ${glowBorder}, 0 0 32px 0 ${glowColor}, 0 8px 40px 0 rgba(0,0,0,0.6)`;
         (e.currentTarget as HTMLButtonElement).style.borderColor = glowBorder;
