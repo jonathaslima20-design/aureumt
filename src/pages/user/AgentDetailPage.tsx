@@ -1000,7 +1000,13 @@ function AgentTestModal({ instance, onClose }: { instance: Instance; onClose: ()
       const fragments: string[] = data.fragments && data.fragments.length > 0
         ? data.fragments
         : [data.reply || data.error || 'Sem resposta'];
-      setMessages((prev) => [...prev, ...fragments.map((f: string) => ({ role: 'assistant' as const, content: f }))]);
+
+      // Simulate typing delay per fragment (1s per 50 chars, clamped 2s-15s)
+      for (const fragment of fragments) {
+        const typingMs = Math.max(2000, Math.min(15000, Math.round((fragment.length / 50) * 1000)));
+        await new Promise((r) => setTimeout(r, typingMs));
+        setMessages((prev) => [...prev, { role: 'assistant' as const, content: fragment }]);
+      }
     } catch {
       setMessages((prev) => [...prev, { role: 'assistant', content: 'Erro ao conectar com o agente.' }]);
     } finally {
