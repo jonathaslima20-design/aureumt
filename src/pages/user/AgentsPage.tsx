@@ -99,7 +99,7 @@ function AgentCard({
     >
       <div className="flex items-start justify-between gap-3">
         <div className="flex items-center gap-3 min-w-0">
-          <AgentAvatar name={name} url={instance.avatar_url} color={instance.color} size={48} />
+          <AgentAvatar name={name} url={instance.avatar_url} color={instance.color} size={56} />
           <div className="min-w-0">
             <div className="text-sm font-medium text-white truncate">{name}</div>
             {instance.persona_name && instance.persona_name !== name && (
