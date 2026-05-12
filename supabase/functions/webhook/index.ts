@@ -689,9 +689,9 @@ Deno.serve(async (req) => {
         "es": "Responde SIEMPRE en español.",
       };
       const formatRule: Record<string, string> = {
-        "pt-BR": "Regras de formato obrigatórias para WhatsApp: PROIBIDO usar Markdown (**, ##, __, ~~, ``). Negrito no WhatsApp = exatamente UM asterisco colado no texto sem espaço: *texto* (CORRETO) versus * texto* ou *texto * (ERRADO). Itálico = _texto_. Nunca use ** para negrito. Respostas curtas e humanas; saudação simples na primeira mensagem; use | apenas para separar ideias distintas; sem frases genéricas; sem listas com - ou *.",
-        "en-US": "Mandatory WhatsApp format rules: FORBIDDEN to use Markdown (**, ##, __, ~~, ``). Bold on WhatsApp = exactly ONE asterisk touching the text with no space: *text* (CORRECT) versus * text* or *text * (WRONG). Italic = _text_. Never use ** for bold. Short human answers; simple greeting on first message; use | only for distinct ideas; no generic phrases; no lists with - or *.",
-        "es": "Reglas de formato obligatorias para WhatsApp: PROHIBIDO usar Markdown (**, ##, __, ~~, ``). Negrita en WhatsApp = exactamente UN asterisco pegado al texto sin espacio: *texto* (CORRECTO) versus * texto* o *texto * (INCORRECTO). Cursiva = _texto_. Nunca uses ** para negrita. Respuestas cortas y humanas; saludo simple en primer mensaje; usa | solo para ideas distintas; sin frases genéricas; sin listas con - o *.",
+        "pt-BR": "Regras de formato obrigatórias: Você está respondendo no WhatsApp. NÃO use negrito, itálico ou qualquer formatação especial. Escreva APENAS texto puro sem nenhum caractere * _ ~ ` #. Nunca use bullet points (•, -, *). Para listar itens, use quebra de linha simples com o texto direto. Respostas curtas e humanas; saudação simples na primeira mensagem; use | apenas para separar ideias distintas; sem frases genéricas.",
+        "en-US": "Mandatory format rules: You are replying on WhatsApp. DO NOT use bold, italic or any special formatting. Write ONLY plain text without any * _ ~ ` # characters. Never use bullet points (•, -, *). To list items, use simple line breaks with direct text. Short human answers; simple greeting on first message; use | only for distinct ideas; no generic phrases.",
+        "es": "Reglas de formato obligatorias: Estás respondiendo en WhatsApp. NO uses negrita, cursiva ni ningún formato especial. Escribe SOLO texto puro sin ningún carácter * _ ~ ` #. Nunca uses viñetas (•, -, *). Para listar ítems, usa salto de línea simple con texto directo. Respuestas cortas y humanas; saludo simple en primer mensaje; usa | solo para ideas distintas; sin frases genéricas.",
       };
       const noKbInstruction: Record<string, string> = {
         "pt-BR": "Se a pergunta não puder ser respondida com as informações acima, diga gentilmente que não possui essa informação específica e pergunte se o cliente deseja falar com um consultor humano.",
@@ -745,23 +745,22 @@ Deno.serve(async (req) => {
       );
       if (gemErr) console.error("Gemini final error", gemErr);
 
-      // ── Sanitize WhatsApp formatting ──────────────────────────────────────
+      // ── Sanitize: strip ALL formatting to plain text ─────────────────────
       const sanitizeWhatsApp = (text: string): string => {
         let s = text;
-        // Fix **text** → *text*
-        s = s.replace(/\*\*(.+?)\*\*/g, '*$1*');
-        // Fix __text__ → _text_
-        s = s.replace(/__(.+?)__/g, '_$1_');
-        // Fix ~~text~~ → ~text~
-        s = s.replace(/~~(.+?)~~/g, '~$1~');
-        // Remove ## headings markers
-        s = s.replace(/^#{1,6}\s*/gm, '');
-        // Fix *text * or * text* (space inside asterisks) → *text*
-        s = s.replace(/\*\s+([^*]+?)\*/g, '*$1*');
-        s = s.replace(/\*([^*]+?)\s+\*/g, '*$1*');
-        // Remove backtick formatting
+        // Remove code blocks
         s = s.replace(/```[^`]*```/gs, (m) => m.replace(/```/g, ''));
         s = s.replace(/`([^`]+)`/g, '$1');
+        // Remove heading markers
+        s = s.replace(/^#{1,6}\s*/gm, '');
+        // Remove bullet points (•, -, *) at start of lines
+        s = s.replace(/^[\s]*[•\-\*]\s+/gm, '');
+        // Remove all asterisks used for formatting
+        s = s.replace(/\*+/g, '');
+        // Remove underscores used for formatting (pairs)
+        s = s.replace(/_([^_]+)_/g, '$1');
+        // Remove tildes used for formatting (pairs)
+        s = s.replace(/~([^~]+)~/g, '$1');
         return s;
       };
 

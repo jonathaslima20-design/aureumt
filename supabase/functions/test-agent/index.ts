@@ -124,9 +124,9 @@ Deno.serve(async (req: Request) => {
       "es": "Responde SIEMPRE en español.",
     };
     const formatRule: Record<string, string> = {
-      "pt-BR": "Regras de formato: NUNCA use Markdown (nada de **, ##, __, ~~). Para negrito use apenas UM asterisco de cada lado: *texto*. Para itálico use _texto_. Respostas curtas e humanas; saudação simples na primeira mensagem; use | apenas para separar ideias distintas; sem frases genéricas; sem listas com - ou *.",
-      "en-US": "Format rules: NEVER use Markdown (no **, ##, __, ~~). For bold use only ONE asterisk on each side: *text*. For italic use _text_. Short human answers; simple greeting on first message; use | only for distinct ideas; no generic phrases; no lists with - or *.",
-      "es": "Reglas de formato: NUNCA uses Markdown (nada de **, ##, __, ~~). Para negrita usa solo UN asterisco de cada lado: *texto*. Para cursiva usa _texto_. Respuestas cortas y humanas; saludo simple en primer mensaje; usa | solo para ideas distintas; sin frases genéricas; sin listas con - o *.",
+      "pt-BR": "Regras de formato obrigatórias: Você está respondendo no WhatsApp. NÃO use negrito, itálico ou qualquer formatação especial. Escreva APENAS texto puro sem nenhum caractere * _ ~ ` #. Nunca use bullet points (•, -, *). Para listar itens, use quebra de linha simples com o texto direto. Respostas curtas e humanas; saudação simples na primeira mensagem; use | apenas para separar ideias distintas; sem frases genéricas.",
+      "en-US": "Mandatory format rules: You are replying on WhatsApp. DO NOT use bold, italic or any special formatting. Write ONLY plain text without any * _ ~ ` # characters. Never use bullet points (•, -, *). To list items, use simple line breaks with direct text. Short human answers; simple greeting on first message; use | only for distinct ideas; no generic phrases.",
+      "es": "Reglas de formato obligatorias: Estás respondiendo en WhatsApp. NO uses negrita, cursiva ni ningún formato especial. Escribe SOLO texto puro sin ningún carácter * _ ~ ` #. Nunca uses viñetas (•, -, *). Para listar ítems, usa salto de línea simple con texto directo. Respuestas cortas y humanas; saludo simple en primer mensaje; usa | solo para ideas distintas; sin frases genéricas.",
     };
     const noKbInstruction: Record<string, string> = {
       "pt-BR": "Se a pergunta não puder ser respondida com as informações acima, diga gentilmente que não possui essa informação específica e pergunte se o cliente deseja falar com um consultor humano.",
@@ -277,17 +277,16 @@ Deno.serve(async (req: Request) => {
       );
     }
 
-    // Sanitize WhatsApp formatting
+    // Sanitize: strip ALL formatting to plain text
     const sanitizeWhatsApp = (text: string): string => {
       let s = text;
-      s = s.replace(/\*\*(.+?)\*\*/g, '*$1*');
-      s = s.replace(/__(.+?)__/g, '_$1_');
-      s = s.replace(/~~(.+?)~~/g, '~$1~');
-      s = s.replace(/^#{1,6}\s*/gm, '');
-      s = s.replace(/\*\s+([^*]+?)\*/g, '*$1*');
-      s = s.replace(/\*([^*]+?)\s+\*/g, '*$1*');
       s = s.replace(/```[^`]*```/gs, (m) => m.replace(/```/g, ''));
       s = s.replace(/`([^`]+)`/g, '$1');
+      s = s.replace(/^#{1,6}\s*/gm, '');
+      s = s.replace(/^[\s]*[•\-\*]\s+/gm, '');
+      s = s.replace(/\*+/g, '');
+      s = s.replace(/_([^_]+)_/g, '$1');
+      s = s.replace(/~([^~]+)~/g, '$1');
       return s;
     };
 
