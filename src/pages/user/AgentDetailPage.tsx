@@ -1,8 +1,8 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
   ArrowLeft, Loader2, Upload, Sparkles, Check, Trash2,
   Save, Pause, Play, Database, Link2, X, Plus, Wifi, WifiOff, ExternalLink,
-  ShieldAlert, Clock, MessageSquare, Copy,
+  ShieldAlert, Clock, MessageSquare, Copy, Mic, Square,
 } from 'lucide-react';
 import {
   supabase, Instance, KnowledgeBase, WhatsappConnection, BusinessHours,
@@ -965,12 +965,45 @@ function BusinessHoursSection({ instance, onUpdate }: { instance: Instance; onUp
 
 // ─── Agent Test Modal ────────────────────────────────────────────────────────
 
-type TestMessage = { role: 'user' | 'assistant'; content: string };
+type TestMessage = { role: 'user' | 'assistant'; content: string; isAudio?: boolean };
 
 function AgentTestModal({ instance, onClose }: { instance: Instance; onClose: () => void }) {
   const [messages, setMessages] = useState<TestMessage[]>([]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
+  const [recording, setRecording] = useState(false);
+  const [recordingTime, setRecordingTime] = useState(0);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const chunksRef = useRef<Blob[]>([]);
+  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const scrollRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    return () => { if (timerRef.current) clearInterval(timerRef.current); };
+  }, []);
+
+  useEffect(() => {
+    setTimeout(() => scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight }), 50);
+  }, [messages, loading]);
+
+  const callTestAgent = async (payload: Record<string, unknown>, historyMessages: TestMessage[]) => {
+    const { data: { session } } = await supabase.auth.getSession();
+    const token = session?.access_token || import.meta.env.VITE_SUPABASE_ANON_KEY;
+    const apiUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/test-agent`;
+    const res = await fetch(apiUrl, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        instance_id: instance.id,
+        conversation_history: historyMessages,
+        ...payload,
+      }),
+    });
+    return await res.json();
+  };
 
   const send = async () => {
     const text = input.trim();
@@ -981,27 +1014,11 @@ function AgentTestModal({ instance, onClose }: { instance: Instance; onClose: ()
     setLoading(true);
 
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      const token = session?.access_token || import.meta.env.VITE_SUPABASE_ANON_KEY;
-      const apiUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/test-agent`;
-      const res = await fetch(apiUrl, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          instance_id: instance.id,
-          message: text,
-          conversation_history: updated,
-        }),
-      });
-      const data = await res.json();
+      const data = await callTestAgent({ message: text }, updated);
       const fragments: string[] = data.fragments && data.fragments.length > 0
         ? data.fragments
         : [data.reply || data.error || 'Sem resposta'];
 
-      // Simulate typing delay per fragment (1s per 50 chars, clamped 2s-15s)
       for (const fragment of fragments) {
         const typingMs = Math.max(2000, Math.min(15000, Math.round((fragment.length / 50) * 1000)));
         await new Promise((r) => setTimeout(r, typingMs));
@@ -1013,6 +1030,90 @@ function AgentTestModal({ instance, onClose }: { instance: Instance; onClose: ()
       setLoading(false);
     }
   };
+
+  const startRecording = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const mimeType = MediaRecorder.isTypeSupported('audio/webm;codecs=opus')
+        ? 'audio/webm;codecs=opus'
+        : 'audio/webm';
+      const recorder = new MediaRecorder(stream, { mimeType });
+      chunksRef.current = [];
+
+      recorder.ondataavailable = (e) => {
+        if (e.data.size > 0) chunksRef.current.push(e.data);
+      };
+
+      recorder.onstop = async () => {
+        stream.getTracks().forEach((t) => t.stop());
+        const blob = new Blob(chunksRef.current, { type: mimeType });
+        if (blob.size === 0) return;
+
+        const reader = new FileReader();
+        reader.onloadend = async () => {
+          const base64 = (reader.result as string).split(',')[1];
+          if (!base64) return;
+
+          const updated = [...messages, { role: 'user' as const, content: 'Audio enviado', isAudio: true }];
+          setMessages(updated);
+          setLoading(true);
+
+          try {
+            const data = await callTestAgent({
+              message: '',
+              audio_base64: base64,
+              audio_mimetype: mimeType.split(';')[0],
+            }, updated);
+
+            if (data.transcription) {
+              setMessages((prev) =>
+                prev.map((m, i) =>
+                  i === prev.length - 1 && m.role === 'assistant'
+                    ? m
+                    : i === updated.length - 1 && m.isAudio
+                    ? { ...m, content: data.transcription }
+                    : m
+                )
+              );
+            }
+
+            const fragments: string[] = data.fragments && data.fragments.length > 0
+              ? data.fragments
+              : [data.reply || data.error || 'Sem resposta'];
+
+            for (const fragment of fragments) {
+              const typingMs = Math.max(2000, Math.min(15000, Math.round((fragment.length / 50) * 1000)));
+              await new Promise((r) => setTimeout(r, typingMs));
+              setMessages((prev) => [...prev, { role: 'assistant' as const, content: fragment }]);
+            }
+          } catch {
+            setMessages((prev) => [...prev, { role: 'assistant', content: 'Erro ao processar o áudio.' }]);
+          } finally {
+            setLoading(false);
+          }
+        };
+        reader.readAsDataURL(blob);
+      };
+
+      mediaRecorderRef.current = recorder;
+      recorder.start();
+      setRecording(true);
+      setRecordingTime(0);
+      timerRef.current = setInterval(() => setRecordingTime((t) => t + 1), 1000);
+    } catch {
+      console.error('Mic access denied');
+    }
+  };
+
+  const stopRecording = () => {
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'recording') {
+      mediaRecorderRef.current.stop();
+    }
+    setRecording(false);
+    if (timerRef.current) { clearInterval(timerRef.current); timerRef.current = null; }
+  };
+
+  const formatTime = (s: number) => `${Math.floor(s / 60)}:${(s % 60).toString().padStart(2, '0')}`;
 
   return (
     <div className="fixed inset-0 z-50 bg-[#050505] flex flex-col animate-fade-in">
@@ -1043,11 +1144,11 @@ function AgentTestModal({ instance, onClose }: { instance: Instance; onClose: ()
         </button>
       </div>
 
-      <div className="flex-1 overflow-y-auto px-6 py-6 space-y-4">
+      <div ref={scrollRef} className="flex-1 overflow-y-auto px-6 py-6 space-y-4">
         {messages.length === 0 && (
           <div className="text-center py-20">
             <MessageSquare size={32} className="mx-auto text-neutral-700 mb-3" strokeWidth={1.5} />
-            <p className="text-sm text-neutral-500">Envie uma mensagem para testar o agente</p>
+            <p className="text-sm text-neutral-500">Envie uma mensagem ou audio para testar o agente</p>
             <p className="text-xs text-neutral-600 mt-1">Nenhuma mensagem sera enviada ao WhatsApp</p>
           </div>
         )}
@@ -1060,6 +1161,14 @@ function AgentTestModal({ instance, onClose }: { instance: Instance; onClose: ()
                   : 'bg-[#1a1a1a] border border-[#242424] text-neutral-200 rounded-bl-md'
               }`}
             >
+              {msg.isAudio && (
+                <div className="flex items-center gap-1.5 mb-1">
+                  <Mic size={12} className={msg.role === 'user' ? 'text-neutral-500' : 'text-neutral-400'} />
+                  <span className={`text-[10px] uppercase tracking-wider ${msg.role === 'user' ? 'text-neutral-500' : 'text-neutral-500'}`}>
+                    Audio transcrito
+                  </span>
+                </div>
+              )}
               {msg.content}
             </div>
           </div>
@@ -1078,21 +1187,49 @@ function AgentTestModal({ instance, onClose }: { instance: Instance; onClose: ()
       </div>
 
       <div className="border-t border-[#242424] px-6 py-4 bg-[#0d0d0d]">
-        <div className="flex gap-3 max-w-3xl mx-auto">
-          <input
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); } }}
-            placeholder="Digite uma mensagem de teste..."
-            className="flex-1 bg-[#141414] border border-[#242424] rounded-xl px-4 py-3 text-sm text-white placeholder-neutral-600 focus:border-[#363636] outline-none transition-colors"
-          />
-          <button
-            onClick={send}
-            disabled={!input.trim() || loading}
-            className="bg-white text-black rounded-xl px-5 py-3 text-sm font-medium hover:bg-neutral-200 transition-colors disabled:opacity-50"
-          >
-            Enviar
-          </button>
+        <div className="flex gap-3 max-w-3xl mx-auto items-center">
+          {recording ? (
+            <div className="flex-1 flex items-center gap-3 bg-[#141414] border border-red-900/40 rounded-xl px-4 py-3">
+              <div className="w-2.5 h-2.5 bg-red-500 rounded-full animate-pulse" />
+              <span className="text-sm text-red-400 font-mono">{formatTime(recordingTime)}</span>
+              <span className="text-xs text-neutral-500">Gravando audio...</span>
+            </div>
+          ) : (
+            <input
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); } }}
+              placeholder="Digite uma mensagem de teste..."
+              disabled={loading}
+              className="flex-1 bg-[#141414] border border-[#242424] rounded-xl px-4 py-3 text-sm text-white placeholder-neutral-600 focus:border-[#363636] outline-none transition-colors disabled:opacity-50"
+            />
+          )}
+          {recording ? (
+            <button
+              onClick={stopRecording}
+              className="bg-red-500 hover:bg-red-600 text-white rounded-xl p-3 transition-colors"
+              title="Parar gravacao"
+            >
+              <Square size={14} fill="currentColor" />
+            </button>
+          ) : input.trim() ? (
+            <button
+              onClick={send}
+              disabled={loading}
+              className="bg-white text-black rounded-xl px-5 py-3 text-sm font-medium hover:bg-neutral-200 transition-colors disabled:opacity-50"
+            >
+              Enviar
+            </button>
+          ) : (
+            <button
+              onClick={startRecording}
+              disabled={loading}
+              className="bg-[#141414] border border-[#242424] hover:border-[#363636] text-neutral-400 hover:text-white rounded-xl p-3 transition-colors disabled:opacity-50"
+              title="Gravar audio"
+            >
+              <Mic size={16} />
+            </button>
+          )}
         </div>
       </div>
     </div>

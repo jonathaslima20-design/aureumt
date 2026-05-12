@@ -42,11 +42,11 @@ Deno.serve(async (req: Request) => {
       });
     }
 
-    const { instance_id, message, conversation_history } = await req.json();
+    const { instance_id, message, conversation_history, audio_base64, audio_mimetype } = await req.json();
 
-    if (!instance_id || !message) {
+    if (!instance_id || (!message && !audio_base64)) {
       return new Response(
-        JSON.stringify({ error: "instance_id and message are required" }),
+        JSON.stringify({ error: "instance_id and (message or audio_base64) are required" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
@@ -217,6 +217,61 @@ Deno.serve(async (req: Request) => {
       );
     }
 
+    // ── If audio is provided, transcribe it first ──────────────────────────
+    let userText = message || "";
+    if (audio_base64) {
+      const mimeBase = (audio_mimetype || "audio/webm").split(";")[0].trim().toLowerCase();
+      const mimeMap: Record<string, string> = {
+        "audio/ogg": "audio/ogg",
+        "audio/mpeg": "audio/mpeg",
+        "audio/mp3": "audio/mpeg",
+        "audio/mp4": "audio/mp4",
+        "audio/m4a": "audio/mp4",
+        "audio/webm": "audio/webm",
+        "audio/wav": "audio/wav",
+        "audio/x-wav": "audio/wav",
+      };
+      const gemMime = mimeMap[mimeBase] || "audio/webm";
+      const cleanBase64 = (audio_base64 as string).replace(/^data:[^;]+;base64,/, "");
+
+      const transcribeModels = ["gemini-2.5-flash", "gemini-2.0-flash"];
+      for (const tm of transcribeModels) {
+        try {
+          const tUrl = `https://generativelanguage.googleapis.com/v1beta/models/${tm}:generateContent?key=${geminiKey}`;
+          const tRes = await fetch(tUrl, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              contents: [{
+                parts: [
+                  { inlineData: { mimeType: gemMime, data: cleanBase64 } },
+                  { text: "Transcreva este áudio fielmente em texto. Retorne apenas a transcrição, sem explicações." },
+                ],
+              }],
+              generationConfig: { temperature: 0.1, maxOutputTokens: 500 },
+            }),
+          });
+          const tData = await tRes.json();
+          if (tRes.ok) {
+            const transcription = (tData?.candidates?.[0]?.content?.parts?.[0]?.text || "").trim();
+            if (transcription) { userText = transcription; break; }
+          }
+        } catch { /* try next model */ }
+      }
+
+      if (!userText) {
+        return new Response(
+          JSON.stringify({ error: "Não foi possível transcrever o áudio" }),
+          { status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+    }
+
+    // Replace last user message in contents with transcribed text
+    if (audio_base64 && contents.length > 0) {
+      contents[contents.length - 1] = { role: "user", parts: [{ text: userText }] };
+    }
+
     // ── Call Gemini (same params and fallback as webhook) ───────────────────
     const models = ["gemini-2.5-flash", "gemini-2.0-flash", "gemini-1.5-flash"];
     const body = {
@@ -298,8 +353,16 @@ Deno.serve(async (req: Request) => {
       .map((f: string) => f.trim())
       .filter((f: string) => f.length > 0);
 
+    const responsePayload: Record<string, unknown> = {
+      reply: fragments.length > 0 ? fragments[0] : reply,
+      fragments,
+    };
+    if (audio_base64 && userText) {
+      responsePayload.transcription = userText;
+    }
+
     return new Response(
-      JSON.stringify({ reply: fragments.length > 0 ? fragments[0] : reply, fragments }),
+      JSON.stringify(responsePayload),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (err) {
