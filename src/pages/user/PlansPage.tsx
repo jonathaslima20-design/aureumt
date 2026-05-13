@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
-import { Check, Loader2, Star, ExternalLink } from 'lucide-react';
+import { Check, Loader2, Star, ArrowRight } from 'lucide-react';
 import { supabase, Plan, UserPlan } from '../../lib/supabase';
 import { useAuth } from '../../context/AuthContext';
+import { CheckoutPage } from './CheckoutPage';
 
 type BillingCycle = 'monthly' | 'semiannual' | 'annual';
 
@@ -27,6 +28,7 @@ export function PlansPage() {
   const [userPlan, setUserPlan] = useState<(UserPlan & { plan?: Plan }) | null>(null);
   const [loading, setLoading] = useState(true);
   const [cycle, setCycle] = useState<BillingCycle>('monthly');
+  const [checkout, setCheckout] = useState<{ plan: Plan; cycle: BillingCycle } | null>(null);
 
   useEffect(() => {
     (async () => {
@@ -65,12 +67,6 @@ export function PlansPage() {
     return plan.price_monthly;
   };
 
-  const getPaymentLink = (plan: Plan, c: BillingCycle): string => {
-    if (c === 'semiannual') return plan.payment_link_semiannual;
-    if (c === 'annual') return plan.payment_link_annual;
-    return plan.payment_link_monthly;
-  };
-
   const isCurrentPlan = (planId: string): boolean => {
     return userPlan?.plan_id === planId;
   };
@@ -80,6 +76,20 @@ export function PlansPage() {
       <div className="flex items-center justify-center py-20">
         <Loader2 size={18} className="text-neutral-600 animate-spin" />
       </div>
+    );
+  }
+
+  if (checkout) {
+    return (
+      <CheckoutPage
+        plan={checkout.plan}
+        cycle={checkout.cycle}
+        onBack={() => setCheckout(null)}
+        onSuccess={() => {
+          setCheckout(null);
+          window.location.reload();
+        }}
+      />
     );
   }
 
@@ -120,7 +130,6 @@ export function PlansPage() {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-3 sm:gap-4 max-w-5xl mx-auto">
         {plans.map((plan) => {
           const price = getPrice(plan, cycle);
-          const link = getPaymentLink(plan, cycle);
           const isCurrent = isCurrentPlan(plan.id);
           const installment = installmentInfo(cycle, price);
 
@@ -173,19 +182,17 @@ export function PlansPage() {
                 <div className="w-full py-3 rounded-xl text-center text-sm font-medium border border-emerald-900/40 bg-emerald-950/20 text-emerald-400">
                   Plano Atual
                 </div>
-              ) : link ? (
-                <a
-                  href={link}
-                  target="_blank"
-                  rel="noopener noreferrer"
+              ) : price > 0 ? (
+                <button
+                  onClick={() => setCheckout({ plan, cycle })}
                   className={`w-full py-3 rounded-xl text-center text-sm font-medium flex items-center justify-center gap-2 transition-colors ${
                     plan.highlight
                       ? 'bg-white text-black hover:bg-neutral-200'
                       : 'border border-[#2a2a2a] text-white hover:bg-[#141414] hover:border-[#3a3a3a]'
                   }`}
                 >
-                  Assinar agora <ExternalLink size={13} />
-                </a>
+                  Assinar agora <ArrowRight size={13} />
+                </button>
               ) : (
                 <div className="w-full py-3 rounded-xl text-center text-sm font-medium border border-[#1a1a1a] text-neutral-600">
                   Em breve

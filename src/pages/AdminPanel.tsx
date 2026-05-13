@@ -2,12 +2,13 @@ import { useEffect, useState } from 'react';
 import {
   ArrowLeft, Save, Loader2, Check, Users, MessageCircle, Key,
   Zap, DollarSign, ChevronDown, ChevronUp, AlertTriangle, TrendingUp,
-  LayoutDashboard, ShieldCheck, CreditCard, LayoutTemplate,
+  LayoutDashboard, ShieldCheck, CreditCard, LayoutTemplate, Wallet,
 } from 'lucide-react';
 import { Logo } from '../components/Logo';
 import { supabase, Profile, ApiConfig, TokenStatsByUser, TokenDailySeries, calcCostBRL, Plan } from '../lib/supabase';
 import { PlansManagementPage } from './admin/PlansManagementPage';
 import { TemplatesPage } from './admin/TemplatesPage';
+import { MercadoPagoPage } from './admin/MercadoPagoPage';
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -220,7 +221,7 @@ function TokenRow({ stat, onSaved }: { stat: TokenStatsByUser; onSaved: () => vo
 
 // ─── Menu items ───────────────────────────────────────────────────────────────
 
-type AdminSection = 'dashboard' | 'users' | 'tokens' | 'credentials' | 'plans' | 'templates';
+type AdminSection = 'dashboard' | 'users' | 'tokens' | 'credentials' | 'plans' | 'templates' | 'mercadopago';
 
 const MENU_ITEMS: { id: AdminSection; label: string; icon: React.ReactNode; description: string }[] = [
   { id: 'dashboard',   label: 'Dashboard',          icon: <LayoutDashboard size={15} />, description: 'Visão geral do sistema' },
@@ -229,6 +230,7 @@ const MENU_ITEMS: { id: AdminSection; label: string; icon: React.ReactNode; desc
   { id: 'templates',   label: 'Templates de Agente', icon: <LayoutTemplate size={15} />, description: 'Biblioteca do marketplace' },
   { id: 'tokens',      label: 'Consumo de Tokens',  icon: <Zap size={15} />,             description: 'Uso e limites por usuário' },
   { id: 'credentials', label: 'Credenciais',        icon: <ShieldCheck size={15} />,     description: 'Chaves de API globais' },
+  { id: 'mercadopago', label: 'Mercado Pago',       icon: <Wallet size={15} />,          description: 'Checkout Transparente' },
 ];
 
 // ─── Main component ───────────────────────────────────────────────────────────
@@ -562,6 +564,9 @@ export function AdminPanel({ onBack }: { onBack: () => void }) {
 
             {/* ── Templates de Agente ── */}
             {section === 'templates' && <TemplatesPage />}
+
+            {/* ── Mercado Pago ── */}
+            {section === 'mercadopago' && <MercadoPagoPage />}
 
             {/* ── Credenciais ── */}
             {section === 'credentials' && (
