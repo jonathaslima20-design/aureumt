@@ -9,12 +9,12 @@ export type PageKey = 'overview' | 'agents' | 'templates' | 'connections' | 'kno
 
 const ITEMS: { key: PageKey; label: string; icon: typeof LayoutDashboard }[] = [
   { key: 'overview', label: 'Visão Geral', icon: LayoutDashboard },
+  { key: 'chat', label: 'Chat', icon: MessagesSquare },
   { key: 'agents', label: 'Agentes', icon: Bot },
   { key: 'templates', label: 'Templates', icon: Sparkles },
   { key: 'connections', label: 'Conexões', icon: Link2 },
   { key: 'knowledge', label: 'Base de Conhecimento', icon: Database },
   { key: 'training', label: 'Treinamento', icon: GraduationCap },
-  { key: 'chat', label: 'Chat', icon: MessagesSquare },
 ];
 
 export function Sidebar({
