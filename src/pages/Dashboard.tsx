@@ -4,13 +4,13 @@ import { Sidebar, PageKey } from '../components/Sidebar';
 import { supabase, Instance } from '../lib/supabase';
 import { useAuth } from '../context/AuthContext';
 import { CreateAgentModal } from '../components/CreateAgentModal';
+import { PlansModal } from '../components/PlansModal';
 import { OverviewPage } from './user/OverviewPage';
 import { AgentsPage } from './user/AgentsPage';
 import { AgentDetailPage } from './user/AgentDetailPage';
 import { ConnectionsPage } from './user/ConnectionsPage';
 import { KnowledgePage } from './user/KnowledgePage';
 import { ChatPage } from './user/ChatPage';
-import { PlansPage } from './user/PlansPage';
 import { TemplateGalleryPage } from './user/TemplateGalleryPage';
 
 const STORAGE_KEY = 'auratalk:lastPage';
@@ -20,13 +20,14 @@ export function Dashboard({ onNavAdmin }: { onNavAdmin: () => void }) {
   const [instances, setInstances] = useState<Instance[]>([]);
   const [loading, setLoading] = useState(true);
   const [showCreate, setShowCreate] = useState(false);
+  const [showPlans, setShowPlans] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState<Instance | null>(null);
   const [deleting, setDeleting] = useState(false);
   const [linkedBaseCounts, setLinkedBaseCounts] = useState<Record<string, number>>({});
 
   const [page, setPage] = useState<PageKey>(() => {
     const saved = localStorage.getItem(STORAGE_KEY) as PageKey | null;
-    const valid: PageKey[] = ['overview', 'agents', 'templates', 'connections', 'knowledge', 'chat', 'plans'];
+    const valid: PageKey[] = ['overview', 'agents', 'templates', 'connections', 'knowledge', 'chat'];
     return saved && valid.includes(saved) ? saved : 'overview';
   });
 
@@ -162,9 +163,6 @@ export function Dashboard({ onNavAdmin }: { onNavAdmin: () => void }) {
         }
         return <ChatPage instance={selectedChatInstance} instances={instances} />;
 
-      case 'plans':
-        return <PlansPage />;
-
       default:
         return null;
     }
@@ -172,7 +170,7 @@ export function Dashboard({ onNavAdmin }: { onNavAdmin: () => void }) {
 
   return (
     <div className="min-h-screen bg-[#050505]">
-      <Sidebar current={page} onChange={handlePageChange} onNavAdmin={onNavAdmin} />
+      <Sidebar current={page} onChange={handlePageChange} onNavAdmin={onNavAdmin} onOpenPlans={() => setShowPlans(true)} />
 
       <div className="lg:pl-60">
         <main className="px-4 sm:px-6 lg:px-10 py-6 pt-16 lg:pt-8 max-w-7xl mx-auto">
@@ -235,6 +233,8 @@ export function Dashboard({ onNavAdmin }: { onNavAdmin: () => void }) {
           onCreated={handleCreated}
         />
       )}
+
+      {showPlans && <PlansModal onClose={() => setShowPlans(false)} />}
     </div>
   );
 }

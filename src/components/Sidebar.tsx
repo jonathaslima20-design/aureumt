@@ -1,11 +1,11 @@
 import { useState, useEffect } from 'react';
-import { LayoutDashboard, Link2, MessagesSquare, LogOut, Shield, Menu, X, Bot, Database, CreditCard, Sparkles } from 'lucide-react';
+import { LayoutDashboard, Link2, MessagesSquare, LogOut, Shield, Menu, X, Bot, Database, Sparkles, ChevronRight } from 'lucide-react';
 import { Logo } from './Logo';
 import { NotificationsDropdown } from './NotificationsDropdown';
 import { useAuth } from '../context/AuthContext';
-import { supabase, Plan } from '../lib/supabase';
+import { supabase } from '../lib/supabase';
 
-export type PageKey = 'overview' | 'agents' | 'templates' | 'connections' | 'knowledge' | 'chat' | 'plans';
+export type PageKey = 'overview' | 'agents' | 'templates' | 'connections' | 'knowledge' | 'chat';
 
 const ITEMS: { key: PageKey; label: string; icon: typeof LayoutDashboard }[] = [
   { key: 'overview', label: 'Visão Geral', icon: LayoutDashboard },
@@ -14,17 +14,18 @@ const ITEMS: { key: PageKey; label: string; icon: typeof LayoutDashboard }[] = [
   { key: 'connections', label: 'Conexões', icon: Link2 },
   { key: 'knowledge', label: 'Base de Conhecimento', icon: Database },
   { key: 'chat', label: 'Chat', icon: MessagesSquare },
-  { key: 'plans', label: 'Planos', icon: CreditCard },
 ];
 
 export function Sidebar({
   current,
   onChange,
   onNavAdmin,
+  onOpenPlans,
 }: {
   current: PageKey;
   onChange: (p: PageKey) => void;
   onNavAdmin?: () => void;
+  onOpenPlans?: () => void;
 }) {
   const { profile, signOut } = useAuth();
   const [openMobile, setOpenMobile] = useState(false);
@@ -100,27 +101,61 @@ export function Sidebar({
         {profile?.role === 'admin' && onNavAdmin && (
           <button
             onClick={onNavAdmin}
-            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-neutral-400 hover:text-white hover:bg-[#13131a] transition-colors"
+            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-neutral-400 hover:text-white hover:bg-[#141414] transition-colors"
           >
             <Shield size={15} strokeWidth={1.8} />
             Painel Admin
           </button>
         )}
-        <div className="px-3 py-2">
-          <div className="flex items-center gap-2">
-            <span className="text-[11px] text-neutral-600 truncate flex-1" title={profile?.email}>
-              {profile?.email}
-            </span>
-            {userPlanName && (
-              <span className="shrink-0 text-[9px] px-1.5 py-0.5 rounded border border-emerald-900/40 bg-emerald-950/20 text-emerald-400 uppercase tracking-wider font-medium">
-                {userPlanName}
+
+        {/* User card */}
+        <button
+          onClick={onOpenPlans}
+          className="w-full group text-left px-3 py-2.5 rounded-lg hover:bg-[#141414] transition-colors"
+        >
+          <div className="flex items-center gap-2.5">
+            {/* Avatar initials */}
+            <div className="w-7 h-7 rounded-full bg-[#1e1e1e] border border-[#2a2a2a] flex items-center justify-center shrink-0">
+              <span className="text-[11px] font-semibold text-neutral-300">
+                {(profile?.email || 'U').slice(0, 1).toUpperCase()}
               </span>
-            )}
+            </div>
+
+            <div className="flex-1 min-w-0">
+              {/* Email as name */}
+              <div
+                className="text-[11px] font-medium text-neutral-200 truncate leading-tight"
+                title={profile?.email}
+              >
+                {profile?.email?.split('@')[0]}
+              </div>
+              {/* Full email */}
+              <div
+                className="text-[10px] text-neutral-600 truncate leading-tight mt-0.5"
+                title={profile?.email}
+              >
+                {profile?.email}
+              </div>
+            </div>
+
+            <div className="flex items-center gap-1.5 shrink-0">
+              {userPlanName ? (
+                <span className="text-[9px] px-1.5 py-0.5 rounded border border-emerald-900/40 bg-emerald-950/20 text-emerald-400 uppercase tracking-wider font-medium">
+                  {userPlanName}
+                </span>
+              ) : (
+                <span className="text-[9px] px-1.5 py-0.5 rounded border border-neutral-800 bg-neutral-900/40 text-neutral-500 uppercase tracking-wider font-medium">
+                  Free
+                </span>
+              )}
+              <ChevronRight size={11} className="text-neutral-700 group-hover:text-neutral-500 transition-colors" />
+            </div>
           </div>
-        </div>
+        </button>
+
         <button
           onClick={signOut}
-          className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-neutral-500 hover:text-white hover:bg-[#13131a] transition-colors"
+          className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-neutral-500 hover:text-white hover:bg-[#141414] transition-colors"
         >
           <LogOut size={15} strokeWidth={1.8} />
           Sair
