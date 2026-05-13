@@ -13,7 +13,7 @@ type Metrics = {
 
 type PeriodKey = '7d' | '30d';
 
-export function OverviewPage({ instance }: { instance: Instance }) {
+export function OverviewPage({ instance }: { instance: Instance | null }) {
   const [metrics, setMetrics] = useState<Metrics>({
     messagesToday: 0,
     activeContacts: 0,
@@ -27,6 +27,7 @@ export function OverviewPage({ instance }: { instance: Instance }) {
   const [period, setPeriod] = useState<PeriodKey>('7d');
 
   useEffect(() => {
+    if (!instance) return;
     const run = async () => {
       const today = new Date();
       today.setHours(0, 0, 0, 0);
@@ -113,7 +114,22 @@ export function OverviewPage({ instance }: { instance: Instance }) {
       setLast(latest || []);
     };
     run();
-  }, [instance.id, instance.overflow_keyword, period]);
+  }, [instance?.id, instance?.overflow_keyword, period]);
+
+  if (!instance) {
+    return (
+      <div className="space-y-6">
+        <div>
+          <h1 className="text-2xl font-semibold text-white tracking-tight">Visao Geral</h1>
+          <p className="text-sm text-neutral-500 mt-1">Crie um agente para comecar a ver o desempenho.</p>
+        </div>
+        <div className="border border-dashed border-[#242424] rounded-2xl p-12 text-center bg-[#0d0d0d]">
+          <p className="text-sm text-neutral-400 mb-1">Nenhum agente disponivel</p>
+          <p className="text-xs text-neutral-600">Va em Agentes e crie o seu primeiro.</p>
+        </div>
+      </div>
+    );
+  }
 
   const maxCount = Math.max(1, ...series.map((s) => s.count));
 
