@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
-import { X, Check, Star, ExternalLink, Loader2 } from 'lucide-react';
+import { X, Check, Star, ArrowRight, Loader2 } from 'lucide-react';
 import { supabase, Plan, UserPlan } from '../lib/supabase';
 import { useAuth } from '../context/AuthContext';
+import { CheckoutPage } from '../pages/user/CheckoutPage';
 
 type BillingCycle = 'monthly' | 'semiannual' | 'annual';
 
@@ -22,11 +23,12 @@ function installmentInfo(cycle: BillingCycle, price: number): string | null {
 }
 
 export function PlansModal({ onClose }: { onClose: () => void }) {
-  const { profile } = useAuth();
+  const { profile, refreshProfile } = useAuth();
   const [plans, setPlans] = useState<Plan[]>([]);
   const [userPlan, setUserPlan] = useState<(UserPlan & { plan?: Plan }) | null>(null);
   const [loading, setLoading] = useState(true);
   const [cycle, setCycle] = useState<BillingCycle>('monthly');
+  const [checkout, setCheckout] = useState<{ plan: Plan; cycle: BillingCycle } | null>(null);
 
   useEffect(() => {
     (async () => {
@@ -65,13 +67,25 @@ export function PlansModal({ onClose }: { onClose: () => void }) {
     return plan.price_monthly;
   };
 
-  const getPaymentLink = (plan: Plan, c: BillingCycle): string => {
-    if (c === 'semiannual') return plan.payment_link_semiannual;
-    if (c === 'annual') return plan.payment_link_annual;
-    return plan.payment_link_monthly;
-  };
-
   const isCurrentPlan = (planId: string): boolean => userPlan?.plan_id === planId;
+
+  if (checkout) {
+    return (
+      <div className="fixed inset-0 z-50 bg-[#050505] overflow-y-auto">
+        <CheckoutPage
+          plan={checkout.plan}
+          cycle={checkout.cycle}
+          onBack={() => setCheckout(null)}
+          onSuccess={async () => {
+            await refreshProfile();
+            setCheckout(null);
+            onClose();
+            window.location.reload();
+          }}
+        />
+      </div>
+    );
+  }
 
   return (
     <div
@@ -153,7 +167,6 @@ export function PlansModal({ onClose }: { onClose: () => void }) {
               <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                 {plans.map((plan) => {
                   const price = getPrice(plan, cycle);
-                  const link = getPaymentLink(plan, cycle);
                   const isCurrent = isCurrentPlan(plan.id);
                   const installment = installmentInfo(cycle, price);
 
@@ -206,19 +219,17 @@ export function PlansModal({ onClose }: { onClose: () => void }) {
                         <div className="w-full py-2.5 rounded-lg text-center text-xs font-medium border border-emerald-900/40 bg-emerald-950/20 text-emerald-400">
                           Plano Atual
                         </div>
-                      ) : link ? (
-                        <a
-                          href={link}
-                          target="_blank"
-                          rel="noopener noreferrer"
+                      ) : price > 0 ? (
+                        <button
+                          onClick={() => setCheckout({ plan, cycle })}
                           className={`w-full py-2.5 rounded-lg text-center text-xs font-medium flex items-center justify-center gap-1.5 transition-colors ${
                             plan.highlight
                               ? 'bg-white text-black hover:bg-neutral-200'
                               : 'border border-[#2a2a2a] text-white hover:bg-[#141414] hover:border-[#3a3a3a]'
                           }`}
                         >
-                          Assinar agora <ExternalLink size={11} />
-                        </a>
+                          Assinar agora <ArrowRight size={11} />
+                        </button>
                       ) : (
                         <div className="w-full py-2.5 rounded-lg text-center text-xs font-medium border border-[#1a1a1a] text-neutral-600">
                           Em breve

@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react';
-import { Check, Loader2, Star, ExternalLink, LogOut } from 'lucide-react';
+import { Check, Loader2, Star, ArrowRight, LogOut } from 'lucide-react';
 import { supabase, Plan } from '../lib/supabase';
 import { useAuth } from '../context/AuthContext';
 import { Logo } from '../components/Logo';
+import { CheckoutPage } from './user/CheckoutPage';
 
 type BillingCycle = 'monthly' | 'semiannual' | 'annual';
 
@@ -23,13 +24,11 @@ function installmentInfo(cycle: BillingCycle, price: number): string | null {
 }
 
 export function PlanSelectionPage({ onPlanSelected }: { onPlanSelected: () => void }) {
-  const { signOut } = useAuth();
+  const { signOut, refreshProfile } = useAuth();
   const [plans, setPlans] = useState<Plan[]>([]);
   const [loading, setLoading] = useState(true);
   const [cycle, setCycle] = useState<BillingCycle>('monthly');
-
-  // Suppress unused warning - kept for future use when payment confirmation flow is added
-  void onPlanSelected;
+  const [checkout, setCheckout] = useState<{ plan: Plan; cycle: BillingCycle } | null>(null);
 
   useEffect(() => {
     (async () => {
@@ -49,19 +48,6 @@ export function PlanSelectionPage({ onPlanSelected }: { onPlanSelected: () => vo
     return plan.price_monthly;
   };
 
-  const getPaymentLink = (plan: Plan, c: BillingCycle): string => {
-    if (c === 'semiannual') return plan.payment_link_semiannual;
-    if (c === 'annual') return plan.payment_link_annual;
-    return plan.payment_link_monthly;
-  };
-
-  const handleSelectPlan = (plan: Plan) => {
-    const link = getPaymentLink(plan, cycle);
-    if (link) {
-      window.open(link, '_blank');
-    }
-  };
-
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-[#050505]">
@@ -70,9 +56,22 @@ export function PlanSelectionPage({ onPlanSelected }: { onPlanSelected: () => vo
     );
   }
 
+  if (checkout) {
+    return (
+      <CheckoutPage
+        plan={checkout.plan}
+        cycle={checkout.cycle}
+        onBack={() => setCheckout(null)}
+        onSuccess={async () => {
+          await refreshProfile();
+          onPlanSelected();
+        }}
+      />
+    );
+  }
+
   return (
     <div className="min-h-screen bg-[#050505] flex flex-col items-center px-4 py-12 relative overflow-hidden">
-      {/* Background aura */}
       <div
         className="absolute pointer-events-none animate-aura-breathe"
         style={{
@@ -103,7 +102,6 @@ export function PlanSelectionPage({ onPlanSelected }: { onPlanSelected: () => vo
           </p>
         </div>
 
-        {/* Billing cycle toggle */}
         <div className="flex justify-center mb-8">
           <div className="inline-flex items-center bg-[#0a0a0a] border border-[#1a1a1a] rounded-xl p-1 gap-0.5">
             {(['monthly', 'semiannual', 'annual'] as BillingCycle[]).map((c) => (
@@ -127,11 +125,9 @@ export function PlanSelectionPage({ onPlanSelected }: { onPlanSelected: () => vo
           </div>
         </div>
 
-        {/* Plans grid */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {plans.map((plan) => {
             const price = getPrice(plan, cycle);
-            const link = getPaymentLink(plan, cycle);
             const installment = installmentInfo(cycle, price);
 
             return (
@@ -179,23 +175,20 @@ export function PlanSelectionPage({ onPlanSelected }: { onPlanSelected: () => vo
                   ))}
                 </ul>
 
-                {link ? (
-                  <a
-                    href={link}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    onClick={() => handleSelectPlan(plan)}
+                {price > 0 ? (
+                  <button
+                    onClick={() => setCheckout({ plan, cycle })}
                     className={`w-full py-3 rounded-xl text-sm font-medium flex items-center justify-center gap-2 transition-colors ${
                       plan.highlight
                         ? 'bg-white text-black hover:bg-neutral-200'
                         : 'border border-[#2a2a2a] text-white hover:bg-[#141414] hover:border-[#3a3a3a]'
                     }`}
                   >
-                    Assinar {plan.name} <ExternalLink size={12} />
-                  </a>
+                    Assinar {plan.name} <ArrowRight size={13} />
+                  </button>
                 ) : (
                   <div className="w-full py-3 rounded-xl text-center text-sm font-medium border border-[#1a1a1a] text-neutral-600">
-                    Link em breve
+                    Em breve
                   </div>
                 )}
               </div>
@@ -203,7 +196,6 @@ export function PlanSelectionPage({ onPlanSelected }: { onPlanSelected: () => vo
           })}
         </div>
 
-        {/* Logout / close */}
         <div className="flex justify-center mt-10">
           <button
             onClick={signOut}

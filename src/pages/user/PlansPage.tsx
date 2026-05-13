@@ -1,10 +1,30 @@
 import { useEffect, useState } from 'react';
-import { Check, Loader2, Star, ArrowRight } from 'lucide-react';
+import { Check, Loader2, Star, ArrowRight, QrCode, CreditCard, Clock } from 'lucide-react';
 import { supabase, Plan, UserPlan } from '../../lib/supabase';
 import { useAuth } from '../../context/AuthContext';
 import { CheckoutPage } from './CheckoutPage';
 
 type BillingCycle = 'monthly' | 'semiannual' | 'annual';
+
+type PaymentRow = {
+  id: string;
+  amount_cents: number;
+  payment_method: string;
+  status: string;
+  status_detail: string | null;
+  installments: number | null;
+  billing_cycle: string;
+  created_at: string;
+};
+
+const STATUS_LABEL: Record<string, { label: string; cls: string }> = {
+  approved: { label: 'Aprovado', cls: 'border-emerald-900/40 bg-emerald-950/30 text-emerald-400' },
+  pending: { label: 'Pendente', cls: 'border-amber-900/40 bg-amber-950/30 text-amber-400' },
+  in_process: { label: 'Em analise', cls: 'border-amber-900/40 bg-amber-950/30 text-amber-400' },
+  rejected: { label: 'Recusado', cls: 'border-red-900/40 bg-red-950/30 text-red-400' },
+  cancelled: { label: 'Cancelado', cls: 'border-[#1a1a1a] text-neutral-500' },
+  refunded: { label: 'Reembolsado', cls: 'border-[#1a1a1a] text-neutral-500' },
+};
 
 const CYCLE_LABELS: Record<BillingCycle, string> = {
   monthly: 'Mensal',
@@ -26,13 +46,14 @@ export function PlansPage() {
   const { profile } = useAuth();
   const [plans, setPlans] = useState<Plan[]>([]);
   const [userPlan, setUserPlan] = useState<(UserPlan & { plan?: Plan }) | null>(null);
+  const [payments, setPayments] = useState<PaymentRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [cycle, setCycle] = useState<BillingCycle>('monthly');
   const [checkout, setCheckout] = useState<{ plan: Plan; cycle: BillingCycle } | null>(null);
 
   useEffect(() => {
     (async () => {
-      const [plansRes, userPlanRes] = await Promise.all([
+      const [plansRes, userPlanRes, paymentsRes] = await Promise.all([
         supabase
           .from('plans')
           .select('*')
@@ -48,6 +69,14 @@ export function PlansPage() {
               .limit(1)
               .maybeSingle()
           : Promise.resolve({ data: null }),
+        profile
+          ? supabase
+              .from('payments')
+              .select('id, amount_cents, payment_method, status, status_detail, installments, billing_cycle, created_at')
+              .eq('user_id', profile.id)
+              .order('created_at', { ascending: false })
+              .limit(10)
+          : Promise.resolve({ data: [] }),
       ]);
 
       setPlans(plansRes.data || []);
@@ -57,6 +86,7 @@ export function PlansPage() {
           plan: userPlanRes.data.plans || undefined,
         });
       }
+      setPayments((paymentsRes.data as PaymentRow[]) || []);
       setLoading(false);
     })();
   }, [profile?.id]);
@@ -220,6 +250,44 @@ export function PlansPage() {
                 Valido ate {new Date(userPlan.expires_at).toLocaleDateString('pt-BR')}
               </p>
             )}
+          </div>
+        </div>
+      )}
+
+      {payments.length > 0 && (
+        <div className="max-w-3xl mx-auto">
+          <div className="border border-[#1a1a1a] rounded-xl bg-[#0a0a0a] overflow-hidden">
+            <div className="px-5 py-4 border-b border-[#1a1a1a] flex items-center gap-2">
+              <Clock size={13} className="text-neutral-500" />
+              <h2 className="text-sm font-medium text-white">Historico de pagamentos</h2>
+            </div>
+            <div className="divide-y divide-[#111]">
+              {payments.map((p) => {
+                const status = STATUS_LABEL[p.status] || { label: p.status, cls: 'border-[#1a1a1a] text-neutral-400' };
+                return (
+                  <div key={p.id} className="px-5 py-3 flex items-center gap-4 hover:bg-[#0d0d0d] transition-colors">
+                    <div className="text-neutral-500 shrink-0">
+                      {p.payment_method === 'pix' ? <QrCode size={14} /> : <CreditCard size={14} />}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="text-sm text-white">
+                        {formatPrice((p.amount_cents || 0) / 100)}
+                        {p.installments && p.installments > 1 && (
+                          <span className="text-neutral-500 text-xs ml-1">em {p.installments}x</span>
+                        )}
+                      </div>
+                      <div className="text-[11px] text-neutral-500 mt-0.5">
+                        {p.payment_method === 'pix' ? 'Pix' : 'Cartao'} {' . '} {CYCLE_LABELS[p.billing_cycle as BillingCycle] || p.billing_cycle}
+                        {' . '} {new Date(p.created_at).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' })}
+                      </div>
+                    </div>
+                    <span className={`text-[10px] px-2 py-0.5 rounded-md border uppercase tracking-wider whitespace-nowrap ${status.cls}`}>
+                      {status.label}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
           </div>
         </div>
       )}
