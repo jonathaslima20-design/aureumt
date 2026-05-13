@@ -262,6 +262,8 @@ export type UserPlan = {
   created_at: string;
 };
 
+export type TemplateExampleMessage = { role: 'user' | 'assistant'; content: string };
+
 export type AgentTemplate = {
   id: string;
   title: string;
@@ -285,7 +287,26 @@ export type AgentTemplate = {
   is_active: boolean;
   created_at: string;
   updated_at: string;
+  category: string;
+  tagline: string;
+  tags: string[];
+  capabilities: string[];
+  example_conversation: TemplateExampleMessage[];
+  ideal_for: string[];
+  recommended_integrations: string[];
+  setup_time_minutes: number;
+  is_featured: boolean;
 };
+
+export const TEMPLATE_CATEGORIES = [
+  { value: 'todos', label: 'Todos' },
+  { value: 'vendas', label: 'Vendas' },
+  { value: 'suporte', label: 'Suporte' },
+  { value: 'ecommerce', label: 'E-commerce' },
+  { value: 'agendamento', label: 'Agendamento' },
+  { value: 'conteudo', label: 'Conteudo' },
+  { value: 'geral', label: 'Geral' },
+];
 
 export type BusinessHours = {
   enabled: boolean;

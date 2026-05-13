@@ -368,7 +368,18 @@ const BLANK_TEMPLATE: Omit<AgentTemplate, 'id' | 'created_at' | 'updated_at'> = 
   custom_fields: [],
   sort_order: 0,
   is_active: true,
+  category: 'geral',
+  tagline: '',
+  tags: [],
+  capabilities: [],
+  example_conversation: [],
+  ideal_for: [],
+  recommended_integrations: [],
+  setup_time_minutes: 2,
+  is_featured: false,
 };
+
+const ADMIN_CATEGORIES = ['geral', 'vendas', 'suporte', 'ecommerce', 'agendamento', 'conteudo'];
 
 function TemplateForm({
   initial,
@@ -472,6 +483,151 @@ function TemplateForm({
           placeholder="ex: Consultor de vendas que qualifica e converte"
           className="w-full bg-[#060606] border border-[#1a1a1a] rounded-lg px-3 py-2.5 text-sm text-white focus:outline-none focus:border-neutral-600"
         />
+      </div>
+
+      {/* Marketplace metadata */}
+      <div className="border border-[#1a1a1a] rounded-xl bg-[#060606] p-4 space-y-4">
+        <div className="text-[10px] text-neutral-500 uppercase tracking-wider">
+          Metadados do marketplace
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          <div>
+            <label className="text-[10px] text-neutral-500 uppercase tracking-wider mb-1.5 block">Tagline curta</label>
+            <input
+              value={form.tagline}
+              onChange={(e) => setField('tagline', e.target.value)}
+              placeholder="ex: Qualifica leads e fecha vendas no automatico"
+              className="w-full bg-[#0a0a0a] border border-[#1a1a1a] rounded-lg px-3 py-2.5 text-sm text-white focus:outline-none focus:border-neutral-600"
+            />
+          </div>
+          <div>
+            <label className="text-[10px] text-neutral-500 uppercase tracking-wider mb-1.5 block">Categoria</label>
+            <select
+              value={form.category}
+              onChange={(e) => setField('category', e.target.value)}
+              className="w-full bg-[#0a0a0a] border border-[#1a1a1a] rounded-lg px-3 py-2.5 text-sm text-white focus:outline-none focus:border-neutral-600"
+            >
+              {ADMIN_CATEGORIES.map((c) => (
+                <option key={c} value={c}>{c}</option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className="text-[10px] text-neutral-500 uppercase tracking-wider mb-1.5 block">Tags (vIRGULA)</label>
+            <input
+              value={form.tags.join(', ')}
+              onChange={(e) => setField('tags', e.target.value.split(',').map((s) => s.trim()).filter(Boolean))}
+              placeholder="vendas, whatsapp, conversao"
+              className="w-full bg-[#0a0a0a] border border-[#1a1a1a] rounded-lg px-3 py-2.5 text-sm text-white focus:outline-none focus:border-neutral-600"
+            />
+          </div>
+          <div>
+            <label className="text-[10px] text-neutral-500 uppercase tracking-wider mb-1.5 block">Tempo de setup (min)</label>
+            <input
+              type="number" min={1} max={60}
+              value={form.setup_time_minutes}
+              onChange={(e) => setField('setup_time_minutes', Number(e.target.value) || 2)}
+              className="w-full bg-[#0a0a0a] border border-[#1a1a1a] rounded-lg px-3 py-2.5 text-sm text-white focus:outline-none focus:border-neutral-600"
+            />
+          </div>
+          <div>
+            <label className="text-[10px] text-neutral-500 uppercase tracking-wider mb-1.5 block">Ideal para (vIRGULA)</label>
+            <input
+              value={form.ideal_for.join(', ')}
+              onChange={(e) => setField('ideal_for', e.target.value.split(',').map((s) => s.trim()).filter(Boolean))}
+              placeholder="Lojas, SaaS, Agencias"
+              className="w-full bg-[#0a0a0a] border border-[#1a1a1a] rounded-lg px-3 py-2.5 text-sm text-white focus:outline-none focus:border-neutral-600"
+            />
+          </div>
+          <div>
+            <label className="text-[10px] text-neutral-500 uppercase tracking-wider mb-1.5 block">Integracoes recomendadas (vIRGULA)</label>
+            <input
+              value={form.recommended_integrations.join(', ')}
+              onChange={(e) => setField('recommended_integrations', e.target.value.split(',').map((s) => s.trim()).filter(Boolean))}
+              placeholder="whatsapp, calendario"
+              className="w-full bg-[#0a0a0a] border border-[#1a1a1a] rounded-lg px-3 py-2.5 text-sm text-white focus:outline-none focus:border-neutral-600"
+            />
+          </div>
+        </div>
+
+        <div>
+          <label className="text-[10px] text-neutral-500 uppercase tracking-wider mb-1.5 block">Capacidades (uma por linha)</label>
+          <textarea
+            value={form.capabilities.join('\n')}
+            onChange={(e) => setField('capabilities', e.target.value.split('\n').map((s) => s.trim()).filter(Boolean))}
+            rows={4}
+            placeholder={'Faz perguntas de qualificacao\nApresenta solucoes sob medida\nConduz ate o fechamento'}
+            className="w-full bg-[#0a0a0a] border border-[#1a1a1a] rounded-lg px-3 py-2.5 text-sm text-white focus:outline-none focus:border-neutral-600 resize-none"
+          />
+        </div>
+
+        <div>
+          <div className="flex items-center justify-between mb-2">
+            <label className="text-[10px] text-neutral-500 uppercase tracking-wider">Exemplo de conversa</label>
+            <button
+              type="button"
+              onClick={() => setField('example_conversation', [
+                ...form.example_conversation,
+                { role: form.example_conversation.length % 2 === 0 ? 'user' : 'assistant', content: '' },
+              ])}
+              className="text-xs text-neutral-400 hover:text-white border border-[#1a1a1a] rounded px-2 py-1 flex items-center gap-1"
+            >
+              <Plus size={10} /> Adicionar mensagem
+            </button>
+          </div>
+          {form.example_conversation.length === 0 ? (
+            <div className="border border-dashed border-[#1a1a1a] rounded-lg py-4 text-center text-xs text-neutral-600">
+              Nenhuma mensagem de exemplo.
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {form.example_conversation.map((msg, idx) => (
+                <div key={idx} className="flex items-start gap-2 bg-[#0a0a0a] border border-[#1a1a1a] rounded-lg p-2">
+                  <select
+                    value={msg.role}
+                    onChange={(e) => {
+                      const arr = [...form.example_conversation];
+                      arr[idx] = { ...arr[idx], role: e.target.value as 'user' | 'assistant' };
+                      setField('example_conversation', arr);
+                    }}
+                    className="bg-[#060606] border border-[#1a1a1a] rounded px-2 py-1.5 text-xs text-white"
+                  >
+                    <option value="user">Usuario</option>
+                    <option value="assistant">Agente</option>
+                  </select>
+                  <input
+                    value={msg.content}
+                    onChange={(e) => {
+                      const arr = [...form.example_conversation];
+                      arr[idx] = { ...arr[idx], content: e.target.value };
+                      setField('example_conversation', arr);
+                    }}
+                    placeholder="Mensagem..."
+                    className="flex-1 bg-[#060606] border border-[#1a1a1a] rounded px-2 py-1.5 text-xs text-white focus:outline-none focus:border-neutral-600"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setField('example_conversation', form.example_conversation.filter((_, i) => i !== idx))}
+                    className="text-neutral-600 hover:text-red-400 p-1"
+                  >
+                    <X size={11} />
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        <label className="flex items-center gap-2 cursor-pointer">
+          <input
+            type="checkbox"
+            checked={form.is_featured}
+            onChange={(e) => setField('is_featured', e.target.checked)}
+            className="w-3.5 h-3.5 accent-white"
+          />
+          <span className="text-xs text-neutral-300">Destacar na home (recomendado para voce)</span>
+        </label>
       </div>
 
       <div>
