@@ -12,6 +12,7 @@ import { ConnectionsPage } from './user/ConnectionsPage';
 import { KnowledgePage } from './user/KnowledgePage';
 import { ChatPage } from './user/ChatPage';
 import { TemplateGalleryPage } from './user/TemplateGalleryPage';
+import { AgentTrainingPage } from './user/AgentTrainingPage';
 
 const STORAGE_KEY = 'auratalk:lastPage';
 
@@ -27,7 +28,7 @@ export function Dashboard({ onNavAdmin }: { onNavAdmin: () => void }) {
 
   const [page, setPage] = useState<PageKey>(() => {
     const saved = localStorage.getItem(STORAGE_KEY) as PageKey | null;
-    const valid: PageKey[] = ['overview', 'agents', 'templates', 'connections', 'knowledge', 'chat'];
+    const valid: PageKey[] = ['overview', 'agents', 'templates', 'connections', 'knowledge', 'training', 'chat'];
     return saved && valid.includes(saved) ? saved : 'overview';
   });
 
@@ -145,6 +146,9 @@ export function Dashboard({ onNavAdmin }: { onNavAdmin: () => void }) {
 
       case 'knowledge':
         return <KnowledgePage />;
+
+      case 'training':
+        return <AgentTrainingPage instances={instances} />;
 
       case 'chat':
         if (instances.length === 0) return <EmptyAgentsPrompt onCreate={() => setShowCreate(true)} />;

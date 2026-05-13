@@ -315,3 +315,59 @@ export type ConversionEvent = {
   metadata: Record<string, unknown>;
   created_at: string;
 };
+
+export type AgentPersona = {
+  id: string;
+  instance_id: string;
+  age_range: string;
+  region: string;
+  background_story: string;
+  hobbies: string;
+  speech_quirks: string;
+  favorite_phrases: string;
+  formality_level: string;
+  use_typos: boolean;
+  use_abbreviations: boolean;
+  use_hesitations: boolean;
+  use_regional_slang: boolean;
+  anti_detection_mode: boolean;
+  created_at: string;
+  updated_at: string;
+};
+
+export type CustomerMemory = {
+  id: string;
+  instance_id: string;
+  customer_number: string;
+  customer_name: string;
+  facts: string[];
+  preferences: Record<string, unknown>;
+  last_topics: string;
+  relationship_level: string;
+  total_interactions: number;
+  last_interaction_at: string;
+  created_at: string;
+};
+
+export type AgentLearning = {
+  id: string;
+  instance_id: string;
+  customer_number: string;
+  user_message: string;
+  bot_response: string;
+  human_correction: string;
+  rating: string;
+  is_active: boolean;
+  created_at: string;
+};
+
+export type HumanExample = {
+  id: string;
+  instance_id: string;
+  trigger_keyword: string;
+  example_question: string;
+  ideal_response: string;
+  is_active: boolean;
+  sort_order: number;
+  created_at: string;
+};

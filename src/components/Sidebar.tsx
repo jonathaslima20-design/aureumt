@@ -1,11 +1,11 @@
 import { useState, useEffect } from 'react';
-import { LayoutDashboard, Link2, MessagesSquare, LogOut, Shield, Menu, X, Bot, Database, Sparkles, ChevronRight } from 'lucide-react';
+import { LayoutDashboard, Link2, MessagesSquare, LogOut, Shield, Menu, X, Bot, Database, Sparkles, ChevronRight, GraduationCap } from 'lucide-react';
 import { Logo } from './Logo';
 import { NotificationsDropdown } from './NotificationsDropdown';
 import { useAuth } from '../context/AuthContext';
 import { supabase } from '../lib/supabase';
 
-export type PageKey = 'overview' | 'agents' | 'templates' | 'connections' | 'knowledge' | 'chat';
+export type PageKey = 'overview' | 'agents' | 'templates' | 'connections' | 'knowledge' | 'training' | 'chat';
 
 const ITEMS: { key: PageKey; label: string; icon: typeof LayoutDashboard }[] = [
   { key: 'overview', label: 'Visão Geral', icon: LayoutDashboard },
@@ -13,6 +13,7 @@ const ITEMS: { key: PageKey; label: string; icon: typeof LayoutDashboard }[] = [
   { key: 'templates', label: 'Templates', icon: Sparkles },
   { key: 'connections', label: 'Conexões', icon: Link2 },
   { key: 'knowledge', label: 'Base de Conhecimento', icon: Database },
+  { key: 'training', label: 'Treinamento', icon: GraduationCap },
   { key: 'chat', label: 'Chat', icon: MessagesSquare },
 ];
 
