@@ -35,11 +35,11 @@ async function loadConfig(admin: ReturnType<typeof createClient>): Promise<Cfg |
 }
 
 function tokenOf(cfg: Cfg): string {
-  return cfg.environment === "production" ? cfg.access_token_prod : cfg.access_token_test;
+  return cfg.access_token_prod;
 }
 
 function publicKeyOf(cfg: Cfg): string {
-  return cfg.environment === "production" ? cfg.public_key_prod : cfg.public_key_test;
+  return cfg.public_key_prod;
 }
 
 function priceCentsFor(plan: any, cycle: string): number {
@@ -79,7 +79,7 @@ Deno.serve(async (req: Request) => {
     if (action === "getPublicKey") {
       return json({
         public_key: publicKeyOf(cfg),
-        environment: cfg.environment,
+        environment: "production",
       });
     }
 
@@ -104,7 +104,7 @@ Deno.serve(async (req: Request) => {
         currency: "BRL",
         payment_method: action === "createPixPayment" ? "pix" : "credit_card",
         status: "pending",
-        environment: cfg.environment,
+        environment: "production",
         payer_email: payer?.email || user.email || "",
         payer_doc: payer?.doc || "",
       }).select().maybeSingle();

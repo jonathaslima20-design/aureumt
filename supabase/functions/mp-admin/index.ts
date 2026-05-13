@@ -61,9 +61,7 @@ Deno.serve(async (req: Request) => {
       if (!data) {
         return json({
           config: {
-            environment: "test",
-            public_key_test: "",
-            access_token_test_masked: "",
+            environment: "production",
             public_key_prod: "",
             access_token_prod_masked: "",
             webhook_secret_masked: "",
@@ -74,10 +72,7 @@ Deno.serve(async (req: Request) => {
       return json({
         config: {
           id: data.id,
-          environment: data.environment,
-          public_key_test: data.public_key_test || "",
-          access_token_test_masked: mask(data.access_token_test),
-          has_access_token_test: !!data.access_token_test,
+          environment: "production",
           public_key_prod: data.public_key_prod || "",
           access_token_prod_masked: mask(data.access_token_prod),
           has_access_token_prod: !!data.access_token_prod,
@@ -91,38 +86,21 @@ Deno.serve(async (req: Request) => {
 
     if (action === "saveConfig") {
       const {
-        environment,
-        public_key_test,
-        access_token_test,
         public_key_prod,
         access_token_prod,
         webhook_secret,
       } = payload || {};
 
-      // Validate credential prefixes to prevent "Unauthorized use of live credentials"
-      // which occurs when test/prod credentials are mixed.
-      if (typeof public_key_test === "string" && public_key_test.length > 0 &&
-          !public_key_test.startsWith("TEST-")) {
-        return json({
-          error: "Public Key de teste deve comecar com TEST-. Verifique se voce nao colou uma credencial de producao.",
-        }, 400);
-      }
-      if (typeof access_token_test === "string" && access_token_test.length > 0 &&
-          !access_token_test.startsWith("TEST-")) {
-        return json({
-          error: "Access Token de teste deve comecar com TEST-. Verifique se voce nao colou uma credencial de producao (APP_USR-).",
-        }, 400);
-      }
       if (typeof public_key_prod === "string" && public_key_prod.length > 0 &&
           !public_key_prod.startsWith("APP_USR-")) {
         return json({
-          error: "Public Key de producao deve comecar com APP_USR-.",
+          error: "Public Key deve comecar com APP_USR-.",
         }, 400);
       }
       if (typeof access_token_prod === "string" && access_token_prod.length > 0 &&
           !access_token_prod.startsWith("APP_USR-")) {
         return json({
-          error: "Access Token de producao deve comecar com APP_USR-.",
+          error: "Access Token deve comecar com APP_USR-.",
         }, 400);
       }
 
@@ -135,43 +113,27 @@ Deno.serve(async (req: Request) => {
       const notification_url = `${Deno.env.get("SUPABASE_URL")}/functions/v1/mp-webhook`;
 
       const updates: Record<string, unknown> = {
-        environment: environment || "test",
+        environment: "production",
         notification_url,
         is_active: true,
         updated_at: new Date().toISOString(),
       };
-      if (typeof public_key_test === "string") updates.public_key_test = public_key_test;
-      if (typeof access_token_test === "string" && access_token_test.length > 0)
-        updates.access_token_test = access_token_test;
       if (typeof public_key_prod === "string") updates.public_key_prod = public_key_prod;
       if (typeof access_token_prod === "string" && access_token_prod.length > 0)
         updates.access_token_prod = access_token_prod;
       if (typeof webhook_secret === "string" && webhook_secret.length > 0)
         updates.webhook_secret = webhook_secret;
 
-      // Determine effective credentials AFTER applying this save, to validate
-      // we are not switching to production without valid prod credentials.
       const effectivePubProd = typeof public_key_prod === "string" && public_key_prod.length > 0
         ? public_key_prod
         : existing?.public_key_prod || "";
       const effectiveTokenProd = typeof access_token_prod === "string" && access_token_prod.length > 0
         ? access_token_prod
         : existing?.access_token_prod || "";
-      const effectivePubTest = typeof public_key_test === "string" && public_key_test.length > 0
-        ? public_key_test
-        : existing?.public_key_test || "";
-      const effectiveTokenTest = typeof access_token_test === "string" && access_token_test.length > 0
-        ? access_token_test
-        : existing?.access_token_test || "";
 
-      if (environment === "production" && (!effectivePubProd || !effectiveTokenProd)) {
+      if (!effectivePubProd || !effectiveTokenProd) {
         return json({
-          error: "Para ativar o ambiente de producao, salve antes a Public Key e o Access Token de producao.",
-        }, 400);
-      }
-      if (environment === "test" && (!effectivePubTest || !effectiveTokenTest)) {
-        return json({
-          error: "Para ativar o ambiente de teste, salve antes a Public Key e o Access Token de teste.",
+          error: "Informe a Public Key e o Access Token de producao para salvar.",
         }, 400);
       }
 
@@ -179,8 +141,6 @@ Deno.serve(async (req: Request) => {
         await admin.from("mercadopago_config").update(updates).eq("id", existing.id);
       } else {
         await admin.from("mercadopago_config").insert({
-          public_key_test: public_key_test || "",
-          access_token_test: access_token_test || "",
           public_key_prod: public_key_prod || "",
           access_token_prod: access_token_prod || "",
           webhook_secret: webhook_secret || "",
@@ -198,9 +158,7 @@ Deno.serve(async (req: Request) => {
         .maybeSingle();
       if (!cfg) return json({ error: "Sem credenciais salvas" }, 400);
 
-      const token = cfg.environment === "production"
-        ? cfg.access_token_prod
-        : cfg.access_token_test;
+      const token = cfg.access_token_prod;
       if (!token) return json({ error: "Access Token nao configurado" }, 400);
 
       const resp = await fetch("https://api.mercadopago.com/users/me", {

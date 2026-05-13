@@ -33,12 +33,6 @@ function maskCpfCnpj(v: string): string {
     .replace(/(\d{4})(\d{1,2})$/, '$1-$2');
 }
 
-const TEST_CARDS = [
-  { brand: 'Mastercard APRO (aprovado)', number: '5031 4332 1540 6351', cvv: '123', exp: '11/30' },
-  { brand: 'Visa OTHE (recusado)', number: '4235 6477 2802 5682', cvv: '123', exp: '11/30' },
-  { brand: 'CPF teste', number: '12345678909', cvv: '', exp: '' },
-];
-
 export function CheckoutPage({
   plan,
   cycle,
@@ -58,7 +52,6 @@ export function CheckoutPage({
   }, [plan, cycle]);
 
   const [tab, setTab] = useState<'pix' | 'card'>('pix');
-  const [environment, setEnvironment] = useState<string>('test');
   const [sdkReady, setSdkReady] = useState(false);
   const [sdkError, setSdkError] = useState<string | null>(null);
 
@@ -75,7 +68,6 @@ export function CheckoutPage({
   const [cardError, setCardError] = useState<string | null>(null);
   const [cardSuccess, setCardSuccess] = useState<string | null>(null);
 
-  const [showTestCards, setShowTestCards] = useState(false);
   const [brickKey, setBrickKey] = useState(0);
 
   const paymentInitialization = useMemo(
@@ -109,7 +101,6 @@ export function CheckoutPage({
     (async () => {
       try {
         const info = await ensureMercadoPago();
-        setEnvironment(info.environment);
         if (!info.public_key) {
           setSdkError('Public Key do Mercado Pago nao configurada. Contate o administrador.');
         } else {
@@ -200,43 +191,12 @@ export function CheckoutPage({
           <ArrowLeft size={14} /> Voltar para planos
         </button>
 
-        {environment === 'test' ? (
-          <div className="rounded-xl border border-amber-900/40 bg-amber-950/20 p-3 mb-6 flex items-start gap-2.5">
-            <AlertCircle size={14} className="text-amber-400 shrink-0 mt-0.5" />
-            <div className="text-xs text-amber-200/90 leading-relaxed flex-1">
-              <strong className="text-amber-300">Modo de teste.</strong> Nenhuma cobranca real sera processada.{' '}
-              <button
-                onClick={() => setShowTestCards((v) => !v)}
-                className="underline hover:text-amber-100"
-              >
-                {showTestCards ? 'Ocultar' : 'Ver'} dados de teste
-              </button>
-            </div>
+        <div className="rounded-xl border border-emerald-900/40 bg-emerald-950/20 p-3 mb-6 flex items-start gap-2.5">
+          <ShieldCheck size={14} className="text-emerald-400 shrink-0 mt-0.5" />
+          <div className="text-xs text-emerald-200/90 leading-relaxed flex-1">
+            <strong className="text-emerald-300">Pagamento seguro.</strong> Processado pelo Mercado Pago com criptografia ponta a ponta.
           </div>
-        ) : (
-          <div className="rounded-xl border border-emerald-900/40 bg-emerald-950/20 p-3 mb-6 flex items-start gap-2.5">
-            <ShieldCheck size={14} className="text-emerald-400 shrink-0 mt-0.5" />
-            <div className="text-xs text-emerald-200/90 leading-relaxed flex-1">
-              <strong className="text-emerald-300">Pagamento seguro.</strong> Processado pelo Mercado Pago com criptografia ponta a ponta.
-            </div>
-          </div>
-        )}
-
-        {showTestCards && (
-          <div className="rounded-xl border border-[#1a1a1a] bg-[#0a0a0a] p-4 mb-6">
-            <div className="text-xs uppercase tracking-wider text-neutral-500 mb-3">Cartoes e dados de teste</div>
-            <div className="space-y-2 text-xs font-mono">
-              {TEST_CARDS.map((c) => (
-                <div key={c.brand} className="flex items-center gap-3 text-neutral-300">
-                  <span className="text-neutral-500 w-44">{c.brand}</span>
-                  <span className="text-white">{c.number}</span>
-                  {c.cvv && <span className="text-neutral-500">CVV {c.cvv}</span>}
-                  {c.exp && <span className="text-neutral-500">{c.exp}</span>}
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
+        </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-6">
           {/* Main column */}

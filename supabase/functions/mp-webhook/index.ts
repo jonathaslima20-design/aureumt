@@ -130,7 +130,7 @@ Deno.serve(async (req: Request) => {
 
     if (!eventType.startsWith("payment")) return ok();
 
-    const token = cfg.environment === "production" ? cfg.access_token_prod : cfg.access_token_test;
+    const token = cfg.access_token_prod;
     if (!token) return ok();
 
     const resp = await fetch(`https://api.mercadopago.com/v1/payments/${dataId}`, {
