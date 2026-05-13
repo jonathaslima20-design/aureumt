@@ -63,15 +63,19 @@ export function MercadoPagoPage() {
   const save = async () => {
     setSaving(true);
     setTestResult(null);
-    await callAdmin('saveConfig', {
+    const res = await callAdmin('saveConfig', {
       environment,
       public_key_test: pubKeyTest,
       access_token_test: accessTokenTest,
       webhook_secret: webhookSecret,
     });
+    setSaving(false);
+    if (res?.error) {
+      setTestResult({ ok: false, message: res.error });
+      return;
+    }
     setAccessTokenTest('');
     setWebhookSecret('');
-    setSaving(false);
     setSaved(true);
     setTimeout(() => setSaved(false), 2000);
     await load();

@@ -99,6 +99,33 @@ Deno.serve(async (req: Request) => {
         webhook_secret,
       } = payload || {};
 
+      // Validate credential prefixes to prevent "Unauthorized use of live credentials"
+      // which occurs when test/prod credentials are mixed.
+      if (typeof public_key_test === "string" && public_key_test.length > 0 &&
+          !public_key_test.startsWith("TEST-")) {
+        return json({
+          error: "Public Key de teste deve comecar com TEST-. Verifique se voce nao colou uma credencial de producao.",
+        }, 400);
+      }
+      if (typeof access_token_test === "string" && access_token_test.length > 0 &&
+          !access_token_test.startsWith("TEST-")) {
+        return json({
+          error: "Access Token de teste deve comecar com TEST-. Verifique se voce nao colou uma credencial de producao (APP_USR-).",
+        }, 400);
+      }
+      if (typeof public_key_prod === "string" && public_key_prod.length > 0 &&
+          !public_key_prod.startsWith("APP_USR-")) {
+        return json({
+          error: "Public Key de producao deve comecar com APP_USR-.",
+        }, 400);
+      }
+      if (typeof access_token_prod === "string" && access_token_prod.length > 0 &&
+          !access_token_prod.startsWith("APP_USR-")) {
+        return json({
+          error: "Access Token de producao deve comecar com APP_USR-.",
+        }, 400);
+      }
+
       const { data: existing } = await admin
         .from("mercadopago_config")
         .select("*")
