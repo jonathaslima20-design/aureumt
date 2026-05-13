@@ -22,19 +22,21 @@ async function ensureProfile(userId: string, email: string): Promise<Profile | n
     .maybeSingle();
 
   if (existing) return existing;
-  if (selErr) console.error('profile select error', selErr);
+  if (selErr) {
+    console.error('profile select error', selErr);
+    // Do NOT fall through to insert when select fails — that could overwrite
+    // an existing row (e.g. an admin profile) with default values.
+    return null;
+  }
 
-  const { data: created, error: upErr } = await supabase
+  const { data: created, error: insErr } = await supabase
     .from('profiles')
-    .upsert(
-      { id: userId, email, role: 'user', plan_status: 'trial' },
-      { onConflict: 'id' }
-    )
+    .insert({ id: userId, email, role: 'user', plan_status: 'trial' })
     .select()
     .maybeSingle();
 
-  if (upErr) {
-    console.error('profile upsert error', upErr);
+  if (insErr) {
+    console.error('profile insert error', insErr);
     return null;
   }
   return created;
