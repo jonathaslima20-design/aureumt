@@ -369,5 +369,39 @@ export type HumanExample = {
   ideal_response: string;
   is_active: boolean;
   sort_order: number;
+  source_shared_id: string | null;
+  created_at: string;
+};
+
+export type PersonaTemplate = {
+  id: string;
+  name: string;
+  description: string;
+  icon: string;
+  category: string;
+  age_range: string;
+  region: string;
+  background_story: string;
+  hobbies: string;
+  speech_quirks: string;
+  favorite_phrases: string;
+  formality_level: string;
+  use_typos: boolean;
+  use_abbreviations: boolean;
+  use_hesitations: boolean;
+  use_regional_slang: boolean;
+  anti_detection_mode: boolean;
+  is_official: boolean;
+  created_by: string | null;
+  created_at: string;
+};
+
+export type SharedExample = {
+  id: string;
+  user_id: string;
+  label: string;
+  trigger_keyword: string;
+  example_question: string;
+  ideal_response: string;
   created_at: string;
 };

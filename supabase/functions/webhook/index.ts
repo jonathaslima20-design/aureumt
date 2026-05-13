@@ -483,15 +483,6 @@ Deno.serve(async (req) => {
         }
       }
 
-      if (!knowledgeContent) {
-        const { data: legacySources } = await admin.from("knowledge_sources").select("content, title, type").eq("instance_id", instance.id).eq("is_active", true).limit(20);
-        if (legacySources && legacySources.length > 0) {
-          const chunks = legacySources.map((s: { title: string; type: string; content: string }) => `### ${s.title} (${s.type.toUpperCase()})\n${cleanText(s.content)}`);
-          knowledgeContent = chunks.join("\n\n---\n\n").slice(0, 80000);
-          knowledgeHit = true;
-        }
-      }
-
       // ── Conversation history ────────────────────────────────────────────
       const { data: history } = await admin.from("chat_logs").select("direction, message_body").eq("instance_id", instance.id).eq("customer_number", customerNumber).order("created_at", { ascending: false }).limit(12);
       const ordered = (history || []).reverse().map((h: { direction: string; message_body: string }) => ({ role: h.direction === "in" ? "user" : "assistant", text: h.message_body.slice(0, 500) }));
