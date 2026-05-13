@@ -11,26 +11,52 @@ import {
 } from '../../lib/supabase';
 import { AgentAvatar } from '../../components/AgentAvatar';
 import { ImageCropModal } from '../../components/ImageCropModal';
+import { AgentTrainingPage } from './AgentTrainingPage';
 
-type Tab = 'profile' | 'knowledge' | 'connections' | 'advanced';
+type Tab = 'profile' | 'knowledge' | 'training' | 'connections' | 'advanced';
+
+type Readiness = {
+  hasKnowledge: boolean;
+  hasPersona: boolean;
+  exampleCount: number;
+  hasConnection: boolean;
+};
 
 type Props = {
   instance: Instance;
   onBack: () => void;
   onUpdate: () => void;
   onDelete: (inst: Instance) => void;
+  instances: Instance[];
+  readiness: Readiness;
 };
 
-export function AgentDetailPage({ instance, onBack, onUpdate, onDelete }: Props) {
+export function AgentDetailPage({ instance, onBack, onUpdate, onDelete, instances, readiness }: Props) {
   const [tab, setTab] = useState<Tab>('profile');
   const [showTest, setShowTest] = useState(false);
 
   const tabs: { key: Tab; label: string }[] = [
     { key: 'profile', label: 'Perfil' },
     { key: 'knowledge', label: 'Conhecimento' },
+    { key: 'training', label: 'Treinamento' },
     { key: 'connections', label: 'WhatsApp' },
     { key: 'advanced', label: 'Avançado' },
   ];
+
+  const checklist = [
+    { key: 'persona', label: 'Persona definida', done: readiness.hasPersona, tab: 'training' as Tab },
+    { key: 'knowledge', label: 'Base de conhecimento vinculada', done: readiness.hasKnowledge, tab: 'knowledge' as Tab },
+    { key: 'examples', label: 'Pelo menos 3 exemplos', done: readiness.exampleCount >= 3, tab: 'training' as Tab },
+    { key: 'connection', label: 'WhatsApp conectado', done: readiness.hasConnection, tab: 'connections' as Tab },
+  ];
+  const doneCount = checklist.filter((c) => c.done).length;
+  const readinessLevel: 'red' | 'yellow' | 'green' = doneCount >= 4 ? 'green' : doneCount >= 2 ? 'yellow' : 'red';
+  const readinessLabel = readinessLevel === 'green' ? 'Pronto otimizado' : readinessLevel === 'yellow' ? 'Pronto básico' : 'Não pronto';
+  const readinessStyle = readinessLevel === 'green'
+    ? 'bg-emerald-500/10 text-emerald-400 border-emerald-900/40'
+    : readinessLevel === 'yellow'
+    ? 'bg-amber-500/10 text-amber-400 border-amber-900/40'
+    : 'bg-red-500/10 text-red-400 border-red-900/40';
 
   return (
     <div className="space-y-4 sm:space-y-6">
@@ -82,8 +108,53 @@ export function AgentDetailPage({ instance, onBack, onUpdate, onDelete }: Props)
         ))}
       </div>
 
+      {doneCount < 4 && (
+        <div className="bg-[#0d0d0d] border border-[#1a1a1a] rounded-2xl p-4 sm:p-5 space-y-3">
+          <div className="flex items-center justify-between gap-3 flex-wrap">
+            <div className="flex items-center gap-2.5">
+              <span className={`text-[10px] uppercase tracking-wider px-2 py-0.5 rounded border font-medium ${readinessStyle}`}>
+                {readinessLabel}
+              </span>
+              <span className="text-xs text-neutral-500">{doneCount} de {checklist.length} etapas concluídas</span>
+            </div>
+            <div className="flex items-center gap-1 flex-1 max-w-[200px] min-w-[120px]">
+              <div className="h-1 bg-[#1a1a1a] rounded-full flex-1 overflow-hidden">
+                <div
+                  className={`h-full rounded-full transition-all duration-500 ${
+                    readinessLevel === 'green' ? 'bg-emerald-400' : readinessLevel === 'yellow' ? 'bg-amber-400' : 'bg-red-400'
+                  }`}
+                  style={{ width: `${(doneCount / checklist.length) * 100}%` }}
+                />
+              </div>
+            </div>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            {checklist.map((c) => (
+              <button
+                key={c.key}
+                onClick={() => setTab(c.tab)}
+                className={`flex items-center gap-2.5 px-3 py-2 rounded-lg border text-xs transition-colors text-left ${
+                  c.done
+                    ? 'bg-emerald-500/5 border-emerald-900/30 text-emerald-300'
+                    : 'bg-[#0a0a0a] border-[#1a1a1a] text-neutral-400 hover:border-[#2a2a2a] hover:text-white'
+                }`}
+              >
+                <div className={`w-4 h-4 rounded-full border flex items-center justify-center shrink-0 ${
+                  c.done ? 'bg-emerald-500/20 border-emerald-500/40' : 'border-[#2a2a2a]'
+                }`}>
+                  {c.done && <Check size={9} className="text-emerald-400" />}
+                </div>
+                <span className="flex-1">{c.label}</span>
+                {!c.done && <span className="text-[10px] text-neutral-600">configurar</span>}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
       {tab === 'profile' && <ProfileTab instance={instance} onUpdate={onUpdate} />}
       {tab === 'knowledge' && <KnowledgeTab instance={instance} onUpdate={onUpdate} />}
+      {tab === 'training' && <AgentTrainingPage instances={instances} embeddedInstance={instance} />}
       {tab === 'connections' && <ConnectionsTab instance={instance} onNavConnections={onUpdate} />}
       {tab === 'advanced' && <AdvancedTab instance={instance} onUpdate={onUpdate} />}
 

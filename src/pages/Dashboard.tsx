@@ -25,6 +25,9 @@ export function Dashboard({ onNavAdmin }: { onNavAdmin: () => void }) {
   const [confirmDelete, setConfirmDelete] = useState<Instance | null>(null);
   const [deleting, setDeleting] = useState(false);
   const [linkedBaseCounts, setLinkedBaseCounts] = useState<Record<string, number>>({});
+  const [personaMap, setPersonaMap] = useState<Record<string, boolean>>({});
+  const [exampleCounts, setExampleCounts] = useState<Record<string, number>>({});
+  const [connectionCounts, setConnectionCounts] = useState<Record<string, number>>({});
 
   const [page, setPage] = useState<PageKey>(() => {
     const saved = localStorage.getItem(STORAGE_KEY) as PageKey | null;
@@ -48,15 +51,34 @@ export function Dashboard({ onNavAdmin }: { onNavAdmin: () => void }) {
     setInstances(list);
 
     if (list.length > 0) {
-      const { data: links } = await supabase
-        .from('instance_knowledge_bases')
-        .select('instance_id')
-        .in('instance_id', list.map((i) => i.id));
+      const ids = list.map((i) => i.id);
+      const [{ data: links }, { data: personas }, { data: examples }, { data: conns }] = await Promise.all([
+        supabase.from('instance_knowledge_bases').select('instance_id').in('instance_id', ids),
+        supabase.from('agent_personas').select('instance_id').in('instance_id', ids),
+        supabase.from('human_examples').select('instance_id').in('instance_id', ids).eq('is_active', true),
+        supabase.from('whatsapp_connections').select('instance_id').in('instance_id', ids),
+      ]);
       const counts: Record<string, number> = {};
       (links || []).forEach((l: { instance_id: string }) => {
         counts[l.instance_id] = (counts[l.instance_id] || 0) + 1;
       });
       setLinkedBaseCounts(counts);
+
+      const pmap: Record<string, boolean> = {};
+      (personas || []).forEach((p: { instance_id: string }) => { pmap[p.instance_id] = true; });
+      setPersonaMap(pmap);
+
+      const ecounts: Record<string, number> = {};
+      (examples || []).forEach((e: { instance_id: string }) => {
+        ecounts[e.instance_id] = (ecounts[e.instance_id] || 0) + 1;
+      });
+      setExampleCounts(ecounts);
+
+      const ccounts: Record<string, number> = {};
+      (conns || []).forEach((c: { instance_id: string | null }) => {
+        if (c.instance_id) ccounts[c.instance_id] = (ccounts[c.instance_id] || 0) + 1;
+      });
+      setConnectionCounts(ccounts);
     }
     setLoading(false);
   };
@@ -112,6 +134,13 @@ export function Dashboard({ onNavAdmin }: { onNavAdmin: () => void }) {
               onBack={() => setSelectedAgent(null)}
               onUpdate={fetchInstances}
               onDelete={(inst) => setConfirmDelete(inst)}
+              instances={instances}
+              readiness={{
+                hasKnowledge: (linkedBaseCounts[selectedAgent.id] ?? 0) > 0,
+                hasPersona: !!personaMap[selectedAgent.id],
+                exampleCount: exampleCounts[selectedAgent.id] ?? 0,
+                hasConnection: (connectionCounts[selectedAgent.id] ?? 0) > 0,
+              }}
             />
           );
         }
@@ -122,6 +151,9 @@ export function Dashboard({ onNavAdmin }: { onNavAdmin: () => void }) {
             onSelectAgent={(inst) => setSelectedAgent(inst)}
             onInstanceUpdate={(updated) => setInstances((prev) => prev.map((i) => i.id === updated.id ? updated : i))}
             linkedBaseCounts={linkedBaseCounts}
+            personaMap={personaMap}
+            exampleCounts={exampleCounts}
+            connectionCounts={connectionCounts}
           />
         );
 

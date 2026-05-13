@@ -9,6 +9,35 @@ type Props = {
   onSelectAgent: (instance: Instance) => void;
   onInstanceUpdate: (updated: Instance) => void;
   linkedBaseCounts: Record<string, number>;
+  personaMap: Record<string, boolean>;
+  exampleCounts: Record<string, number>;
+  connectionCounts: Record<string, number>;
+};
+
+type Maturity = 'basic' | 'intermediate' | 'advanced';
+
+export function calcMaturity(input: {
+  hasKnowledge: boolean;
+  hasPersona: boolean;
+  exampleCount: number;
+  hasConnection: boolean;
+}): Maturity {
+  const score = (input.hasKnowledge ? 1 : 0) + (input.hasPersona ? 1 : 0) + (input.exampleCount >= 3 ? 1 : 0) + (input.hasConnection ? 1 : 0);
+  if (score >= 4) return 'advanced';
+  if (score >= 2) return 'intermediate';
+  return 'basic';
+}
+
+const MATURITY_LABEL: Record<Maturity, string> = {
+  basic: 'Básico',
+  intermediate: 'Intermediário',
+  advanced: 'Avançado',
+};
+
+const MATURITY_STYLE: Record<Maturity, string> = {
+  basic: 'bg-amber-500/10 text-amber-400 border-amber-900/40',
+  intermediate: 'bg-blue-500/10 text-blue-400 border-blue-900/40',
+  advanced: 'bg-emerald-500/10 text-emerald-400 border-emerald-900/40',
 };
 
 const TONE_LABELS: Record<string, string> = {
@@ -18,7 +47,7 @@ const TONE_LABELS: Record<string, string> = {
   technical: 'Técnico',
   warm: 'Acolhedor',
 };
-export function AgentsPage({ instances, onCreateAgent, onSelectAgent, onInstanceUpdate, linkedBaseCounts }: Props) {
+export function AgentsPage({ instances, onCreateAgent, onSelectAgent, onInstanceUpdate, linkedBaseCounts, personaMap, exampleCounts, connectionCounts }: Props) {
   return (
     <div className="space-y-4 sm:space-y-6">
       <div className="flex items-start sm:items-center justify-between flex-wrap gap-3">
@@ -57,6 +86,12 @@ export function AgentsPage({ instances, onCreateAgent, onSelectAgent, onInstance
               key={inst.id}
               instance={inst}
               linkedBases={linkedBaseCounts[inst.id] ?? 0}
+              maturity={calcMaturity({
+                hasKnowledge: (linkedBaseCounts[inst.id] ?? 0) > 0,
+                hasPersona: !!personaMap[inst.id],
+                exampleCount: exampleCounts[inst.id] ?? 0,
+                hasConnection: (connectionCounts[inst.id] ?? 0) > 0,
+              })}
               onClick={() => onSelectAgent(inst)}
               onToggleStatus={onInstanceUpdate}
             />
@@ -71,11 +106,13 @@ export function AgentsPage({ instances, onCreateAgent, onSelectAgent, onInstance
 function AgentCard({
   instance,
   linkedBases,
+  maturity,
   onClick,
   onToggleStatus,
 }: {
   instance: Instance;
   linkedBases: number;
+  maturity: Maturity;
   onClick: () => void;
   onToggleStatus: (updated: Instance) => void;
 }) {
@@ -134,10 +171,18 @@ function AgentCard({
             )}
           </div>
         </div>
-        <ChevronRight
-          size={14}
-          className="text-neutral-600 group-hover:text-neutral-400 transition-colors shrink-0 mt-1"
-        />
+        <div className="flex items-center gap-2 shrink-0">
+          <span
+            className={`text-[9px] uppercase tracking-wider px-1.5 py-0.5 rounded border font-medium ${MATURITY_STYLE[maturity]}`}
+            title="Maturidade do agente: baseada em conhecimento, persona, exemplos e conexão WhatsApp"
+          >
+            {MATURITY_LABEL[maturity]}
+          </span>
+          <ChevronRight
+            size={14}
+            className="text-neutral-600 group-hover:text-neutral-400 transition-colors mt-1"
+          />
+        </div>
       </div>
 
       <div

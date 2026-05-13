@@ -19,9 +19,10 @@ const FORMALITY_OPTIONS = [
   { v: 'informal', l: 'Sempre informal' },
 ];
 
-export function AgentTrainingPage({ instances }: { instances: Instance[] }) {
-  const [selectedInstance, setSelectedInstance] = useState<Instance | null>(instances[0] || null);
+export function AgentTrainingPage({ instances, embeddedInstance }: { instances: Instance[]; embeddedInstance?: Instance }) {
+  const [selectedInstance, setSelectedInstance] = useState<Instance | null>(embeddedInstance || instances[0] || null);
   const [tab, setTab] = useState<Tab>('persona');
+  const isEmbedded = !!embeddedInstance;
 
   if (!selectedInstance) {
     return (
@@ -36,26 +37,28 @@ export function AgentTrainingPage({ instances }: { instances: Instance[] }) {
 
   return (
     <div className="space-y-5">
-      <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-3">
-        <div>
-          <h1 className="text-xl font-semibold text-white tracking-tight">Treinamento do Agente</h1>
-          <p className="text-xs text-neutral-500 mt-1 leading-relaxed max-w-xl">
-            Refine a personalidade e ensine respostas exemplares. Quanto mais voce treina, mais humano fica.
-          </p>
-        </div>
+      {!isEmbedded && (
+        <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-3">
+          <div>
+            <h1 className="text-xl font-semibold text-white tracking-tight">Treinamento do Agente</h1>
+            <p className="text-xs text-neutral-500 mt-1 leading-relaxed max-w-xl">
+              Refine a personalidade e ensine respostas exemplares. Quanto mais voce treina, mais humano fica.
+            </p>
+          </div>
 
-        {instances.length > 1 && (
-          <select
-            value={selectedInstance.id}
-            onChange={(e) => setSelectedInstance(instances.find((i) => i.id === e.target.value) || null)}
-            className="bg-[#0a0a0a] border border-[#1a1a1a] rounded-lg px-3 py-2 text-sm text-white focus:border-[#2a2a2a] outline-none"
-          >
-            {instances.map((i) => (
-              <option key={i.id} value={i.id}>{i.display_name || i.instance_name}</option>
-            ))}
-          </select>
-        )}
-      </div>
+          {instances.length > 1 && (
+            <select
+              value={selectedInstance.id}
+              onChange={(e) => setSelectedInstance(instances.find((i) => i.id === e.target.value) || null)}
+              className="bg-[#0a0a0a] border border-[#1a1a1a] rounded-lg px-3 py-2 text-sm text-white focus:border-[#2a2a2a] outline-none"
+            >
+              {instances.map((i) => (
+                <option key={i.id} value={i.id}>{i.display_name || i.instance_name}</option>
+              ))}
+            </select>
+          )}
+        </div>
+      )}
 
       {/* Tabs */}
       <div className="flex gap-1 border-b border-[#1a1a1a]">
