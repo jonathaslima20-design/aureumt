@@ -157,6 +157,21 @@ export type ChatLog = {
   created_at: string;
   media_type: string | null;
   media_url: string | null;
+  reply_to_id: string | null;
+  delivery_status: 'pending' | 'sent' | 'delivered' | 'read' | 'failed';
+};
+
+export type ConversationState = {
+  id: string;
+  instance_id: string;
+  customer_number: string;
+  manual_override: boolean;
+  contact_name: string | null;
+  updated_at: string;
+  last_seen_at: string;
+  is_pinned: boolean;
+  is_archived: boolean;
+  unread_count: number;
 };
 
 export type QuickReply = {
