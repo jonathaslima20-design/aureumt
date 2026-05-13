@@ -1,10 +1,11 @@
 import { useEffect, useState } from 'react';
-import { Loader2, Trash2, AlertTriangle, X } from 'lucide-react';
+import { Loader2, Trash2, AlertTriangle, X, ArrowLeft } from 'lucide-react';
 import { Sidebar, PageKey } from '../components/Sidebar';
 import { supabase, Instance } from '../lib/supabase';
 import { useAuth } from '../context/AuthContext';
 import { CreateAgentModal } from '../components/CreateAgentModal';
 import { PlansModal } from '../components/PlansModal';
+import { AgentAvatar } from '../components/AgentAvatar';
 import { OverviewPage } from './user/OverviewPage';
 import { AgentsPage } from './user/AgentsPage';
 import { AgentDetailPage } from './user/AgentDetailPage';
@@ -197,7 +198,13 @@ export function Dashboard({ onNavAdmin }: { onNavAdmin: () => void }) {
             />
           );
         }
-        return <ChatPage instance={selectedChatInstance} instances={instances} />;
+        return (
+          <ChatPage
+            instance={selectedChatInstance}
+            instances={instances}
+            onBack={instances.length > 1 ? () => setSelectedChatInstance(null) : undefined}
+          />
+        );
 
       default:
         return null;
@@ -313,12 +320,12 @@ function InstancePicker({
             onClick={() => onSelect(inst)}
             className="text-left bg-[#141414] border border-[#242424] rounded-xl p-4 hover:border-[#2e2e2e] hover:bg-[#1a1a1a] transition-colors flex items-center gap-3"
           >
-            <div
-              className="w-8 h-8 rounded-full shrink-0 flex items-center justify-center text-white text-xs font-semibold"
-              style={{ background: inst.color || '#3b82f6' }}
-            >
-              {(inst.display_name || inst.instance_name).slice(0, 2).toUpperCase()}
-            </div>
+            <AgentAvatar
+              name={inst.display_name || inst.instance_name}
+              url={inst.avatar_url || undefined}
+              color={inst.color || '#3b82f6'}
+              size={36}
+            />
             <div className="min-w-0">
               <div className="text-sm text-white font-medium truncate">
                 {inst.display_name || inst.instance_name}

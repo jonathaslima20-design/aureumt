@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import {
   Search, Send, Loader2, User, Bot, Hand, MessagesSquare,
-  Zap, X, Plus, Trash2, Save, Check, ChevronDown,
+  Zap, X, Plus, Trash2, Save, Check, ChevronDown, ArrowLeft,
 } from 'lucide-react';
 import { supabase, ChatLog, Instance, QuickReply, ContactLabel, LABEL_COLORS } from '../../lib/supabase';
 import { evolution } from '../../lib/evolution';
@@ -414,7 +414,7 @@ function FilterPill({
 
 // ─── Main ChatPage ────────────────────────────────────────────────────────────
 
-export function ChatPage({ instance, instances }: { instance: Instance; instances: Instance[] }) {
+export function ChatPage({ instance, instances, onBack }: { instance: Instance; instances: Instance[]; onBack?: () => void }) {
   const { profile } = useAuth();
 
   const [contacts, setContacts] = useState<ContactSummary[]>([]);
@@ -624,10 +624,22 @@ export function ChatPage({ instance, instances }: { instance: Instance; instance
   return (
     <div className="space-y-4">
       <div className="hidden lg:block">
-        <h1 className="text-2xl font-semibold text-white tracking-tight">Chat</h1>
-        <p className="text-sm text-neutral-500 mt-1">
-          Histórico por contato com possibilidade de resposta manual.
-        </p>
+        <div className="flex items-center gap-3">
+          {onBack && (
+            <button
+              onClick={onBack}
+              className="p-1.5 rounded-lg border border-[#242424] text-neutral-400 hover:text-white hover:border-[#2e2e2e] hover:bg-[#141414] transition-colors"
+            >
+              <ArrowLeft size={16} />
+            </button>
+          )}
+          <div>
+            <h1 className="text-2xl font-semibold text-white tracking-tight">Chat</h1>
+            <p className="text-sm text-neutral-500 mt-1">
+              Histórico por contato com possibilidade de resposta manual.
+            </p>
+          </div>
+        </div>
       </div>
 
       <div
