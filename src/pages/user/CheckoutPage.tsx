@@ -76,6 +76,34 @@ export function CheckoutPage({
   const [cardSuccess, setCardSuccess] = useState<string | null>(null);
 
   const [showTestCards, setShowTestCards] = useState(false);
+  const [brickKey, setBrickKey] = useState(0);
+
+  const paymentInitialization = useMemo(
+    () => ({
+      amount: Number(price) || 0,
+      payer: payerEmail ? { email: payerEmail } : undefined,
+    }),
+    [price, payerEmail]
+  );
+
+  const paymentCustomization = useMemo(
+    () => ({
+      paymentMethods: {
+        creditCard: 'all' as const,
+        maxInstallments: cycle === 'annual' ? 12 : cycle === 'semiannual' ? 6 : 1,
+      },
+      visual: { style: { theme: 'dark' as const } },
+    }),
+    [cycle]
+  );
+
+  // Remount the Payment brick when switching back to the card tab to avoid
+  // "Secure Fields failed" caused by stale brick state from previous mounts.
+  useEffect(() => {
+    if (tab === 'card' && sdkReady) {
+      setBrickKey((k) => k + 1);
+    }
+  }, [tab, sdkReady]);
 
   useEffect(() => {
     (async () => {
@@ -361,17 +389,9 @@ export function CheckoutPage({
                     )}
                     {sdkReady ? (
                       <Payment
-                        initialization={{
-                          amount: price,
-                          payer: { email: payerEmail || undefined },
-                        }}
-                        customization={{
-                          paymentMethods: {
-                            creditCard: 'all',
-                            maxInstallments: cycle === 'annual' ? 12 : cycle === 'semiannual' ? 6 : 1,
-                          },
-                          visual: { style: { theme: 'dark' } },
-                        }}
+                        key={brickKey}
+                        initialization={paymentInitialization}
+                        customization={paymentCustomization}
                         onSubmit={async ({ formData }) => {
                           setCardSubmitting(true);
                           setCardError(null);
