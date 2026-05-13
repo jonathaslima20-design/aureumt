@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { ArrowLeft, Loader2, QrCode, CreditCard, Copy, Check, AlertCircle, CheckCircle2, Info } from 'lucide-react';
+import { ArrowLeft, Loader2, QrCode, CreditCard, Copy, Check, AlertCircle, CheckCircle2, Info, ShieldCheck } from 'lucide-react';
 import { Plan, supabase } from '../../lib/supabase';
 import { useAuth } from '../../context/AuthContext';
 import { createPixPayment, createCardPayment, getPaymentStatus, PixPaymentResult } from '../../lib/payments';
@@ -200,7 +200,7 @@ export function CheckoutPage({
           <ArrowLeft size={14} /> Voltar para planos
         </button>
 
-        {environment === 'test' && (
+        {environment === 'test' ? (
           <div className="rounded-xl border border-amber-900/40 bg-amber-950/20 p-3 mb-6 flex items-start gap-2.5">
             <AlertCircle size={14} className="text-amber-400 shrink-0 mt-0.5" />
             <div className="text-xs text-amber-200/90 leading-relaxed flex-1">
@@ -211,6 +211,13 @@ export function CheckoutPage({
               >
                 {showTestCards ? 'Ocultar' : 'Ver'} dados de teste
               </button>
+            </div>
+          </div>
+        ) : (
+          <div className="rounded-xl border border-emerald-900/40 bg-emerald-950/20 p-3 mb-6 flex items-start gap-2.5">
+            <ShieldCheck size={14} className="text-emerald-400 shrink-0 mt-0.5" />
+            <div className="text-xs text-emerald-200/90 leading-relaxed flex-1">
+              <strong className="text-emerald-300">Pagamento seguro.</strong> Processado pelo Mercado Pago com criptografia ponta a ponta.
             </div>
           </div>
         )}

@@ -149,6 +149,32 @@ Deno.serve(async (req: Request) => {
       if (typeof webhook_secret === "string" && webhook_secret.length > 0)
         updates.webhook_secret = webhook_secret;
 
+      // Determine effective credentials AFTER applying this save, to validate
+      // we are not switching to production without valid prod credentials.
+      const effectivePubProd = typeof public_key_prod === "string" && public_key_prod.length > 0
+        ? public_key_prod
+        : existing?.public_key_prod || "";
+      const effectiveTokenProd = typeof access_token_prod === "string" && access_token_prod.length > 0
+        ? access_token_prod
+        : existing?.access_token_prod || "";
+      const effectivePubTest = typeof public_key_test === "string" && public_key_test.length > 0
+        ? public_key_test
+        : existing?.public_key_test || "";
+      const effectiveTokenTest = typeof access_token_test === "string" && access_token_test.length > 0
+        ? access_token_test
+        : existing?.access_token_test || "";
+
+      if (environment === "production" && (!effectivePubProd || !effectiveTokenProd)) {
+        return json({
+          error: "Para ativar o ambiente de producao, salve antes a Public Key e o Access Token de producao.",
+        }, 400);
+      }
+      if (environment === "test" && (!effectivePubTest || !effectiveTokenTest)) {
+        return json({
+          error: "Para ativar o ambiente de teste, salve antes a Public Key e o Access Token de teste.",
+        }, 400);
+      }
+
       if (existing) {
         await admin.from("mercadopago_config").update(updates).eq("id", existing.id);
       } else {
