@@ -193,16 +193,13 @@ type TypingCfg = {
 };
 
 function calcTypingDelay(text: string, cfg: TypingCfg): number {
-  const v = Math.max(0, Math.min(100, cfg.variability)) / 100;
-  const baseCps = Math.max(1, cfg.speedCps);
-  // Small speed jitter: +/- up to ~20% scaled by variability
-  const jitter = (Math.random() - 0.5) * baseCps * 0.4 * v;
+  // Faster baseline (~1.4x configured speed) and minimal jitter
+  const baseCps = Math.max(1, cfg.speedCps) * 1.4;
+  // Minimal jitter: +/- up to ~8%
+  const jitter = (Math.random() - 0.5) * baseCps * 0.16;
   const charsPerSecond = Math.max(1, baseCps + jitter);
   const baseMs = (text.length / charsPerSecond) * 1000;
-  // Light complexity factor
-  const complexity = (text.match(/[?!.,]/g) || []).length * 80;
-  const total = baseMs + complexity;
-  return Math.max(cfg.minMs, Math.min(cfg.maxMs, Math.round(total)));
+  return Math.max(cfg.minMs, Math.min(cfg.maxMs, Math.round(baseMs)));
 }
 
 async function simulateTyping(creds: Creds, instanceName: string, number: string, totalMs: number) {
@@ -695,9 +692,9 @@ Deno.serve(async (req) => {
           await simulateTyping(creds, instanceName, remoteJid, typingMs);
         }
         await sendText(creds, instanceName, remoteJid, fragment);
-        // Small pause between fragments (200-800ms)
+        // Tiny pause between fragments (120-300ms)
         if (i < toSend.length - 1) {
-          await new Promise((r) => setTimeout(r, 200 + Math.random() * 600));
+          await new Promise((r) => setTimeout(r, 120 + Math.random() * 180));
         }
       }
 
