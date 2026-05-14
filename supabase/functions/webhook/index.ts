@@ -184,22 +184,129 @@ async function sendPresence(creds: Creds, instanceName: string, number: string, 
   } catch { /* non-fatal */ }
 }
 
-// Realistic typing delay: variability based on length, complexity and small randomness
-type TypingCfg = {
-  speedCps: number;       // base characters per second
-  minMs: number;
-  maxMs: number;
-  variability: number;    // 0-100; higher = more jitter and hesitations
+// ── Human typing model ─────────────────────────────────────────────────────
+// Empirically-tuned constants. Mobile messaging averages ~35-45 WPM (~3-4 cps).
+// We model: cognitive lift + dampened length curve + token costs + light jitter.
+const HUMAN_TYPING_PROFILE = {
+  baseCps: 3.6,                // ~43 WPM baseline
+  toneMultiplier: {
+    professional: 0.88,
+    formal: 0.85,
+    friendly: 1.05,
+    casual: 1.10,
+    technical: 0.95,
+  } as Record<string, number>,
+  cognitiveLiftMs: 350,        // small "starting to type" pause for any message
+  shortMessageBoostMs: 250,    // very short replies ("oi", "sim") feel snappy but not instant
+  internalCommaMs: 80,
+  sentenceEndMs: 200,
+  emojiMs: 140,
+  numberTokenMs: 220,
+  linkTokenMs: 280,
+  currencyTokenMs: 240,
+  jitterPct: 0.07,             // ±7% gaussian-ish jitter
+  hardCeilingMs: 12000,        // per-fragment ceiling
+  fragmentPauseBaseMs: 140,
+  fragmentPauseMaxMs: 520,
 };
 
+type TypingCfg = {
+  minMs: number;
+  maxMs: number;
+  tone: string;
+  emojiUsage: string;
+};
+
+// Box-Muller approx → light gaussian noise centered at 0, clipped to [-1,1]
+function gaussianNoise(): number {
+  const u = 1 - Math.random();
+  const v = Math.random();
+  const n = Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v);
+  return Math.max(-1, Math.min(1, n / 3));
+}
+
+function countTokens(text: string, re: RegExp): number {
+  return (text.match(re) || []).length;
+}
+
 function calcTypingDelay(text: string, cfg: TypingCfg): number {
-  // Faster baseline (~1.4x configured speed) and minimal jitter
-  const baseCps = Math.max(1, cfg.speedCps) * 1.4;
-  // Minimal jitter: +/- up to ~8%
-  const jitter = (Math.random() - 0.5) * baseCps * 0.16;
-  const charsPerSecond = Math.max(1, baseCps + jitter);
-  const baseMs = (text.length / charsPerSecond) * 1000;
-  return Math.max(cfg.minMs, Math.min(cfg.maxMs, Math.round(baseMs)));
+  const P = HUMAN_TYPING_PROFILE;
+  const len = text.length;
+  if (len === 0) return cfg.minMs;
+
+  // Effective speed adjusted by tone
+  const toneMult = P.toneMultiplier[cfg.tone] ?? 1.0;
+  const cps = P.baseCps * toneMult;
+
+  // Length-based curve: short=linear, medium=sqrt-damped, long=log-damped
+  let lengthMs: number;
+  if (len <= 30) {
+    lengthMs = (len / cps) * 1000;
+  } else if (len <= 120) {
+    const linearPart = (30 / cps) * 1000;
+    const extra = len - 30;
+    // sqrt damping: each extra char contributes less
+    lengthMs = linearPart + Math.sqrt(extra) * (1000 / cps) * 4.2;
+  } else {
+    const linearPart = (30 / cps) * 1000;
+    const sqrtPart = Math.sqrt(90) * (1000 / cps) * 4.2;
+    const extra = len - 120;
+    // log damping for very long text so 300+ chars don't explode
+    lengthMs = linearPart + sqrtPart + Math.log(1 + extra) * (1000 / cps) * 2.6;
+  }
+
+  // Cognitive lift (always) + small boost for very short messages so they don't feel instant
+  let cognitive = P.cognitiveLiftMs;
+  if (len <= 12) cognitive += P.shortMessageBoostMs;
+
+  // Pontuation-based load
+  const internalCommas = countTokens(text, /[,;:\-]/g);
+  const sentenceEnds = countTokens(text, /[.!?]/g);
+  const emojis = countTokens(text, /[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}]/gu);
+  const numbers = countTokens(text, /\b\d{2,}\b/g);
+  const links = countTokens(text, /\bhttps?:\/\/\S+/gi);
+  const currency = countTokens(text, /R\$\s?\d|US\$\s?\d|\$\d/gi);
+
+  let emojiCost = emojis * P.emojiMs;
+  if (cfg.emojiUsage === "none") emojiCost = 0;
+  else if (cfg.emojiUsage === "low") emojiCost = emojis * (P.emojiMs * 0.6);
+  else if (cfg.emojiUsage === "high") emojiCost = emojis * (P.emojiMs * 1.3);
+
+  const punctCost =
+    internalCommas * P.internalCommaMs +
+    sentenceEnds * P.sentenceEndMs +
+    numbers * P.numberTokenMs +
+    links * P.linkTokenMs +
+    currency * P.currencyTokenMs +
+    emojiCost;
+
+  const raw = cognitive + lengthMs + punctCost;
+
+  // Light gaussian jitter
+  const jitter = 1 + gaussianNoise() * P.jitterPct;
+  const total = raw * jitter;
+
+  const ceiling = Math.min(cfg.maxMs, P.hardCeilingMs);
+  return Math.max(cfg.minMs, Math.min(ceiling, Math.round(total)));
+}
+
+function calcFragmentPause(prevFragmentLen: number): number {
+  const P = HUMAN_TYPING_PROFILE;
+  // Longer previous fragment → slightly longer breath before next
+  const scaled = P.fragmentPauseBaseMs + Math.min(P.fragmentPauseMaxMs - P.fragmentPauseBaseMs, prevFragmentLen * 3);
+  const jitter = 0.85 + Math.random() * 0.3;
+  return Math.round(scaled * jitter);
+}
+
+function calcReadDelay(configuredMs: number, incomingLen: number): number {
+  // Light jitter ±10%
+  const jitter = 0.9 + Math.random() * 0.2;
+  // Scale by incoming length: very short messages need less reading, long messages more
+  let scale = 1.0;
+  if (incomingLen >= 200) scale = 1.3;
+  else if (incomingLen <= 20) scale = 0.7;
+  const total = configuredMs * scale * jitter;
+  return Math.max(300, Math.min(15000, Math.round(total)));
 }
 
 async function simulateTyping(creds: Creds, instanceName: string, number: string, totalMs: number) {
@@ -638,14 +745,12 @@ Deno.serve(async (req) => {
 
       const systemInstruction = parts.join("\n\n");
 
-      // ── Initial read delay (configured per agent, with small jitter) ────
+      // ── Initial read delay: scales with incoming length, light jitter ──
       const baseDelay = (instance.response_delay as number) || 3000;
-      // Accept either ms (>100) or seconds (<=100) for backwards compat
       const readDelayMs = baseDelay > 100 ? baseDelay : baseDelay * 1000;
-      // Light jitter: 0.85x - 1.15x of configured value to avoid being mechanical
-      const finalReadDelay = Math.round(readDelayMs * (0.85 + Math.random() * 0.3));
-      console.log(`[webhook] response_delay configured=${readDelayMs}ms applied=${finalReadDelay}ms`);
-      await new Promise((r) => setTimeout(r, Math.min(finalReadDelay, 60000)));
+      const finalReadDelay = calcReadDelay(readDelayMs, (text || "").length);
+      console.log(`[webhook] read_delay configured=${readDelayMs}ms applied=${finalReadDelay}ms incomingLen=${(text || "").length}`);
+      await new Promise((r) => setTimeout(r, finalReadDelay));
 
       // ── Adaptive temperature based on intent ────────────────────────────
       let temperature = 0.85;
@@ -676,25 +781,23 @@ Deno.serve(async (req) => {
       const toSend = fragments.length > 0 ? fragments : [reply];
 
       const typingCfg: TypingCfg = {
-        speedCps: (instance.typing_speed_cps as number) || 15,
-        minMs: (instance.typing_min_ms as number) || 1500,
-        maxMs: (instance.typing_max_ms as number) || 18000,
-        variability: instance.typing_variability != null ? (instance.typing_variability as number) : 50,
+        minMs: (instance.typing_min_ms as number) || 800,
+        maxMs: (instance.typing_max_ms as number) || 12000,
+        tone: (instance.tone as string) || "friendly",
+        emojiUsage: (instance.emoji_usage as string) || "moderate",
       };
       const typingEnabled = instance.typing_enabled !== false;
-      const firstReplyDelay = (instance.first_reply_delay_ms as number) || 0;
-      if (firstReplyDelay > 0) await new Promise((r) => setTimeout(r, firstReplyDelay));
 
       for (let i = 0; i < toSend.length; i++) {
         const fragment = toSend[i];
         if (typingEnabled) {
           const typingMs = calcTypingDelay(fragment, typingCfg);
+          console.log(`[webhook] typing fragment=${i + 1}/${toSend.length} len=${fragment.length} delay=${typingMs}ms tone=${typingCfg.tone}`);
           await simulateTyping(creds, instanceName, remoteJid, typingMs);
         }
         await sendText(creds, instanceName, remoteJid, fragment);
-        // Tiny pause between fragments (120-300ms)
         if (i < toSend.length - 1) {
-          await new Promise((r) => setTimeout(r, 120 + Math.random() * 180));
+          await new Promise((r) => setTimeout(r, calcFragmentPause(fragment.length)));
         }
       }
 
