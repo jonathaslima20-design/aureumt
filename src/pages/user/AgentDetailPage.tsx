@@ -481,8 +481,8 @@ function AdvancedTab({ instance, onUpdate }: { instance: Instance; onUpdate: () 
 
       <BusinessHoursSection instance={instance} onUpdate={onUpdate} />
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
-        <div className="lg:col-span-2 space-y-5 border border-[#242424] rounded-xl bg-[#141414] p-4 sm:p-6">
+      <div className="space-y-4 sm:space-y-6 max-w-4xl">
+        <div className="space-y-5 border border-[#242424] rounded-xl bg-[#141414] p-4 sm:p-6">
 
           {/* System prompt */}
           <div>
@@ -688,48 +688,11 @@ function AdvancedTab({ instance, onUpdate }: { instance: Instance; onUpdate: () 
           </button>
         </div>
 
-        {/* Quick prompts sidebar */}
-        <div className="border border-[#242424] rounded-xl bg-[#141414] p-4 sm:p-5 h-fit">
-          <div className="flex items-center gap-2 mb-4">
-            <Sparkles size={13} className="text-neutral-400" />
-            <div className="text-xs uppercase tracking-wider text-neutral-500">Prompts rápidos</div>
-          </div>
-          <div className="space-y-2">
-            {QUICK_PROMPTS.map((t) => (
-              <button
-                key={t.name}
-                onClick={() => setPrompt(t.prompt)}
-                className="w-full text-left border border-[#1c1c1c] rounded-lg px-3 py-3 hover:bg-[#1a1a1a] hover:border-[#2e2e2e] transition-colors"
-              >
-                <div className="text-xs text-white font-medium mb-1">{t.name}</div>
-                <div className="text-[11px] text-neutral-500 line-clamp-2 leading-relaxed">{t.prompt}</div>
-              </button>
-            ))}
-          </div>
-        </div>
       </div>
     </div>
   );
 }
 
-const QUICK_PROMPTS = [
-  {
-    name: 'Atendimento',
-    prompt: 'Você é um atendente simpático e resolutivo. Cumprimente o cliente, entenda a dúvida em poucas palavras e responda de forma clara. Se precisar de mais detalhes, peça com educação.',
-  },
-  {
-    name: 'Vendas',
-    prompt: 'Você é um consultor de vendas profissional. Qualifique o cliente com perguntas sobre necessidade, orçamento e prazo antes de apresentar soluções. Seja humano, direto e foque em valor.',
-  },
-  {
-    name: 'SDR (Qualificação)',
-    prompt: 'Você é um SDR que qualifica leads. Identifique o segmento, o tamanho do negócio e o problema atual do lead. Se o lead for qualificado, ofereça agendar uma reunião com um especialista.',
-  },
-  {
-    name: 'FAQ',
-    prompt: 'Você responde perguntas frequentes da empresa. Use respostas curtas e objetivas. Se não souber a resposta, peça para o cliente aguardar que um humano irá responder.',
-  },
-];
 
 // ─── Knowledge Tab ────────────────────────────────────────────────────────────
 
