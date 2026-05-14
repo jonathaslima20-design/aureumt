@@ -3,6 +3,7 @@ import {
   ArrowLeft, Loader2, Upload, Sparkles, Check, Trash2,
   Save, Pause, Play, Database, Link2, X, Plus, Wifi, WifiOff, ExternalLink,
   ShieldAlert, Clock, MessageSquare, Copy, Mic, Square,
+  ChevronUp, ChevronDown, GripVertical,
 } from 'lucide-react';
 import {
   supabase, Instance, KnowledgeBase, WhatsappConnection, BusinessHours,
@@ -345,6 +346,10 @@ function ProfileTab({ instance, onUpdate }: { instance: Instance; onUpdate: () =
 
 function AdvancedTab({ instance, onUpdate }: { instance: Instance; onUpdate: () => void }) {
   const [prompt, setPrompt] = useState(instance.system_prompt);
+  const [basePrompt, setBasePrompt] = useState(instance.base_prompt || '');
+  const [customVars, setCustomVars] = useState<{ key: string; value: string }[]>(
+    Array.isArray(instance.custom_variables) ? instance.custom_variables : []
+  );
   const [delay, setDelay] = useState(instance.response_delay);
   const [keyword, setKeyword] = useState(instance.overflow_keyword);
   const [tone, setTone] = useState(instance.tone || 'friendly');
@@ -357,6 +362,8 @@ function AdvancedTab({ instance, onUpdate }: { instance: Instance; onUpdate: () 
 
   useEffect(() => {
     setPrompt(instance.system_prompt);
+    setBasePrompt(instance.base_prompt || '');
+    setCustomVars(Array.isArray(instance.custom_variables) ? instance.custom_variables : []);
     setDelay(instance.response_delay);
     setKeyword(instance.overflow_keyword);
     setTone(instance.tone || 'friendly');
@@ -371,6 +378,8 @@ function AdvancedTab({ instance, onUpdate }: { instance: Instance; onUpdate: () 
       .from('instances')
       .update({
         system_prompt: prompt,
+        base_prompt: basePrompt,
+        custom_variables: customVars.filter((v) => v.key.trim()),
         response_delay: delay,
         overflow_keyword: keyword,
         tone,
@@ -385,6 +394,20 @@ function AdvancedTab({ instance, onUpdate }: { instance: Instance; onUpdate: () 
     onUpdate();
   };
 
+  const addVar = () => setCustomVars((v) => [...v, { key: '', value: '' }]);
+  const updateVar = (i: number, u: { key: string; value: string }) =>
+    setCustomVars((v) => v.map((x, idx) => (idx === i ? u : x)));
+  const removeVar = (i: number) => setCustomVars((v) => v.filter((_, idx) => idx !== i));
+  const moveVar = (i: number, dir: -1 | 1) => {
+    setCustomVars((v) => {
+      const arr = [...v];
+      const j = i + dir;
+      if (j < 0 || j >= arr.length) return arr;
+      [arr[i], arr[j]] = [arr[j], arr[i]];
+      return arr;
+    });
+  };
+
   const toggleFlow = async () => {
     const next = instance.flow_status === 'active' ? 'paused' : 'active';
     await supabase.from('instances').update({ flow_status: next }).eq('id', instance.id);
@@ -392,16 +415,20 @@ function AdvancedTab({ instance, onUpdate }: { instance: Instance; onUpdate: () 
   };
 
   const regeneratePrompt = async () => {
-    const base = instance.system_prompt?.includes('Seu papel')
-      ? instance.system_prompt.split('\n\n').find((p) => p.startsWith('Seu papel')) || ''
-      : '';
+    let resolvedBase = basePrompt;
+    for (const { key, value } of customVars) {
+      if (key.trim()) resolvedBase = resolvedBase.replaceAll(`{{${key.trim()}}}`, value);
+    }
+    if (!resolvedBase && instance.system_prompt?.includes('Seu papel')) {
+      resolvedBase = instance.system_prompt.split('\n\n').find((p) => p.startsWith('Seu papel')) || '';
+    }
     const rebuilt = buildSystemPrompt({
       persona_name: instance.persona_name || instance.display_name || '',
       company_name: instance.company_name || '',
       tone,
       language,
       emoji_usage: emojiUsage,
-      base,
+      base: resolvedBase,
       signature,
     });
     setPrompt(rebuilt);
@@ -485,6 +512,93 @@ function AdvancedTab({ instance, onUpdate }: { instance: Instance; onUpdate: () 
             >
               <Sparkles size={10} /> Regenerar a partir das configurações abaixo
             </button>
+          </div>
+
+          {/* Base prompt template */}
+          <div className="pt-2 border-t border-[#1a1a1a]">
+            <div className="flex items-center justify-between mb-2 pt-2">
+              <label className="text-xs uppercase tracking-wider text-neutral-500">Template de instruções</label>
+              <span className="text-[10px] text-neutral-600 font-mono">{basePrompt.length} chars</span>
+            </div>
+            <p className="text-[11px] text-neutral-600 mb-2">
+              Use <code className="bg-[#0d0d0d] px-1 rounded text-neutral-400 font-mono">{'{{variavel}}'}</code> para inserir valores das variáveis abaixo. Clique em "Regenerar" para aplicar.
+            </p>
+            <textarea
+              value={basePrompt}
+              onChange={(e) => setBasePrompt(e.target.value)}
+              rows={5}
+              placeholder="Você é um atendente especializado em... O cardápio está em {{link_cardapio}}."
+              className="w-full bg-[#0d0d0d] border border-[#1c1c1c] rounded-lg px-4 py-3 text-sm text-white focus:outline-none focus:border-[#363636] transition-colors resize-none font-mono leading-relaxed"
+            />
+          </div>
+
+          {/* Custom variables */}
+          <div className="pt-2 border-t border-[#1a1a1a]">
+            <div className="flex items-center justify-between mb-2 pt-2">
+              <div className="flex items-center gap-1.5">
+                <Sparkles size={10} className="text-neutral-600" />
+                <span className="text-xs uppercase tracking-wider text-neutral-500">Variáveis personalizadas</span>
+              </div>
+              <button
+                type="button"
+                onClick={addVar}
+                className="text-[10px] text-neutral-400 hover:text-white border border-[#242424] hover:border-[#2e2e2e] rounded px-2 py-1 flex items-center gap-1 transition-colors"
+              >
+                <Plus size={9} /> Adicionar
+              </button>
+            </div>
+
+            {customVars.length === 0 ? (
+              <div className="border border-dashed border-[#1a1a1a] rounded-lg py-4 text-center text-[11px] text-neutral-700">
+                Nenhuma variável. Clique em "Adicionar" para criar uma.
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {customVars.map((v, i) => (
+                  <div key={i} className="flex items-center gap-2 group">
+                    <div className="flex flex-col gap-0.5 shrink-0">
+                      <button
+                        type="button"
+                        onClick={() => moveVar(i, -1)}
+                        disabled={i === 0}
+                        className="text-neutral-700 hover:text-neutral-400 disabled:opacity-20 transition-colors"
+                      >
+                        <ChevronUp size={10} />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => moveVar(i, 1)}
+                        disabled={i === customVars.length - 1}
+                        className="text-neutral-700 hover:text-neutral-400 disabled:opacity-20 transition-colors"
+                      >
+                        <ChevronDown size={10} />
+                      </button>
+                    </div>
+                    <GripVertical size={11} className="text-neutral-800 shrink-0" />
+                    <input
+                      value={v.key}
+                      onChange={(e) => updateVar(i, { ...v, key: e.target.value.replace(/\s/g, '_') })}
+                      placeholder="variavel"
+                      className="w-32 bg-[#0d0d0d] border border-[#1c1c1c] rounded px-2 py-1.5 text-xs text-white font-mono focus:outline-none focus:border-[#363636] shrink-0"
+                    />
+                    <span className="text-neutral-700 text-xs shrink-0">=</span>
+                    <input
+                      value={v.value}
+                      onChange={(e) => updateVar(i, { ...v, value: e.target.value })}
+                      placeholder="valor"
+                      className="flex-1 bg-[#0d0d0d] border border-[#1c1c1c] rounded px-2 py-1.5 text-xs text-white focus:outline-none focus:border-[#363636]"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => removeVar(i)}
+                      className="text-neutral-700 hover:text-red-400 transition-colors shrink-0"
+                    >
+                      <Trash2 size={11} />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
 
           {/* Personality */}

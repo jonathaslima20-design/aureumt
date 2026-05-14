@@ -217,6 +217,8 @@ export function CreateAgentModal({ userId, onClose, onCreated }: Props) {
           language,
           emoji_usage: emojiUsage,
           system_prompt: systemPrompt,
+          base_prompt: basePrompt,
+          custom_variables: customVars.filter((v) => v.key.trim()),
           response_delay: 3000,
           overflow_keyword: 'humano',
         })

@@ -61,6 +61,8 @@ export type Instance = {
   signature: string;
   is_multimodal_active: boolean;
   business_hours: BusinessHours | null;
+  base_prompt: string;
+  custom_variables: { key: string; value: string }[];
 };
 
 export type WhatsappConnection = {
