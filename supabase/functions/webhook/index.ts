@@ -185,15 +185,27 @@ async function sendPresence(creds: Creds, instanceName: string, number: string, 
 }
 
 // Realistic typing delay: variability based on length, complexity and small randomness
-function calcTypingDelay(text: string, minDelay: number, maxDelay: number): number {
-  const charsPerSecond = 12 + Math.random() * 8; // 12-20 chars/s, varies
+type TypingCfg = {
+  speedCps: number;       // base characters per second
+  minMs: number;
+  maxMs: number;
+  variability: number;    // 0-100; higher = more jitter and hesitations
+};
+
+function calcTypingDelay(text: string, cfg: TypingCfg): number {
+  const v = Math.max(0, Math.min(100, cfg.variability)) / 100;
+  const baseCps = Math.max(1, cfg.speedCps);
+  // Speed jitter: +/- up to ~50% scaled by variability
+  const jitter = (Math.random() - 0.5) * baseCps * v;
+  const charsPerSecond = Math.max(1, baseCps + jitter);
   const baseMs = (text.length / charsPerSecond) * 1000;
-  // Complexity factor: longer words and questions take more
-  const complexity = (text.match(/[?!.,]/g) || []).length * 200;
-  // Random hesitation 0-1500ms
-  const hesitation = Math.random() < 0.3 ? Math.random() * 1500 : 0;
+  // Complexity factor scales with variability
+  const complexity = (text.match(/[?!.,]/g) || []).length * 200 * (0.5 + v);
+  // Hesitation chance scales with variability
+  const hesitChance = 0.1 + 0.4 * v;
+  const hesitation = Math.random() < hesitChance ? Math.random() * 1500 * v : 0;
   const total = baseMs + complexity + hesitation;
-  return Math.max(minDelay, Math.min(maxDelay, Math.round(total)));
+  return Math.max(cfg.minMs, Math.min(cfg.maxMs, Math.round(total)));
 }
 
 async function simulateTyping(creds: Creds, instanceName: string, number: string, totalMs: number) {
@@ -659,10 +671,22 @@ Deno.serve(async (req) => {
       const fragments = sanitized.split(/\||\n/).map((f) => f.trim()).filter((f) => f.length > 0);
       const toSend = fragments.length > 0 ? fragments : [reply];
 
+      const typingCfg: TypingCfg = {
+        speedCps: (instance.typing_speed_cps as number) || 15,
+        minMs: (instance.typing_min_ms as number) || 1500,
+        maxMs: (instance.typing_max_ms as number) || 18000,
+        variability: instance.typing_variability != null ? (instance.typing_variability as number) : 50,
+      };
+      const typingEnabled = instance.typing_enabled !== false;
+      const firstReplyDelay = (instance.first_reply_delay_ms as number) || 0;
+      if (firstReplyDelay > 0) await new Promise((r) => setTimeout(r, firstReplyDelay));
+
       for (let i = 0; i < toSend.length; i++) {
         const fragment = toSend[i];
-        const typingMs = calcTypingDelay(fragment, 1500, 18000);
-        await simulateTyping(creds, instanceName, remoteJid, typingMs);
+        if (typingEnabled) {
+          const typingMs = calcTypingDelay(fragment, typingCfg);
+          await simulateTyping(creds, instanceName, remoteJid, typingMs);
+        }
         await sendText(creds, instanceName, remoteJid, fragment);
         // Small pause between fragments (200-800ms)
         if (i < toSend.length - 1) {

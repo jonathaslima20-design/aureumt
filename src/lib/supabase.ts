@@ -63,6 +63,12 @@ export type Instance = {
   business_hours: BusinessHours | null;
   base_prompt: string;
   custom_variables: { key: string; value: string }[];
+  typing_enabled: boolean;
+  typing_speed_cps: number;
+  typing_min_ms: number;
+  typing_max_ms: number;
+  typing_variability: number;
+  first_reply_delay_ms: number;
 };
 
 export type WhatsappConnection = {

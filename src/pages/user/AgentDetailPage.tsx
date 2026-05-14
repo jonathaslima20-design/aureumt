@@ -356,6 +356,14 @@ function AdvancedTab({ instance, onUpdate }: { instance: Instance; onUpdate: () 
   const [language, setLanguage] = useState(instance.language || 'pt-BR');
   const [emojiUsage, setEmojiUsage] = useState(instance.emoji_usage || 'moderate');
   const [signature, setSignature] = useState(instance.signature || '');
+  const [typingEnabled, setTypingEnabled] = useState(instance.typing_enabled !== false);
+  const [typingSpeed, setTypingSpeed] = useState(instance.typing_speed_cps || 15);
+  const [typingMinMs, setTypingMinMs] = useState(instance.typing_min_ms || 1500);
+  const [typingMaxMs, setTypingMaxMs] = useState(instance.typing_max_ms || 18000);
+  const [typingVar, setTypingVar] = useState(
+    instance.typing_variability != null ? instance.typing_variability : 50
+  );
+  const [firstReplyDelay, setFirstReplyDelay] = useState(instance.first_reply_delay_ms || 0);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [confirmed, setConfirmed] = useState(false);
@@ -370,6 +378,12 @@ function AdvancedTab({ instance, onUpdate }: { instance: Instance; onUpdate: () 
     setLanguage(instance.language || 'pt-BR');
     setEmojiUsage(instance.emoji_usage || 'moderate');
     setSignature(instance.signature || '');
+    setTypingEnabled(instance.typing_enabled !== false);
+    setTypingSpeed(instance.typing_speed_cps || 15);
+    setTypingMinMs(instance.typing_min_ms || 1500);
+    setTypingMaxMs(instance.typing_max_ms || 18000);
+    setTypingVar(instance.typing_variability != null ? instance.typing_variability : 50);
+    setFirstReplyDelay(instance.first_reply_delay_ms || 0);
   }, [instance.id]);
 
   const save = async () => {
@@ -386,6 +400,12 @@ function AdvancedTab({ instance, onUpdate }: { instance: Instance; onUpdate: () 
         language,
         emoji_usage: emojiUsage,
         signature: signature.trim(),
+        typing_enabled: typingEnabled,
+        typing_speed_cps: Math.max(1, Math.min(60, typingSpeed)),
+        typing_min_ms: Math.max(0, Math.min(60000, typingMinMs)),
+        typing_max_ms: Math.max(typingMinMs, Math.min(120000, typingMaxMs)),
+        typing_variability: Math.max(0, Math.min(100, typingVar)),
+        first_reply_delay_ms: Math.max(0, Math.min(30000, firstReplyDelay)),
       })
       .eq('id', instance.id);
     setSaving(false);
@@ -703,6 +723,113 @@ function AdvancedTab({ instance, onUpdate }: { instance: Instance; onUpdate: () 
             </div>
           </div>
 
+          {/* Typing simulation */}
+          <div className="space-y-4 pt-2 border-t border-[#1a1a1a]">
+            <div className="flex items-center justify-between pt-2">
+              <div>
+                <div className="text-xs uppercase tracking-wider text-neutral-500">Simulação de digitação</div>
+                <p className="text-[11px] text-neutral-600 mt-0.5">
+                  Controla o quanto o agente parece "humano" digitando antes de enviar cada mensagem.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setTypingEnabled((v) => !v)}
+                className={`relative w-10 h-5 rounded-full transition-colors ${typingEnabled ? 'bg-emerald-600' : 'bg-[#242424]'}`}
+                aria-label="Ativar simulação de digitação"
+              >
+                <span
+                  className={`absolute top-0.5 w-4 h-4 bg-white rounded-full transition-transform ${typingEnabled ? 'translate-x-5' : 'translate-x-0.5'}`}
+                />
+              </button>
+            </div>
+
+            <div className={typingEnabled ? '' : 'opacity-40 pointer-events-none'}>
+              <div className="space-y-4">
+                <div>
+                  <div className="flex items-center justify-between mb-2">
+                    <label className="text-xs text-neutral-400">Velocidade de digitação</label>
+                    <span className="text-xs text-white font-mono">{typingSpeed} car/s</span>
+                  </div>
+                  <input
+                    type="range" min={5} max={30} step={1} value={typingSpeed}
+                    onChange={(e) => setTypingSpeed(Number(e.target.value))}
+                    className="w-full accent-white"
+                  />
+                  <div className="flex justify-between text-[10px] text-neutral-600 mt-1">
+                    <span>Lento (5)</span><span>Rápido (30)</span>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <div className="flex items-center justify-between mb-2">
+                      <label className="text-xs text-neutral-400">Tempo mínimo</label>
+                      <span className="text-xs text-white font-mono">{(typingMinMs / 1000).toFixed(1)}s</span>
+                    </div>
+                    <input
+                      type="range" min={0} max={10000} step={250} value={typingMinMs}
+                      onChange={(e) => {
+                        const v = Number(e.target.value);
+                        setTypingMinMs(v);
+                        if (v > typingMaxMs) setTypingMaxMs(v);
+                      }}
+                      className="w-full accent-white"
+                    />
+                  </div>
+                  <div>
+                    <div className="flex items-center justify-between mb-2">
+                      <label className="text-xs text-neutral-400">Tempo máximo</label>
+                      <span className="text-xs text-white font-mono">{(typingMaxMs / 1000).toFixed(1)}s</span>
+                    </div>
+                    <input
+                      type="range" min={1000} max={60000} step={500} value={typingMaxMs}
+                      onChange={(e) => setTypingMaxMs(Math.max(typingMinMs, Number(e.target.value)))}
+                      className="w-full accent-white"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <div className="flex items-center justify-between mb-2">
+                    <label className="text-xs text-neutral-400">Variação humana</label>
+                    <span className="text-xs text-white font-mono">{typingVar}%</span>
+                  </div>
+                  <input
+                    type="range" min={0} max={100} step={5} value={typingVar}
+                    onChange={(e) => setTypingVar(Number(e.target.value))}
+                    className="w-full accent-white"
+                  />
+                  <div className="flex justify-between text-[10px] text-neutral-600 mt-1">
+                    <span>Robótico</span><span>Hesitações naturais</span>
+                  </div>
+                </div>
+
+                <div>
+                  <div className="flex items-center justify-between mb-2">
+                    <label className="text-xs text-neutral-400">Pausa antes da primeira mensagem</label>
+                    <span className="text-xs text-white font-mono">{(firstReplyDelay / 1000).toFixed(1)}s</span>
+                  </div>
+                  <input
+                    type="range" min={0} max={10000} step={250} value={firstReplyDelay}
+                    onChange={(e) => setFirstReplyDelay(Number(e.target.value))}
+                    className="w-full accent-white"
+                  />
+                  <p className="text-[10px] text-neutral-600 mt-1">
+                    Simula o agente "lendo e pensando" antes de começar a digitar.
+                  </p>
+                </div>
+
+                <TypingPreview
+                  speed={typingSpeed}
+                  minMs={typingMinMs}
+                  maxMs={typingMaxMs}
+                  variability={typingVar}
+                />
+              </div>
+            </div>
+          </div>
+
           <button
             onClick={save}
             disabled={saving}
@@ -731,6 +858,26 @@ function AdvancedTab({ instance, onUpdate }: { instance: Instance; onUpdate: () 
             ))}
           </div>
         </div>
+      </div>
+    </div>
+  );
+}
+
+function TypingPreview({
+  speed, minMs, maxMs, variability,
+}: { speed: number; minMs: number; maxMs: number; variability: number }) {
+  const sample = 'Olá! Tudo bem? Vi sua mensagem e já vou te responder com calma.';
+  const v = Math.max(0, Math.min(100, variability)) / 100;
+  const baseMs = (sample.length / Math.max(1, speed)) * 1000;
+  const complexity = (sample.match(/[?!.,]/g) || []).length * 200 * (0.5 + v);
+  const expected = Math.max(minMs, Math.min(maxMs, Math.round(baseMs + complexity)));
+  return (
+    <div className="border border-[#1c1c1c] rounded-lg bg-[#0d0d0d] p-3">
+      <div className="text-[10px] uppercase tracking-wider text-neutral-500 mb-1.5">Pré-visualização</div>
+      <p className="text-[12px] text-neutral-300 italic leading-relaxed">"{sample}"</p>
+      <div className="flex items-center justify-between mt-2 text-[11px]">
+        <span className="text-neutral-500">{sample.length} caracteres</span>
+        <span className="text-white font-mono">≈ {(expected / 1000).toFixed(1)}s</span>
       </div>
     </div>
   );
