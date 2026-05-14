@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { LayoutDashboard, Link2, MessagesSquare, LogOut, Shield, Menu, X, Bot, Database, Sparkles, GraduationCap, Eye, EyeOff } from 'lucide-react';
 import { Logo } from './Logo';
 import { NotificationsDropdown } from './NotificationsDropdown';
@@ -32,9 +32,7 @@ export function Sidebar({
   const { profile, signOut } = useAuth();
   const { focusMode, setFocusMode } = useUIPreferences();
   const [openMobile, setOpenMobile] = useState(false);
-  const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [userPlanName, setUserPlanName] = useState<string | null>(null);
-  const userMenuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (!profile?.plan_id) return;
@@ -47,17 +45,6 @@ export function Sidebar({
       if (data) setUserPlanName(data.name);
     })();
   }, [profile?.plan_id]);
-
-  useEffect(() => {
-    if (!userMenuOpen) return;
-    const onClick = (e: MouseEvent) => {
-      if (userMenuRef.current && !userMenuRef.current.contains(e.target as Node)) {
-        setUserMenuOpen(false);
-      }
-    };
-    window.addEventListener('mousedown', onClick);
-    return () => window.removeEventListener('mousedown', onClick);
-  }, [userMenuOpen]);
 
   const initial = (profile?.email || 'U').slice(0, 1).toUpperCase();
   const handle = profile?.email?.split('@')[0] || 'Usuário';
@@ -104,70 +91,51 @@ export function Sidebar({
         })}
       </nav>
 
-      <div className="p-3 relative z-10" ref={userMenuRef}>
+      <div className="p-3 relative z-10 space-y-1">
+        <div className="flex items-center gap-1 px-2">
+          <NotificationsDropdown />
+          <button
+            onClick={() => setFocusMode(!focusMode)}
+            className="p-1.5 rounded-md text-neutral-500 hover:text-white hover:bg-[#1a1a1a] transition-colors"
+            title={focusMode ? 'Sair do modo focado' : 'Modo focado'}
+          >
+            {focusMode ? <Eye size={13} strokeWidth={1.6} /> : <EyeOff size={13} strokeWidth={1.6} />}
+          </button>
+          {profile?.role === 'admin' && onNavAdmin && (
+            <button
+              onClick={onNavAdmin}
+              className="p-1.5 rounded-md text-neutral-500 hover:text-white hover:bg-[#1a1a1a] transition-colors"
+              title="Painel Admin"
+            >
+              <Shield size={13} strokeWidth={1.6} />
+            </button>
+          )}
+          <button
+            onClick={signOut}
+            className="p-1.5 rounded-md text-neutral-500 hover:text-white hover:bg-[#1a1a1a] transition-colors ml-auto"
+            title="Sair"
+          >
+            <LogOut size={13} strokeWidth={1.6} />
+          </button>
+        </div>
+
+        <div className="h-px bg-[#1a1a1a] mx-1" />
+
         <button
-          onClick={() => setUserMenuOpen((v) => !v)}
-          className="w-full flex items-center gap-2.5 px-2 py-2 rounded-lg hover:bg-[#141414] transition-colors"
+          onClick={() => onOpenPlans?.()}
+          className="w-full flex items-center gap-2.5 px-2 py-2.5 rounded-lg hover:bg-[#141414] transition-colors text-left"
         >
-          <div className="w-7 h-7 rounded-full bg-[#1e1e1e] flex items-center justify-center shrink-0">
+          <div className="w-8 h-8 rounded-full bg-[#1e1e1e] flex items-center justify-center shrink-0">
             <span className="text-xs font-medium text-neutral-300">{initial}</span>
           </div>
-          <div className="flex-1 min-w-0 text-left">
-            <div className="text-xs text-neutral-200 truncate">{handle}</div>
+          <div className="flex-1 min-w-0">
+            <div className="text-xs text-neutral-200 truncate font-medium">{handle}</div>
+            <div className="text-[10px] text-neutral-500 truncate">{profile?.email}</div>
           </div>
+          <span className="text-[9px] uppercase tracking-wider font-semibold px-1.5 py-0.5 rounded bg-[#1e1e1e] text-neutral-400 border border-[#2a2a2a] shrink-0">
+            {userPlanName || 'Free'}
+          </span>
         </button>
-
-        {userMenuOpen && (
-          <div className="absolute bottom-14 left-3 right-3 bg-[#141414] rounded-xl shadow-2xl border border-[#202020] p-2 animate-fade-in">
-            <div className="px-3 py-2.5 mb-1">
-              <div className="text-xs text-neutral-400 truncate">{profile?.email}</div>
-              <div className="text-xs text-neutral-600 mt-0.5">{userPlanName || 'Plano Free'}</div>
-            </div>
-            <div className="h-px bg-[#202020] my-1" />
-            <NotificationsDropdown />
-            <button
-              onClick={() => {
-                setFocusMode(!focusMode);
-              }}
-              className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-neutral-400 hover:text-white hover:bg-[#1a1a1a] transition-colors"
-            >
-              {focusMode ? <Eye size={14} strokeWidth={1.6} /> : <EyeOff size={14} strokeWidth={1.6} />}
-              {focusMode ? 'Sair do modo focado' : 'Modo focado'}
-            </button>
-            {onOpenPlans && (
-              <button
-                onClick={() => {
-                  onOpenPlans();
-                  setUserMenuOpen(false);
-                }}
-                className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-neutral-400 hover:text-white hover:bg-[#1a1a1a] transition-colors"
-              >
-                <Sparkles size={14} strokeWidth={1.6} />
-                Ver planos
-              </button>
-            )}
-            {profile?.role === 'admin' && onNavAdmin && (
-              <button
-                onClick={() => {
-                  onNavAdmin();
-                  setUserMenuOpen(false);
-                }}
-                className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-neutral-400 hover:text-white hover:bg-[#1a1a1a] transition-colors"
-              >
-                <Shield size={14} strokeWidth={1.6} />
-                Painel Admin
-              </button>
-            )}
-            <div className="h-px bg-[#202020] my-1" />
-            <button
-              onClick={signOut}
-              className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-neutral-400 hover:text-white hover:bg-[#1a1a1a] transition-colors"
-            >
-              <LogOut size={14} strokeWidth={1.6} />
-              Sair
-            </button>
-          </div>
-        )}
       </div>
     </div>
   );
