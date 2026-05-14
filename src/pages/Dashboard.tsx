@@ -57,7 +57,7 @@ export function Dashboard({ onNavAdmin }: { onNavAdmin: () => void }) {
         supabase.from('instance_knowledge_bases').select('instance_id').in('instance_id', ids),
         supabase.from('agent_personas').select('instance_id').in('instance_id', ids),
         supabase.from('human_examples').select('instance_id').in('instance_id', ids).eq('is_active', true),
-        supabase.from('whatsapp_connections').select('instance_id').in('instance_id', ids),
+        supabase.from('whatsapp_connections').select('agent_id, status').in('agent_id', ids),
       ]);
       const counts: Record<string, number> = {};
       (links || []).forEach((l: { instance_id: string }) => {
@@ -76,8 +76,10 @@ export function Dashboard({ onNavAdmin }: { onNavAdmin: () => void }) {
       setExampleCounts(ecounts);
 
       const ccounts: Record<string, number> = {};
-      (conns || []).forEach((c: { instance_id: string | null }) => {
-        if (c.instance_id) ccounts[c.instance_id] = (ccounts[c.instance_id] || 0) + 1;
+      (conns || []).forEach((c: { agent_id: string | null; status: string | null }) => {
+        if (c.agent_id && c.status === 'open') {
+          ccounts[c.agent_id] = (ccounts[c.agent_id] || 0) + 1;
+        }
       });
       setConnectionCounts(ccounts);
     }
