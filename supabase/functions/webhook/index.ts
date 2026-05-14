@@ -463,6 +463,30 @@ Deno.serve(async (req) => {
 
       if (instance.flow_status !== "active") return;
 
+      // ── Monthly message limit check ────────────────────────────────────
+      const userId = instance.user_id as string;
+      const { data: userProfile } = await admin.from("profiles").select("plan_id").eq("id", userId).maybeSingle();
+      if (userProfile?.plan_id) {
+        const { data: plan } = await admin.from("plans").select("max_messages_month").eq("id", userProfile.plan_id).maybeSingle();
+        if (plan?.max_messages_month !== null && plan?.max_messages_month !== undefined) {
+          const startOfMonth = new Date();
+          startOfMonth.setDate(1);
+          startOfMonth.setHours(0, 0, 0, 0);
+          const { count } = await admin.from("chat_logs").select("id", { count: "exact", head: true })
+            .eq("instance_id", instance.id).eq("direction", "out")
+            .gte("created_at", startOfMonth.toISOString());
+          if ((count ?? 0) >= plan.max_messages_month) {
+            await admin.from("notifications").insert({
+              user_id: userId, instance_id: instance.id as string, type: "limit_reached",
+              title: "Limite de mensagens atingido",
+              body: `O agente atingiu o limite de ${plan.max_messages_month} mensagens/mês do seu plano.`,
+              customer_number: customerNumber,
+            });
+            return;
+          }
+        }
+      }
+
       // Business hours
       const bh = instance.business_hours as { enabled?: boolean; timezone?: string; schedule?: Record<string, { start: string; end: string; active: boolean }>; away_message?: string } | null;
       if (bh?.enabled && bh.schedule) {

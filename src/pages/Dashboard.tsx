@@ -14,6 +14,7 @@ import { KnowledgePage } from './user/KnowledgePage';
 import { ChatPage } from './user/ChatPage';
 import { TemplateGalleryPage } from './user/TemplateGalleryPage';
 import { AgentTrainingPage } from './user/AgentTrainingPage';
+import { fetchUserPlanLimits, canCreateAgent, PlanLimits } from '../lib/planLimits';
 
 const STORAGE_KEY = 'auratalk:lastPage';
 
@@ -29,6 +30,7 @@ export function Dashboard({ onNavAdmin }: { onNavAdmin: () => void }) {
   const [personaMap, setPersonaMap] = useState<Record<string, boolean>>({});
   const [exampleCounts, setExampleCounts] = useState<Record<string, number>>({});
   const [connectionCounts, setConnectionCounts] = useState<Record<string, number>>({});
+  const [planLimits, setPlanLimits] = useState<PlanLimits | null>(null);
 
   const [page, setPage] = useState<PageKey>(() => {
     const saved = localStorage.getItem(STORAGE_KEY) as PageKey | null;
@@ -90,11 +92,26 @@ export function Dashboard({ onNavAdmin }: { onNavAdmin: () => void }) {
     fetchInstances();
   }, []);
 
+  useEffect(() => {
+    if (!profile) return;
+    fetchUserPlanLimits(profile.plan_id).then(setPlanLimits);
+  }, [profile?.plan_id]);
+
   const handleCreated = (inst: Instance) => {
     setInstances((prev) => [...prev, inst]);
     setShowCreate(false);
     setSelectedAgent(inst);
     setPage('agents');
+  };
+
+  const agentLimitReached = planLimits ? !canCreateAgent(instances.length, planLimits.max_agents) : false;
+
+  const handleCreateAgent = () => {
+    if (agentLimitReached) {
+      setShowPlans(true);
+      return;
+    }
+    setShowCreate(true);
   };
 
   const handleDeleteConfirmed = async () => {
@@ -150,13 +167,15 @@ export function Dashboard({ onNavAdmin }: { onNavAdmin: () => void }) {
         return (
           <AgentsPage
             instances={instances}
-            onCreateAgent={() => setShowCreate(true)}
+            onCreateAgent={handleCreateAgent}
             onSelectAgent={(inst) => setSelectedAgent(inst)}
             onInstanceUpdate={(updated) => setInstances((prev) => prev.map((i) => i.id === updated.id ? updated : i))}
             linkedBaseCounts={linkedBaseCounts}
             personaMap={personaMap}
             exampleCounts={exampleCounts}
             connectionCounts={connectionCounts}
+            maxAgents={planLimits?.max_agents ?? null}
+            planName={planLimits?.plan_name ?? 'Free'}
           />
         );
 
@@ -186,7 +205,7 @@ export function Dashboard({ onNavAdmin }: { onNavAdmin: () => void }) {
         return <AgentTrainingPage instances={instances} />;
 
       case 'chat':
-        if (instances.length === 0) return <EmptyAgentsPrompt onCreate={() => setShowCreate(true)} />;
+        if (instances.length === 0) return <EmptyAgentsPrompt onCreate={handleCreateAgent} />;
         if (!selectedChatInstance) {
           if (instances.length === 1) {
             return <ChatPage instance={instances[0]} instances={instances} />;

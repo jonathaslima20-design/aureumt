@@ -2,6 +2,7 @@ import { useEffect, useState, useRef } from 'react';
 import { Database, UploadCloud, Link, Mic, MicOff, Trash2, Loader2, FileText, Globe, AudioLines, Plus, X, CheckCircle2, AlertCircle, ArrowLeft, RefreshCw, Users, Save, File as FileEdit } from 'lucide-react';
 import { supabase, KnowledgeBase, KnowledgeSource, KnowledgeSourceHistory } from '../../lib/supabase';
 import { useAuth } from '../../context/AuthContext';
+import { fetchUserPlanLimits, canCreateKnowledgeBase } from '../../lib/planLimits';
 
 type FeedbackState = { type: 'success' | 'error'; msg: string } | null;
 type KBTab = 'sources' | 'upload' | 'url' | 'audio';
@@ -63,9 +64,20 @@ export function KnowledgePage() {
     fetchBases();
   }, []);
 
+  const [createError, setCreateError] = useState('');
+
   const createBase = async () => {
     if (!newName.trim() || !profile) return;
     setCreating(true);
+    setCreateError('');
+
+    const limits = await fetchUserPlanLimits(profile.plan_id);
+    if (!canCreateKnowledgeBase(bases.length, limits.max_knowledge_bases)) {
+      setCreateError(`Limite de ${limits.max_knowledge_bases} base(s) atingido no plano ${limits.plan_name}. Faça upgrade.`);
+      setCreating(false);
+      return;
+    }
+
     const { data } = await supabase
       .from('knowledge_bases')
       .insert({ user_id: profile.id, name: newName.trim(), description: newDesc.trim() })
@@ -218,9 +230,12 @@ export function KnowledgePage() {
                   className="w-full bg-[#141414] border border-[#242424] rounded-lg px-3 py-2.5 text-sm text-white placeholder-neutral-600 focus:border-[#363636] outline-none"
                 />
               </div>
+              {createError && (
+                <p className="text-xs text-red-400 bg-red-500/10 border border-red-500/20 rounded-lg px-3 py-2">{createError}</p>
+              )}
               <div className="flex gap-2 pt-1">
                 <button
-                  onClick={() => { setShowCreate(false); setNewName(''); setNewDesc(''); }}
+                  onClick={() => { setShowCreate(false); setNewName(''); setNewDesc(''); setCreateError(''); }}
                   className="flex-1 border border-[#242424] text-neutral-400 hover:text-white rounded-lg py-2.5 text-sm transition-colors"
                 >
                   Cancelar

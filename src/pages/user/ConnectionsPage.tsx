@@ -6,6 +6,7 @@ import {
 import { supabase, WhatsappConnection, Instance } from '../../lib/supabase';
 import { evolution } from '../../lib/evolution';
 import { useAuth } from '../../context/AuthContext';
+import { fetchUserPlanLimits, canCreateConnection } from '../../lib/planLimits';
 
 type Props = {
   instances: Instance[];
@@ -39,6 +40,13 @@ export function ConnectionsPage({ instances, onUpdate }: Props) {
     setCreating(true);
     setCreateError('');
     try {
+      const limits = await fetchUserPlanLimits(profile.plan_id);
+      if (!canCreateConnection(connections.length, limits.max_connections)) {
+        setCreateError(`Limite de ${limits.max_connections} conexão(ões) atingido no plano ${limits.plan_name}. Faça upgrade para criar mais.`);
+        setCreating(false);
+        return;
+      }
+
       const evolution_instance_id = `conn_${Date.now().toString(36)}`;
       const { data, error } = await supabase
         .from('whatsapp_connections')

@@ -11,6 +11,7 @@ import {
 } from '../lib/supabase';
 import { AgentAvatar } from './AgentAvatar';
 import { ImageCropModal } from './ImageCropModal';
+import { fetchUserPlanLimits, canCreateAgent } from '../lib/planLimits';
 
 // ─── Custom variable row ──────────────────────────────────────────────────────
 
@@ -192,6 +193,15 @@ export function CreateAgentModal({ userId, onClose, onCreated }: Props) {
     setSaving(true);
     setError('');
     try {
+      const { data: userData } = await supabase.from('profiles').select('plan_id').eq('id', userId).maybeSingle();
+      const limits = await fetchUserPlanLimits(userData?.plan_id ?? null);
+      const { count } = await supabase.from('instances').select('id', { count: 'exact', head: true }).eq('user_id', userId);
+      if (!canCreateAgent(count ?? 0, limits.max_agents)) {
+        setError(`Limite de ${limits.max_agents} agente(s) atingido no plano ${limits.plan_name}. Faça upgrade para criar mais.`);
+        setSaving(false);
+        return;
+      }
+
       const resolvedBase = applyVars(basePrompt, customVars);
       const systemPrompt = buildSystemPrompt({
         persona_name: personaName || displayName,
