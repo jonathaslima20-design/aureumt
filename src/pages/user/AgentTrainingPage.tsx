@@ -236,8 +236,8 @@ function PersonaTab({ instance, otherInstances }: { instance: Instance; otherIns
           <textarea
             value={persona.background_story || ''}
             onChange={(e) => setPersona({ ...persona, background_story: e.target.value })}
-            rows={3}
-            className="w-full bg-[#0d0d0d] border border-[#1a1a1a] rounded-lg px-3 py-2 text-sm text-white outline-none focus:border-[#2a2a2a] resize-none"
+            rows={6}
+            className="w-full bg-[#0d0d0d] border border-[#1a1a1a] rounded-lg px-3 py-3 text-sm text-white outline-none focus:border-[#2a2a2a] resize-y leading-relaxed min-h-[120px]"
             placeholder="Ex: Trabalha na empresa ha 3 anos como atendente. Antes era vendedora em uma loja de roupas. Mora em Sao Paulo."
           />
         </Field>
