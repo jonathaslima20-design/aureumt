@@ -493,9 +493,9 @@ function AdvancedTab({ instance, onUpdate }: { instance: Instance; onUpdate: () 
             <textarea
               value={prompt}
               onChange={(e) => setPrompt(e.target.value)}
-              rows={10}
+              rows={18}
               placeholder="Descreva como o agente deve se comportar..."
-              className="w-full bg-[#0d0d0d] border border-[#1c1c1c] rounded-lg px-4 py-3 text-sm text-white focus:outline-none focus:border-[#363636] transition-colors resize-none font-mono leading-relaxed"
+              className="w-full bg-[#0d0d0d] border border-[#1c1c1c] rounded-lg px-4 py-4 text-sm text-white focus:outline-none focus:border-[#363636] transition-colors resize-y font-mono leading-relaxed min-h-[200px]"
             />
             <button
               onClick={regeneratePrompt}
