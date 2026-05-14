@@ -188,26 +188,28 @@ async function sendPresence(creds: Creds, instanceName: string, number: string, 
 // Empirically-tuned constants. Mobile messaging averages ~35-45 WPM (~3-4 cps).
 // We model: cognitive lift + dampened length curve + token costs + light jitter.
 const HUMAN_TYPING_PROFILE = {
-  baseCps: 3.6,                // ~43 WPM baseline
+  baseCps: 11,                 // simulated typing feel; not literal per-key
   toneMultiplier: {
-    professional: 0.88,
-    formal: 0.85,
+    professional: 0.92,
+    formal: 0.90,
     friendly: 1.05,
     casual: 1.10,
     technical: 0.95,
   } as Record<string, number>,
-  cognitiveLiftMs: 350,        // small "starting to type" pause for any message
-  shortMessageBoostMs: 250,    // very short replies ("oi", "sim") feel snappy but not instant
-  internalCommaMs: 80,
-  sentenceEndMs: 200,
-  emojiMs: 140,
-  numberTokenMs: 220,
-  linkTokenMs: 280,
-  currencyTokenMs: 240,
-  jitterPct: 0.07,             // ±7% gaussian-ish jitter
-  hardCeilingMs: 12000,        // per-fragment ceiling
-  fragmentPauseBaseMs: 140,
-  fragmentPauseMaxMs: 520,
+  cognitiveLiftMs: 220,
+  shortMessageBoostMs: 120,
+  internalCommaMs: 50,
+  sentenceEndMs: 130,
+  emojiMs: 90,
+  numberTokenMs: 140,
+  linkTokenMs: 180,
+  currencyTokenMs: 150,
+  jitterPct: 0.06,
+  hardCeilingMs: 7000,
+  fragmentPauseBaseMs: 120,
+  fragmentPauseMaxMs: 380,
+  sqrtMultiplier: 2.2,
+  logMultiplier: 1.4,
 };
 
 type TypingCfg = {
@@ -246,13 +248,12 @@ function calcTypingDelay(text: string, cfg: TypingCfg): number {
     const linearPart = (30 / cps) * 1000;
     const extra = len - 30;
     // sqrt damping: each extra char contributes less
-    lengthMs = linearPart + Math.sqrt(extra) * (1000 / cps) * 4.2;
+    lengthMs = linearPart + Math.sqrt(extra) * (1000 / cps) * P.sqrtMultiplier;
   } else {
     const linearPart = (30 / cps) * 1000;
-    const sqrtPart = Math.sqrt(90) * (1000 / cps) * 4.2;
+    const sqrtPart = Math.sqrt(90) * (1000 / cps) * P.sqrtMultiplier;
     const extra = len - 120;
-    // log damping for very long text so 300+ chars don't explode
-    lengthMs = linearPart + sqrtPart + Math.log(1 + extra) * (1000 / cps) * 2.6;
+    lengthMs = linearPart + sqrtPart + Math.log(1 + extra) * (1000 / cps) * P.logMultiplier;
   }
 
   // Cognitive lift (always) + small boost for very short messages so they don't feel instant
@@ -299,14 +300,14 @@ function calcFragmentPause(prevFragmentLen: number): number {
 }
 
 function calcReadDelay(configuredMs: number, incomingLen: number): number {
-  // Light jitter ±10%
+  // Cap configured delay to a sane upper bound so misconfig doesn't stall replies
+  const safeConfigured = Math.min(configuredMs, 6000);
   const jitter = 0.9 + Math.random() * 0.2;
-  // Scale by incoming length: very short messages need less reading, long messages more
   let scale = 1.0;
-  if (incomingLen >= 200) scale = 1.3;
-  else if (incomingLen <= 20) scale = 0.7;
-  const total = configuredMs * scale * jitter;
-  return Math.max(300, Math.min(15000, Math.round(total)));
+  if (incomingLen >= 200) scale = 1.25;
+  else if (incomingLen <= 20) scale = 0.55;
+  const total = safeConfigured * scale * jitter;
+  return Math.max(300, Math.min(7000, Math.round(total)));
 }
 
 async function simulateTyping(creds: Creds, instanceName: string, number: string, totalMs: number) {
