@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Loader2 } from 'lucide-react';
 import { AuthProvider, useAuth } from './context/AuthContext';
+import { UIPreferencesProvider } from './context/UIPreferencesContext';
 import { AuthPage } from './pages/AuthPage';
 import { Dashboard } from './pages/Dashboard';
 import { AdminPanel } from './pages/AdminPanel';
@@ -105,8 +106,10 @@ function AuraBackground() {
 function App() {
   return (
     <AuthProvider>
-      <AuraBackground />
-      <Shell />
+      <UIPreferencesProvider>
+        <AuraBackground />
+        <Shell />
+      </UIPreferencesProvider>
     </AuthProvider>
   );
 }
