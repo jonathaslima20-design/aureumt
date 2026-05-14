@@ -346,7 +346,6 @@ function ProfileTab({ instance, onUpdate }: { instance: Instance; onUpdate: () =
 
 function AdvancedTab({ instance, onUpdate }: { instance: Instance; onUpdate: () => void }) {
   const [prompt, setPrompt] = useState(instance.system_prompt);
-  const [basePrompt, setBasePrompt] = useState(instance.base_prompt || '');
   const [customVars, setCustomVars] = useState<{ key: string; value: string }[]>(
     Array.isArray(instance.custom_variables) ? instance.custom_variables : []
   );
@@ -370,7 +369,6 @@ function AdvancedTab({ instance, onUpdate }: { instance: Instance; onUpdate: () 
 
   useEffect(() => {
     setPrompt(instance.system_prompt);
-    setBasePrompt(instance.base_prompt || '');
     setCustomVars(Array.isArray(instance.custom_variables) ? instance.custom_variables : []);
     setDelay(instance.response_delay);
     setKeyword(instance.overflow_keyword);
@@ -392,7 +390,6 @@ function AdvancedTab({ instance, onUpdate }: { instance: Instance; onUpdate: () 
       .from('instances')
       .update({
         system_prompt: prompt,
-        base_prompt: basePrompt,
         custom_variables: customVars.filter((v) => v.key.trim()),
         response_delay: delay,
         overflow_keyword: keyword,
@@ -435,20 +432,14 @@ function AdvancedTab({ instance, onUpdate }: { instance: Instance; onUpdate: () 
   };
 
   const regeneratePrompt = async () => {
-    let resolvedBase = basePrompt;
-    for (const { key, value } of customVars) {
-      if (key.trim()) resolvedBase = resolvedBase.replaceAll(`{{${key.trim()}}}`, value);
-    }
-    if (!resolvedBase && instance.system_prompt?.includes('Seu papel')) {
-      resolvedBase = instance.system_prompt.split('\n\n').find((p) => p.startsWith('Seu papel')) || '';
-    }
+    const base = (instance.system_prompt || '').split('\n\n').find((p) => p.startsWith('Seu papel')) || '';
     const rebuilt = buildSystemPrompt({
       persona_name: instance.persona_name || instance.display_name || '',
       company_name: instance.company_name || '',
       tone,
       language,
       emoji_usage: emojiUsage,
-      base: resolvedBase,
+      base,
       signature,
     });
     setPrompt(rebuilt);
@@ -534,24 +525,6 @@ function AdvancedTab({ instance, onUpdate }: { instance: Instance; onUpdate: () 
             </button>
           </div>
 
-          {/* Base prompt template */}
-          <div className="pt-2 border-t border-[#1a1a1a]">
-            <div className="flex items-center justify-between mb-2 pt-2">
-              <label className="text-xs uppercase tracking-wider text-neutral-500">Template de instruções</label>
-              <span className="text-[10px] text-neutral-600 font-mono">{basePrompt.length} chars</span>
-            </div>
-            <p className="text-[11px] text-neutral-600 mb-2">
-              Use <code className="bg-[#0d0d0d] px-1 rounded text-neutral-400 font-mono">{'{{variavel}}'}</code> para inserir valores das variáveis abaixo. Clique em "Regenerar" para aplicar.
-            </p>
-            <textarea
-              value={basePrompt}
-              onChange={(e) => setBasePrompt(e.target.value)}
-              rows={5}
-              placeholder="Você é um atendente especializado em... O cardápio está em {{link_cardapio}}."
-              className="w-full bg-[#0d0d0d] border border-[#1c1c1c] rounded-lg px-4 py-3 text-sm text-white focus:outline-none focus:border-[#363636] transition-colors resize-none font-mono leading-relaxed"
-            />
-          </div>
-
           {/* Custom variables */}
           <div className="pt-2 border-t border-[#1a1a1a]">
             <div className="flex items-center justify-between mb-2 pt-2">
@@ -567,6 +540,9 @@ function AdvancedTab({ instance, onUpdate }: { instance: Instance; onUpdate: () 
                 <Plus size={9} /> Adicionar
               </button>
             </div>
+            <p className="text-[11px] text-neutral-600 mb-2">
+              Use <code className="bg-[#0d0d0d] px-1 rounded text-neutral-400 font-mono">{'{{variavel}}'}</code> dentro do "Prompt do Sistema" acima. Os valores são substituídos em tempo real a cada mensagem — não é necessário regenerar.
+            </p>
 
             {customVars.length === 0 ? (
               <div className="border border-dashed border-[#1a1a1a] rounded-lg py-4 text-center text-[11px] text-neutral-700">

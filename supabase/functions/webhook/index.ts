@@ -512,7 +512,18 @@ Deno.serve(async (req) => {
       };
       const formatRule = "Voce esta no WhatsApp. NUNCA use negrito, italico, asteriscos, sublinhados ou bullets. Apenas texto puro. Use | para separar ideias distintas (vira mensagens separadas). Sem frases roboticas. Sem listas formatadas.";
 
-      const userPrompt = ((instance.system_prompt as string) || "").trim();
+      // Substitute {{custom_variables}} into the user-defined prompt
+      const rawPrompt = ((instance.system_prompt as string) || "").trim();
+      const customVars = Array.isArray(instance.custom_variables)
+        ? (instance.custom_variables as { key: string; value: string }[])
+        : [];
+      let userPrompt = rawPrompt;
+      for (const v of customVars) {
+        const k = (v.key || "").trim();
+        if (!k) continue;
+        const re = new RegExp(`\\{\\{\\s*${k.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\s*\\}\\}`, "g");
+        userPrompt = userPrompt.replace(re, String(v.value ?? ""));
+      }
       const parts: string[] = [];
 
       // Layer 1: Identity

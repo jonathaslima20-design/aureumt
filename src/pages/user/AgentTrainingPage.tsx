@@ -530,8 +530,8 @@ function LearningsTab({ instance }: { instance: Instance }) {
           <Sparkles size={18} className="text-neutral-500 shrink-0 mt-0.5" />
           <div>
             <p className="text-xs text-neutral-300 leading-relaxed">
-              Correcoes feitas durante atendimento manual viram aprendizados que o agente passa a usar como exemplo.
-              Ative ou desative cada um conforme a qualidade.
+              Correcoes e feedbacks negativos no chat (correcao manual ou comentario com avaliacao "ruim") viram aprendizados aqui.
+              O agente usa cada item ativo como exemplo few-shot nas proximas respostas.
             </p>
           </div>
         </div>
@@ -542,7 +542,7 @@ function LearningsTab({ instance }: { instance: Instance }) {
       ) : learnings.length === 0 ? (
         <div className="text-center py-12 text-xs text-neutral-600">
           Ainda nao ha aprendizados.<br/>
-          Quando voce assumir uma conversa em modo manual, as suas respostas viram aprendizados aqui.
+          Use os botoes de feedback (positivo/negativo/comentar) nas respostas do agente no chat para gerar aprendizados.
         </div>
       ) : (
         <div className="space-y-2">
