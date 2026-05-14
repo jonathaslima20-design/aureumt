@@ -797,17 +797,20 @@ Deno.serve(async (req) => {
           await simulateTyping(creds, instanceName, remoteJid, typingMs);
         }
         await sendText(creds, instanceName, remoteJid, fragment);
+
+        // Persist each fragment as its own chat_log so the inbox renders separate bubbles
+        await admin.from("chat_logs").insert({
+          instance_id: instance.id, whatsapp_connection_id: connectionId,
+          customer_number: customerNumber, direction: "out",
+          message_body: fragment,
+          tokens_used: i === toSend.length - 1 ? tokens : 0,
+          knowledge_hit: i === 0 ? knowledgeHit : false,
+        });
+
         if (i < toSend.length - 1) {
           await new Promise((r) => setTimeout(r, calcFragmentPause(fragment.length)));
         }
       }
-
-      // ── Save outgoing log ───────────────────────────────────────────────
-      await admin.from("chat_logs").insert({
-        instance_id: instance.id, whatsapp_connection_id: connectionId,
-        customer_number: customerNumber, direction: "out",
-        message_body: reply, tokens_used: tokens, knowledge_hit: knowledgeHit,
-      });
 
       // ── Save response hash for anti-repetition ──────────────────────────
       await admin.from("response_history_hash").insert({
