@@ -1,6 +1,9 @@
 import { memo, useState } from 'react';
-import { User, Bot, Check, CheckCheck, Clock, AlertCircle, Copy, CornerUpLeft, GraduationCap } from 'lucide-react';
-import { ChatLog } from '../../../lib/supabase';
+import {
+  User, Bot, Check, CheckCheck, Clock, AlertCircle, Copy, CornerUpLeft,
+  GraduationCap, ThumbsUp, ThumbsDown, MessageSquarePlus, X, Loader2,
+} from 'lucide-react';
+import { ChatLog, supabase } from '../../../lib/supabase';
 import { formatTime } from './utils';
 
 type Props = {
@@ -12,6 +15,7 @@ type Props = {
   onImage: (url: string) => void;
   onQuoteClick: (id: string) => void;
   onMarkTraining?: (m: ChatLog) => void;
+  onFeedbackChange?: (id: string, patch: Partial<ChatLog>) => void;
 };
 
 function deliveryIcon(status: ChatLog['delivery_status']) {
@@ -34,9 +38,38 @@ function MessageBubbleComp({
   onImage,
   onQuoteClick,
   onMarkTraining,
+  onFeedbackChange,
 }: Props) {
   const [copied, setCopied] = useState(false);
+  const [showCommentBox, setShowCommentBox] = useState(false);
+  const [comment, setComment] = useState(m.feedback_comment || '');
+  const [savingFb, setSavingFb] = useState<null | 'up' | 'down' | 'comment'>(null);
   const isIn = m.direction === 'in';
+  const quality = m.feedback_quality || '';
+
+  const setQuality = async (next: 'good' | 'bad' | '') => {
+    setSavingFb(next === 'bad' ? 'down' : 'up');
+    const value = quality === next ? '' : next;
+    const { error } = await supabase
+      .from('chat_logs')
+      .update({ feedback_quality: value })
+      .eq('id', m.id);
+    setSavingFb(null);
+    if (!error) onFeedbackChange?.(m.id, { feedback_quality: value });
+  };
+
+  const saveComment = async () => {
+    setSavingFb('comment');
+    const { error } = await supabase
+      .from('chat_logs')
+      .update({ feedback_comment: comment.trim() })
+      .eq('id', m.id);
+    setSavingFb(null);
+    if (!error) {
+      onFeedbackChange?.(m.id, { feedback_comment: comment.trim() });
+      setShowCommentBox(false);
+    }
+  };
 
   const handleCopy = async () => {
     try {
@@ -158,6 +191,87 @@ function MessageBubbleComp({
               {!isIn && deliveryIcon(m.delivery_status)}
             </div>
           </div>
+
+          {!isIn && (
+            <div className="self-end mt-1 flex items-center gap-1">
+              <button
+                onClick={() => setQuality('good')}
+                disabled={savingFb !== null}
+                className={`p-1 rounded border transition-colors ${
+                  quality === 'good'
+                    ? 'bg-emerald-950/40 border-emerald-900/50 text-emerald-400'
+                    : 'bg-[#1a1a1a] border-[#242424] text-neutral-500 hover:text-white opacity-0 group-hover:opacity-100'
+                }`}
+                title="Resposta boa"
+                aria-label="Marcar como resposta boa"
+              >
+                {savingFb === 'up' ? <Loader2 size={11} className="animate-spin" /> : <ThumbsUp size={11} />}
+              </button>
+              <button
+                onClick={() => setQuality('bad')}
+                disabled={savingFb !== null}
+                className={`p-1 rounded border transition-colors ${
+                  quality === 'bad'
+                    ? 'bg-red-950/40 border-red-900/50 text-red-400'
+                    : 'bg-[#1a1a1a] border-[#242424] text-neutral-500 hover:text-white opacity-0 group-hover:opacity-100'
+                }`}
+                title="Resposta ruim"
+                aria-label="Marcar como resposta ruim"
+              >
+                {savingFb === 'down' ? <Loader2 size={11} className="animate-spin" /> : <ThumbsDown size={11} />}
+              </button>
+              <button
+                onClick={() => { setComment(m.feedback_comment || ''); setShowCommentBox((v) => !v); }}
+                className={`p-1 rounded border transition-colors ${
+                  m.feedback_comment
+                    ? 'bg-sky-950/40 border-sky-900/50 text-sky-400'
+                    : 'bg-[#1a1a1a] border-[#242424] text-neutral-500 hover:text-white opacity-0 group-hover:opacity-100'
+                }`}
+                title={m.feedback_comment ? 'Editar comentário' : 'Comentar'}
+                aria-label="Comentar resposta"
+              >
+                <MessageSquarePlus size={11} />
+              </button>
+            </div>
+          )}
+
+          {!isIn && showCommentBox && (
+            <div className="self-end mt-1.5 w-full max-w-md bg-[#0d0d0d] border border-[#242424] rounded-lg p-2.5">
+              <div className="flex items-center justify-between mb-1.5">
+                <span className="text-[10px] uppercase tracking-wider text-neutral-500">Comentário de treinamento</span>
+                <button
+                  onClick={() => setShowCommentBox(false)}
+                  className="text-neutral-600 hover:text-white"
+                  aria-label="Fechar"
+                >
+                  <X size={11} />
+                </button>
+              </div>
+              <textarea
+                value={comment}
+                onChange={(e) => setComment(e.target.value)}
+                rows={3}
+                placeholder="O que poderia ser melhorado nesta resposta?"
+                className="w-full bg-[#070707] border border-[#1c1c1c] rounded px-2 py-1.5 text-[12px] text-white placeholder-neutral-700 focus:outline-none focus:border-[#363636] resize-none"
+              />
+              <div className="flex items-center justify-end gap-2 mt-2">
+                <button
+                  onClick={() => setShowCommentBox(false)}
+                  className="text-[11px] text-neutral-500 hover:text-white px-2 py-1 rounded"
+                >
+                  Cancelar
+                </button>
+                <button
+                  onClick={saveComment}
+                  disabled={savingFb === 'comment'}
+                  className="text-[11px] bg-white text-black hover:bg-neutral-200 disabled:opacity-50 px-2.5 py-1 rounded font-medium flex items-center gap-1"
+                >
+                  {savingFb === 'comment' ? <Loader2 size={10} className="animate-spin" /> : <Check size={10} />}
+                  Salvar
+                </button>
+              </div>
+            </div>
+          )}
         </div>
 
         {!isIn && (

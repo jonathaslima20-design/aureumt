@@ -975,9 +975,13 @@ export function ChatPage({ instance, instances, onBack }: { instance: Instance; 
                     message={m}
                     quoted={quoted}
                     isUnreadDivider={m.id === unreadDividerId}
+                    isTrainingExample={!!m.is_training_example}
                     onReply={(msg) => { setReplyTo(msg); composeRef.current?.focus(); }}
                     onImage={openImage}
                     onQuoteClick={scrollToMessage}
+                    onFeedbackChange={(id, patch) =>
+                      setThread((prev) => prev.map((x) => x.id === id ? { ...x, ...patch } : x))
+                    }
                   />
                 </div>
               );

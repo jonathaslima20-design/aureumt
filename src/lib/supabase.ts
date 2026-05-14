@@ -161,6 +161,10 @@ export type ChatLog = {
   media_url: string | null;
   reply_to_id: string | null;
   delivery_status: 'pending' | 'sent' | 'delivered' | 'read' | 'failed';
+  feedback_quality?: string | null;
+  is_training_example?: boolean | null;
+  corrected_response?: string | null;
+  feedback_comment?: string | null;
 };
 
 export type ConversationState = {
