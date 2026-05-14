@@ -195,16 +195,13 @@ type TypingCfg = {
 function calcTypingDelay(text: string, cfg: TypingCfg): number {
   const v = Math.max(0, Math.min(100, cfg.variability)) / 100;
   const baseCps = Math.max(1, cfg.speedCps);
-  // Speed jitter: +/- up to ~50% scaled by variability
-  const jitter = (Math.random() - 0.5) * baseCps * v;
+  // Small speed jitter: +/- up to ~20% scaled by variability
+  const jitter = (Math.random() - 0.5) * baseCps * 0.4 * v;
   const charsPerSecond = Math.max(1, baseCps + jitter);
   const baseMs = (text.length / charsPerSecond) * 1000;
-  // Complexity factor scales with variability
-  const complexity = (text.match(/[?!.,]/g) || []).length * 200 * (0.5 + v);
-  // Hesitation chance scales with variability
-  const hesitChance = 0.1 + 0.4 * v;
-  const hesitation = Math.random() < hesitChance ? Math.random() * 1500 * v : 0;
-  const total = baseMs + complexity + hesitation;
+  // Light complexity factor
+  const complexity = (text.match(/[?!.,]/g) || []).length * 80;
+  const total = baseMs + complexity;
   return Math.max(cfg.minMs, Math.min(cfg.maxMs, Math.round(total)));
 }
 
@@ -644,15 +641,14 @@ Deno.serve(async (req) => {
 
       const systemInstruction = parts.join("\n\n");
 
-      // ── Initial read delay (varies by message length) ───────────────────
+      // ── Initial read delay (configured per agent, with small jitter) ────
       const baseDelay = (instance.response_delay as number) || 3000;
+      // Accept either ms (>100) or seconds (<=100) for backwards compat
       const readDelayMs = baseDelay > 100 ? baseDelay : baseDelay * 1000;
-      // Add 0.5x to 1.5x random factor to feel less mechanical
-      const finalReadDelay = Math.round(readDelayMs * (0.5 + Math.random()));
-      // Occasionally simulate "busy" with longer delay (5% chance)
-      const isBusy = Math.random() < 0.05;
-      const readDelay = isBusy ? finalReadDelay + 8000 + Math.random() * 6000 : finalReadDelay;
-      await new Promise((r) => setTimeout(r, Math.min(readDelay, 30000)));
+      // Light jitter: 0.85x - 1.15x of configured value to avoid being mechanical
+      const finalReadDelay = Math.round(readDelayMs * (0.85 + Math.random() * 0.3));
+      console.log(`[webhook] response_delay configured=${readDelayMs}ms applied=${finalReadDelay}ms`);
+      await new Promise((r) => setTimeout(r, Math.min(finalReadDelay, 60000)));
 
       // ── Adaptive temperature based on intent ────────────────────────────
       let temperature = 0.85;
