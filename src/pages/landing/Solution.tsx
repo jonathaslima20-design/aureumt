@@ -11,10 +11,8 @@ export function Solution() {
             ONDE A ESCALA HUMANA ENCONTRA O SEU LIMITE.
           </h2>
           <p className="text-gray-400 font-light leading-relaxed">
-            Equipes crescem linearmente. Demanda cresce exponencialmente.
-            Cada minuto sem resposta e uma oportunidade transferida ao concorrente.
-            O AuraTalk elimina esse gap com agentes que operam em latencia inferior a 2 segundos,
-            24 horas por dia, sem intervalos.
+            As equipes crescem devagar, mas a demanda dos clientes cresce muito mais rápido.
+            E no atendimento digital, cada minuto sem resposta pode virar uma venda para o concorrente.
           </p>
           <div className="grid grid-cols-2 gap-4">
             <div className="border border-white/5 rounded-xl p-6">
