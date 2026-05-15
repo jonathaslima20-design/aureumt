@@ -1,13 +1,9 @@
 import { useState } from 'react';
 import { Logo } from '../components/Logo';
 import { useAuth } from '../context/AuthContext';
-import { ArrowLeft, ArrowRight, Loader2 } from 'lucide-react';
+import { ArrowRight, Loader2 } from 'lucide-react';
 
-interface AuthPageProps {
-  onBack?: () => void;
-}
-
-export function AuthPage({ onBack }: AuthPageProps) {
+export function AuthPage() {
   const { signIn, signUp } = useAuth();
   const [mode, setMode] = useState<'signin' | 'signup'>('signin');
   const [email, setEmail] = useState('');
@@ -63,15 +59,6 @@ export function AuthPage({ onBack }: AuthPageProps) {
       />
 
       <div className="w-full max-w-sm animate-fade-in relative z-10">
-        {onBack && (
-          <button
-            onClick={onBack}
-            className="flex items-center gap-2 text-xs text-neutral-500 hover:text-white transition-colors mb-8"
-          >
-            <ArrowLeft size={14} />
-            Voltar
-          </button>
-        )}
         <div className="flex justify-center mb-10">
           <Logo size={56} />
         </div>

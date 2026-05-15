@@ -9,7 +9,7 @@
 }
 
 body {
-  background-color: #050505;
+  background-color: #080808;
   color: #e5e5e5;
   margin: 0;
   min-height: 100vh;
@@ -19,7 +19,6 @@ body {
   box-sizing: border-box;
 }
 
-/* Scrollbar */
 .scrollbar-thin::-webkit-scrollbar {
   width: 6px;
   height: 6px;
@@ -35,70 +34,11 @@ body {
   background: #2a2a2a;
 }
 
-/* Glass effect */
-.glass {
-  background: rgba(255, 255, 255, 0.02);
-  backdrop-filter: blur(12px);
-  border: 1px solid rgba(255, 255, 255, 0.05);
-}
-
-.glass-hover:hover {
-  background: rgba(255, 255, 255, 0.04);
-  border-color: rgba(255, 255, 255, 0.1);
-}
-
-/* Agent card glass overlay */
-.agent-card-glass {
-  background: linear-gradient(to top, rgba(0, 0, 0, 0.9) 0%, rgba(0, 0, 0, 0.6) 60%, transparent 100%);
-  backdrop-filter: blur(8px);
-}
-
-/* Scanner line */
-.scanner-line {
-  position: absolute;
-  left: 0;
-  right: 0;
-  height: 1px;
-  background: linear-gradient(90deg, transparent, #FF3B00, transparent);
-  opacity: 0.6;
-  animation: scan 3s linear infinite;
-}
-
-/* Spotlight card effect */
-.spotlight-card {
-  position: relative;
-  overflow: hidden;
-}
-.spotlight-card::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background: radial-gradient(600px circle at var(--mouse-x, 50%) var(--mouse-y, 50%), rgba(255, 59, 0, 0.04), transparent 40%);
-  pointer-events: none;
-  opacity: 0;
-  transition: opacity 0.3s;
-}
-.spotlight-card:hover::before {
-  opacity: 1;
-}
-
-/* Pricing popular card */
-.pricing-card-popular {
-  border-color: rgba(255, 59, 0, 0.3);
-  box-shadow: 0 0 40px rgba(255, 59, 0, 0.08), 0 0 80px rgba(255, 59, 0, 0.04);
-}
-
-/* Dot grid background */
-.dot-grid {
-  background-image: radial-gradient(circle, rgba(255, 255, 255, 0.08) 1px, transparent 1px);
-  background-size: 24px 24px;
-}
-
-/* Existing animations */
 @keyframes pulse-subtle {
   0%, 100% { opacity: 1; }
   50% { opacity: 0.6; }
 }
+
 .animate-pulse-subtle {
   animation: pulse-subtle 2s ease-in-out infinite;
 }
@@ -107,6 +47,7 @@ body {
   from { opacity: 0; transform: translateY(4px); }
   to { opacity: 1; transform: translateY(0); }
 }
+
 .animate-fade-in {
   animation: fadeIn 0.3s ease-out;
 }
@@ -115,34 +56,39 @@ body {
   from { transform: translateX(-100%); }
   to { transform: translateX(0); }
 }
+
 .animate-slide-in-left {
   animation: slideInLeft 0.25s ease-out;
 }
 
+/* Slow breathing for aura orbs */
 @keyframes aura-breathe {
-  0%, 100% { opacity: 1; transform: scale(1); }
-  50% { opacity: 0.55; transform: scale(1.08); }
+  0%, 100% { opacity: 1;   transform: scale(1); }
+  50%       { opacity: 0.55; transform: scale(1.08); }
 }
 .animate-aura-breathe {
   animation: aura-breathe 6s ease-in-out infinite;
 }
 
+/* Secondary orb — slightly out of phase */
 @keyframes aura-breathe-alt {
   0%, 100% { opacity: 0.65; transform: scale(1.05); }
-  50% { opacity: 1; transform: scale(0.95); }
+  50%       { opacity: 1;    transform: scale(0.95); }
 }
 .animate-aura-breathe-alt {
   animation: aura-breathe-alt 9s ease-in-out infinite;
 }
 
+/* Gentle vertical drift for third orb */
 @keyframes aura-drift {
-  0%, 100% { transform: translateY(0px) scale(1); }
-  50% { transform: translateY(-12px) scale(1.04); }
+  0%, 100% { transform: translateY(0px)   scale(1); }
+  50%       { transform: translateY(-12px) scale(1.04); }
 }
 .animate-aura-drift {
   animation: aura-drift 12s ease-in-out infinite;
 }
 
+/* Card glow utility */
 .aura-card {
   transition: box-shadow 0.35s ease, border-color 0.35s ease, background 0.35s ease;
 }
