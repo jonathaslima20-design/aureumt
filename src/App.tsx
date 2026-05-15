@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { Loader2 } from 'lucide-react';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { UIPreferencesProvider } from './context/UIPreferencesContext';
-import { NetworkBackground } from './pages/landing/NetworkBackground';
+import NetworkBackground from './components/NetworkBackground';
 import { AuthPage } from './pages/AuthPage';
 import { LandingPage } from './pages/LandingPage';
 import { Dashboard } from './pages/Dashboard';
@@ -68,9 +68,7 @@ function App() {
     <AuthProvider>
       <UIPreferencesProvider>
         <NetworkBackground />
-        <div className="relative z-10">
-          <Shell />
-        </div>
+        <Shell />
       </UIPreferencesProvider>
     </AuthProvider>
   );
