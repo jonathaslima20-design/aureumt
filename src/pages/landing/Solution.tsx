@@ -36,7 +36,7 @@ export function Solution() {
         <div className="relative">
           <div className="glass rounded-3xl overflow-hidden relative aspect-[4/5]">
             <img
-              src="https://images.pexels.com/photos/8438918/pexels-photo-8438918.jpeg?auto=compress&cs=tinysrgb&w=800"
+              src="https://yulbqkwrfyycjxbbuloj.supabase.co/storage/v1/object/public/imageslanding/image32221478956.png"
               alt="AI Agent"
               className="w-full h-full object-cover opacity-60"
             />
