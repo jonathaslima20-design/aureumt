@@ -32,45 +32,82 @@ export function Solution() {
           </div>
         </div>
 
-        {/* Right column - Agent visual */}
-        <div className="relative">
-          <div className="glass rounded-3xl overflow-hidden relative aspect-[4/5]">
-            <img
-              src="https://yulbqkwrfyycjxbbuloj.supabase.co/storage/v1/object/public/imageslanding/image32221478956.png"
-              alt="AI Agent"
-              className="w-full h-full object-cover opacity-60"
-            />
+        {/* Right column - Agent visuals grid */}
+        <div className="relative space-y-4">
+          <div className="grid grid-cols-2 gap-4">
+            {/* Card 1 */}
+            <div className="glass rounded-2xl overflow-hidden relative aspect-square">
+              <img
+                src="https://yulbqkwrfyycjxbbuloj.supabase.co/storage/v1/object/public/imageslanding/image32221478956.png"
+                alt="AI Agent"
+                className="w-full h-full object-cover opacity-60"
+              />
+              <div className="absolute top-3 left-3 w-4 h-4 border-t-2 border-l-2 border-accent/60" />
+              <div className="absolute top-3 right-3 w-4 h-4 border-t-2 border-r-2 border-accent/60" />
+              <div className="absolute bottom-3 left-3 w-4 h-4 border-b-2 border-l-2 border-accent/60" />
+              <div className="absolute bottom-3 right-3 w-4 h-4 border-b-2 border-r-2 border-accent/60" />
+            </div>
 
-            {/* Scanner line */}
-            <div className="scanner-line" />
+            {/* Card 2 */}
+            <div className="glass rounded-2xl overflow-hidden relative aspect-square">
+              <img
+                src="https://yulbqkwrfyycjxbbuloj.supabase.co/storage/v1/object/public/imageslanding/image54478.png"
+                alt="AI Agent"
+                className="w-full h-full object-cover opacity-60"
+              />
+              <div className="absolute top-3 left-3 w-4 h-4 border-t-2 border-l-2 border-accent/60" />
+              <div className="absolute top-3 right-3 w-4 h-4 border-t-2 border-r-2 border-accent/60" />
+              <div className="absolute bottom-3 left-3 w-4 h-4 border-b-2 border-l-2 border-accent/60" />
+              <div className="absolute bottom-3 right-3 w-4 h-4 border-b-2 border-r-2 border-accent/60" />
+            </div>
 
-            {/* Corner decorations */}
-            <div className="absolute top-4 left-4 w-6 h-6 border-t-2 border-l-2 border-accent/60" />
-            <div className="absolute top-4 right-4 w-6 h-6 border-t-2 border-r-2 border-accent/60" />
-            <div className="absolute bottom-20 left-4 w-6 h-6 border-b-2 border-l-2 border-accent/60" />
-            <div className="absolute bottom-20 right-4 w-6 h-6 border-b-2 border-r-2 border-accent/60" />
+            {/* Card 3 */}
+            <div className="glass rounded-2xl overflow-hidden relative aspect-square">
+              <img
+                src="https://yulbqkwrfyycjxbbuloj.supabase.co/storage/v1/object/public/imageslanding/image55957.jpg"
+                alt="AI Agent"
+                className="w-full h-full object-cover opacity-60"
+              />
+              <div className="absolute top-3 left-3 w-4 h-4 border-t-2 border-l-2 border-accent/60" />
+              <div className="absolute top-3 right-3 w-4 h-4 border-t-2 border-r-2 border-accent/60" />
+              <div className="absolute bottom-3 left-3 w-4 h-4 border-b-2 border-l-2 border-accent/60" />
+              <div className="absolute bottom-3 right-3 w-4 h-4 border-b-2 border-r-2 border-accent/60" />
+            </div>
 
-            {/* Bottom overlay card */}
-            <div className="absolute bottom-0 left-0 right-0 agent-card-glass p-5">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-accent/20 border border-accent/40 flex items-center justify-center">
-                  <span className="font-mono text-[10px] text-accent font-bold">AT</span>
-                </div>
-                <div className="flex-1">
-                  <span className="block font-display font-semibold text-sm text-white uppercase tracking-wider">
-                    AURATALK AGENT
-                  </span>
-                  <span className="flex items-center gap-2 font-mono text-[10px] text-gray-400">
-                    <span className="flex gap-0.5">
-                      <span className="w-1 h-1 rounded-full bg-accent animate-bounce" style={{ animationDelay: '0ms' }} />
-                      <span className="w-1 h-1 rounded-full bg-accent animate-bounce" style={{ animationDelay: '150ms' }} />
-                      <span className="w-1 h-1 rounded-full bg-accent animate-bounce" style={{ animationDelay: '300ms' }} />
-                    </span>
-                    Respondendo
-                  </span>
-                </div>
-                <span className="font-mono text-[9px] text-accent/80">0.8s</span>
+            {/* Card 4 */}
+            <div className="glass rounded-2xl overflow-hidden relative aspect-square">
+              <img
+                src="https://yulbqkwrfyycjxbbuloj.supabase.co/storage/v1/object/public/imageslanding/image65565977715.jpg"
+                alt="AI Agent"
+                className="w-full h-full object-cover opacity-60"
+              />
+              <div className="absolute top-3 left-3 w-4 h-4 border-t-2 border-l-2 border-accent/60" />
+              <div className="absolute top-3 right-3 w-4 h-4 border-t-2 border-r-2 border-accent/60" />
+              <div className="absolute bottom-3 left-3 w-4 h-4 border-b-2 border-l-2 border-accent/60" />
+              <div className="absolute bottom-3 right-3 w-4 h-4 border-b-2 border-r-2 border-accent/60" />
+            </div>
+          </div>
+
+          {/* Bottom overlay card */}
+          <div className="glass rounded-2xl p-4">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-full bg-accent/20 border border-accent/40 flex items-center justify-center">
+                <span className="font-mono text-[10px] text-accent font-bold">AT</span>
               </div>
+              <div className="flex-1">
+                <span className="block font-display font-semibold text-sm text-white uppercase tracking-wider">
+                  AURATALK AGENT
+                </span>
+                <span className="flex items-center gap-2 font-mono text-[10px] text-gray-400">
+                  <span className="flex gap-0.5">
+                    <span className="w-1 h-1 rounded-full bg-accent animate-bounce" style={{ animationDelay: '0ms' }} />
+                    <span className="w-1 h-1 rounded-full bg-accent animate-bounce" style={{ animationDelay: '150ms' }} />
+                    <span className="w-1 h-1 rounded-full bg-accent animate-bounce" style={{ animationDelay: '300ms' }} />
+                  </span>
+                  Respondendo
+                </span>
+              </div>
+              <span className="font-mono text-[9px] text-accent/80">0.8s</span>
             </div>
           </div>
         </div>
