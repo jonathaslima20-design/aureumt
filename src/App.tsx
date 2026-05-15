@@ -63,12 +63,48 @@ function Shell() {
   return <Dashboard onNavAdmin={() => setView('admin')} />;
 }
 
+function NoiseOverlay() {
+  return (
+    <div className="noise">
+      <svg width="100%" height="100%">
+        <filter id="noise">
+          <feTurbulence type="fractalNoise" baseFrequency="0.65" numOctaves="3" stitchTiles="stitch" />
+        </filter>
+        <rect width="100%" height="100%" filter="url(#noise)" />
+      </svg>
+    </div>
+  );
+}
+
+function AuraBackground() {
+  return (
+    <div className="fixed inset-0 pointer-events-none -z-5" aria-hidden="true">
+      <div
+        className="absolute top-0 left-1/3 w-[600px] h-[400px] animate-aura-breathe"
+        style={{
+          background: 'radial-gradient(ellipse at center, rgba(255,255,255,0.03) 0%, transparent 70%)',
+          filter: 'blur(48px)',
+        }}
+      />
+      <div
+        className="absolute bottom-0 right-1/4 w-[500px] h-[350px] animate-aura-breathe-alt"
+        style={{
+          background: 'radial-gradient(ellipse at center, rgba(255,59,0,0.02) 0%, transparent 70%)',
+          filter: 'blur(56px)',
+        }}
+      />
+    </div>
+  );
+}
+
 function App() {
   return (
     <AuthProvider>
       <UIPreferencesProvider>
         <NetworkBackground />
+        <AuraBackground />
         <Shell />
+        <NoiseOverlay />
       </UIPreferencesProvider>
     </AuthProvider>
   );

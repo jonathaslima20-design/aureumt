@@ -1094,7 +1094,8 @@ export function ChatPage({ instance, instances, onBack }: { instance: Instance; 
             </button>
           )}
           <div className="flex-1">
-            <h1 className="text-2xl font-semibold text-white tracking-tight">Chat</h1>
+            <span className="font-mono text-[11px] tracking-[0.3em] uppercase text-accent block mb-1">CONVERSAS</span>
+            <h1 className="font-display font-bold text-xl tracking-tighter text-white uppercase">Chat</h1>
             <p className="text-sm text-neutral-500 mt-1">
               Histórico por contato com possibilidade de resposta manual.
             </p>

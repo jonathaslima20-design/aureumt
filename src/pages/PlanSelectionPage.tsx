@@ -72,29 +72,16 @@ export function PlanSelectionPage({ onPlanSelected }: { onPlanSelected: () => vo
 
   return (
     <div className="min-h-screen bg-[#050505] flex flex-col items-center px-4 py-12 relative overflow-hidden">
-      <div
-        className="absolute pointer-events-none animate-aura-breathe"
-        style={{
-          top: '-15%',
-          left: '50%',
-          transform: 'translateX(-50%)',
-          width: '80vw',
-          height: '60vw',
-          maxWidth: 700,
-          maxHeight: 500,
-          background: 'radial-gradient(circle, rgba(255,255,255,0.04) 0%, rgba(255,255,255,0.015) 45%, transparent 68%)',
-          filter: 'blur(48px)',
-          borderRadius: '50%',
-        }}
-        aria-hidden="true"
-      />
 
       <div className="relative z-10 w-full max-w-5xl">
         <div className="text-center mb-10">
-          <div className="flex justify-center mb-6">
-            <Logo size={40} />
+          <div className="flex justify-center mb-4">
+            <Logo size="lg" />
           </div>
-          <h1 className="text-2xl font-semibold text-white tracking-tight">
+          <span className="font-mono text-[11px] tracking-[0.3em] uppercase text-accent block mb-3">
+            PLANOS E PRECOS
+          </span>
+          <h1 className="font-display font-bold text-2xl sm:text-3xl tracking-tighter text-white uppercase">
             Escolha seu plano
           </h1>
           <p className="text-sm text-neutral-500 mt-2 max-w-md mx-auto leading-relaxed">
@@ -103,20 +90,20 @@ export function PlanSelectionPage({ onPlanSelected }: { onPlanSelected: () => vo
         </div>
 
         <div className="flex justify-center mb-8">
-          <div className="inline-flex items-center bg-[#0a0a0a] border border-[#1a1a1a] rounded-xl p-1 gap-0.5">
+          <div className="inline-flex items-center glass rounded-xl p-1 gap-0.5">
             {(['monthly', 'semiannual', 'annual'] as BillingCycle[]).map((c) => (
               <button
                 key={c}
                 onClick={() => setCycle(c)}
-                className={`px-4 py-2 rounded-lg text-xs font-medium transition-all ${
+                className={`px-4 py-2 rounded-lg font-mono text-xs font-medium transition-all ${
                   cycle === c
-                    ? 'bg-white text-black'
+                    ? 'bg-accent text-white'
                     : 'text-neutral-400 hover:text-white'
                 }`}
               >
                 {CYCLE_LABELS[c]}
                 {c === 'annual' && (
-                  <span className={`ml-1.5 text-[10px] ${cycle === c ? 'text-emerald-600' : 'text-emerald-400'}`}>
+                  <span className={`ml-1.5 text-[10px] ${cycle === c ? 'text-white/80' : 'text-emerald-400'}`}>
                     -20%
                   </span>
                 )}
@@ -133,36 +120,36 @@ export function PlanSelectionPage({ onPlanSelected }: { onPlanSelected: () => vo
             return (
               <div
                 key={plan.id}
-                className={`relative rounded-2xl border p-6 flex flex-col transition-all ${
+                className={`relative glass rounded-3xl p-6 flex flex-col transition-all ${
                   plan.highlight
-                    ? 'border-white/20 bg-[#0d0d0d] shadow-[0_0_40px_-12px_rgba(255,255,255,0.1)]'
-                    : 'border-[#1a1a1a] bg-[#0a0a0a] hover:border-[#262626]'
+                    ? 'pricing-card-popular'
+                    : 'hover:border-white/10'
                 }`}
               >
                 {plan.highlight && (
-                  <div className="absolute -top-3 left-1/2 -translate-x-1/2">
-                    <span className="inline-flex items-center gap-1 bg-white text-black text-[10px] font-semibold uppercase tracking-wider px-3 py-1 rounded-full">
-                      <Star size={10} className="fill-current" /> Recomendado
+                  <div className="absolute -top-3 right-6">
+                    <span className="inline-flex items-center gap-1 bg-accent text-white font-mono text-[10px] font-semibold uppercase tracking-[0.2em] px-3 py-1 rounded-full">
+                      <Star size={10} className="fill-current" /> MAIS POPULAR
                     </span>
                   </div>
                 )}
 
                 <div className="mb-4">
-                  <h3 className="text-lg font-semibold text-white">{plan.name}</h3>
+                  <h3 className="font-mono text-xs tracking-[0.3em] uppercase text-neutral-400">{plan.name}</h3>
                   <p className="text-xs text-neutral-500 mt-1 leading-relaxed">{plan.description}</p>
                 </div>
 
                 <div className="mb-6">
                   <div className="flex items-baseline gap-1">
-                    <span className="text-3xl font-bold text-white tracking-tight">
+                    <span className="text-3xl font-display font-bold text-white tracking-tight">
                       {formatPrice(price)}
                     </span>
-                    <span className="text-xs text-neutral-500">
+                    <span className="font-mono text-xs text-neutral-500">
                       /{cycle === 'monthly' ? 'mes' : cycle === 'semiannual' ? 'sem' : 'ano'}
                     </span>
                   </div>
                   {installment && (
-                    <p className="text-[11px] text-neutral-500 mt-1">{installment}</p>
+                    <p className="font-mono text-[11px] text-neutral-500 mt-1">{installment}</p>
                   )}
                 </div>
 
@@ -178,16 +165,16 @@ export function PlanSelectionPage({ onPlanSelected }: { onPlanSelected: () => vo
                 {price > 0 ? (
                   <button
                     onClick={() => setCheckout({ plan, cycle })}
-                    className={`w-full py-3 rounded-xl text-sm font-medium flex items-center justify-center gap-2 transition-colors ${
+                    className={`w-full py-3 rounded-xl text-sm font-display font-semibold uppercase tracking-wider flex items-center justify-center gap-2 transition-all ${
                       plan.highlight
-                        ? 'bg-white text-black hover:bg-neutral-200'
-                        : 'border border-[#2a2a2a] text-white hover:bg-[#141414] hover:border-[#3a3a3a]'
+                        ? 'bg-accent text-white shadow-[0_0_20px_rgba(255,59,0,0.25)] hover:shadow-[0_0_30px_rgba(255,59,0,0.4)]'
+                        : 'border border-white/20 text-white/80 hover:bg-white/10'
                     }`}
                   >
                     Assinar {plan.name} <ArrowRight size={13} />
                   </button>
                 ) : (
-                  <div className="w-full py-3 rounded-xl text-center text-sm font-medium border border-[#1a1a1a] text-neutral-600">
+                  <div className="w-full py-3 rounded-xl text-center text-sm font-mono uppercase tracking-wider border border-white/[0.06] text-neutral-600">
                     Em breve
                   </div>
                 )}
@@ -199,7 +186,7 @@ export function PlanSelectionPage({ onPlanSelected }: { onPlanSelected: () => vo
         <div className="flex justify-center mt-10">
           <button
             onClick={signOut}
-            className="flex items-center gap-2 text-sm text-neutral-500 hover:text-white transition-colors px-4 py-2 rounded-lg border border-[#1a1a1a] hover:border-[#2a2a2a]"
+            className="flex items-center gap-2 font-mono text-xs uppercase tracking-wider text-neutral-500 hover:text-white transition-colors px-4 py-2 rounded-lg border border-white/[0.08] hover:border-white/20"
           >
             <LogOut size={14} />
             Sair

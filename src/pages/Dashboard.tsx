@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Loader2, Trash2, AlertTriangle, X, ArrowLeft } from 'lucide-react';
+import { Loader2, Trash2, AlertTriangle, X } from 'lucide-react';
 import { Sidebar, PageKey } from '../components/Sidebar';
 import { supabase, Instance } from '../lib/supabase';
 import { useAuth } from '../context/AuthContext';
@@ -244,7 +244,7 @@ export function Dashboard({ onNavAdmin }: { onNavAdmin: () => void }) {
 
       {confirmDelete && (
         <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 animate-fade-in">
-          <div className="bg-[#141414] border border-[#242424] rounded-2xl p-6 max-w-sm w-full">
+          <div className="glass rounded-2xl p-6 max-w-sm w-full">
             <div className="flex items-start justify-between mb-4">
               <div className="flex items-center gap-3">
                 <div className="w-9 h-9 rounded-full bg-red-950/40 border border-red-900/40 flex items-center justify-center">
@@ -305,11 +305,11 @@ export function Dashboard({ onNavAdmin }: { onNavAdmin: () => void }) {
 
 function EmptyAgentsPrompt({ onCreate }: { onCreate: () => void }) {
   return (
-    <div className="border border-dashed border-[#242424] rounded-xl p-16 text-center bg-[#0d0d0d]">
+    <div className="glass rounded-2xl border-dashed p-16 text-center">
       <p className="text-sm text-neutral-500 mb-4">Nenhum agente ainda. Crie o primeiro.</p>
       <button
         onClick={onCreate}
-        className="bg-white text-black rounded-lg px-4 py-2 text-sm font-medium inline-flex items-center gap-2 hover:bg-neutral-200 transition-colors"
+        className="bg-accent text-white rounded-lg px-6 py-3 text-sm font-display font-semibold uppercase tracking-wider inline-flex items-center gap-2 shadow-[0_0_20px_rgba(255,59,0,0.25)] hover:shadow-[0_0_30px_rgba(255,59,0,0.4)] transition-all"
       >
         Criar agente
       </button>
@@ -331,7 +331,7 @@ function InstancePicker({
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-semibold text-white tracking-tight">{title}</h1>
+        <h1 className="font-display font-bold text-xl tracking-tighter text-white uppercase">{title}</h1>
         <p className="text-sm text-neutral-500 mt-1">{description}</p>
       </div>
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
@@ -339,7 +339,7 @@ function InstancePicker({
           <button
             key={inst.id}
             onClick={() => onSelect(inst)}
-            className="text-left bg-[#141414] border border-[#242424] rounded-xl p-4 hover:border-[#2e2e2e] hover:bg-[#1a1a1a] transition-colors flex items-center gap-3"
+            className="text-left glass rounded-2xl p-4 hover:border-white/10 transition-colors flex items-center gap-3"
           >
             <AgentAvatar
               name={inst.display_name || inst.instance_name}

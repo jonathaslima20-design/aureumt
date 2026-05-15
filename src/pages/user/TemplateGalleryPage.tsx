@@ -119,7 +119,7 @@ export function TemplateGalleryPage({ onAgentCreated }: Props) {
           <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-950/40 border border-emerald-900/40 text-emerald-400 text-[10px] uppercase tracking-wider font-medium mb-3">
             <Sparkles size={10} /> Marketplace de agentes
           </div>
-          <h1 className="text-2xl sm:text-3xl font-semibold text-white tracking-tight">
+          <h1 className="font-display font-bold text-2xl sm:text-3xl tracking-tighter text-white uppercase">
             Coloque um agente no ar em 2 minutos
           </h1>
           <p className="text-sm text-neutral-400 mt-2 max-w-2xl">
@@ -436,10 +436,10 @@ function TemplateDetailView({
         </div>
 
         <div className="space-y-4">
-          <div className="bg-[#0d0d0d] border border-[#1f1f1f] rounded-2xl p-5 lg:sticky lg:top-4">
+          <div className="glass rounded-2xl p-5 lg:sticky lg:top-4">
             <button
               onClick={onUse}
-              className="w-full bg-white text-black rounded-lg py-3 text-sm font-medium hover:bg-neutral-200 transition-colors flex items-center justify-center gap-2 mb-3"
+              className="w-full bg-accent text-white rounded-lg py-3 text-sm font-display font-semibold uppercase tracking-wider hover:shadow-[0_0_30px_rgba(255,59,0,0.4)] shadow-[0_0_20px_rgba(255,59,0,0.25)] transition-all flex items-center justify-center gap-2 mb-3"
             >
               <Sparkles size={14} /> Usar este template
             </button>

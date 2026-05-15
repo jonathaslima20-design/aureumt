@@ -28,7 +28,8 @@ export function AgentTrainingPage({ instances, embeddedInstance }: { instances: 
     return (
       <div className="space-y-4">
         <div>
-          <h1 className="text-xl font-semibold text-white tracking-tight">Treinamento</h1>
+          <span className="font-mono text-[11px] tracking-[0.3em] uppercase text-accent block mb-1">AI TRAINING</span>
+          <h1 className="font-display font-bold text-xl tracking-tighter text-white uppercase">Treinamento</h1>
           <p className="text-sm text-neutral-500 mt-1">Crie um agente primeiro para treinar.</p>
         </div>
       </div>
@@ -40,7 +41,8 @@ export function AgentTrainingPage({ instances, embeddedInstance }: { instances: 
       {!isEmbedded && (
         <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-3">
           <div>
-            <h1 className="text-xl font-semibold text-white tracking-tight">Treinamento do Agente</h1>
+            <span className="font-mono text-[11px] tracking-[0.3em] uppercase text-accent block mb-1">AI TRAINING</span>
+            <h1 className="font-display font-bold text-xl tracking-tighter text-white uppercase">Treinamento do Agente</h1>
             <p className="text-xs text-neutral-500 mt-1 leading-relaxed max-w-xl">
               Refine a personalidade e ensine respostas exemplares. Quanto mais voce treina, mais humano fica.
             </p>

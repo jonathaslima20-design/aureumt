@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Menu, X } from 'lucide-react';
+import { Logo } from '../../components/Logo';
 
 interface NavbarProps {
   onLogin: () => void;
@@ -18,11 +19,7 @@ export function Navbar({ onLogin }: NavbarProps) {
   return (
     <nav className="fixed top-0 left-0 right-0 z-50 h-20 border-b border-white/5 bg-background/80 backdrop-blur-xl">
       <div className="max-w-7xl mx-auto h-full px-6 flex items-center justify-between">
-        <a href="#" className="font-display font-bold text-xl tracking-tighter group">
-          <span className="text-white group-hover:text-accent transition-colors">AURA</span>
-          <span className="text-accent group-hover:text-white transition-colors">//</span>
-          <span className="text-white group-hover:text-accent transition-colors">TALK</span>
-        </a>
+        <Logo />
 
         <div className="hidden md:flex items-center gap-8">
           {navLinks.map((link) => (

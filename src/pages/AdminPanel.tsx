@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   ArrowLeft, Save, Loader2, Check, Users, MessageCircle, Key,
   Zap, DollarSign, ChevronDown, ChevronUp, AlertTriangle, TrendingUp,
@@ -47,13 +47,21 @@ function StatusBadge({ status }: { status: TokenStatus }) {
 }
 
 function StatCard({ label, value, icon }: { label: string; value: string; icon: React.ReactNode }) {
+  const ref = React.useRef<HTMLDivElement>(null);
+  const onMove = React.useCallback((e: React.MouseEvent) => {
+    if (!ref.current) return;
+    const r = ref.current.getBoundingClientRect();
+    ref.current.style.setProperty('--x', `${e.clientX - r.left}px`);
+    ref.current.style.setProperty('--y', `${e.clientY - r.top}px`);
+  }, []);
+
   return (
-    <div className="border border-[#1a1a1a] rounded-xl bg-[#0a0a0a] p-4 hover:border-[#262626] transition-colors">
-      <div className="flex items-center gap-2 text-neutral-500 text-[11px] uppercase tracking-wider mb-2">
+    <div ref={ref} onMouseMove={onMove} className="spotlight glass rounded-2xl p-4 hover:border-white/10 transition-colors">
+      <div className="flex items-center gap-2 text-neutral-500 font-mono text-[11px] uppercase tracking-wider mb-2">
         {icon}
         {label}
       </div>
-      <div className="text-xl text-white font-semibold tracking-tight">{value}</div>
+      <div className="text-xl text-white font-display font-bold tracking-tight">{value}</div>
     </div>
   );
 }
@@ -123,7 +131,7 @@ function TokenRow({ stat, onSaved }: { stat: TokenStatsByUser; onSaved: () => vo
   return (
     <>
       <tr
-        className="border-b border-[#111] hover:bg-[#0d0d0d] transition-colors cursor-pointer"
+        className="border-b border-white/[0.04] hover:bg-[#0d0d0d] transition-colors cursor-pointer"
         onClick={expand}
       >
         <td className="px-4 py-3 text-white text-sm">{stat.email}</td>
@@ -145,7 +153,7 @@ function TokenRow({ stat, onSaved }: { stat: TokenStatsByUser; onSaved: () => vo
       </tr>
 
       {open && (
-        <tr className="border-b border-[#111] bg-[#080808]">
+        <tr className="border-b border-white/[0.04] bg-[#080808]">
           <td colSpan={8} className="px-6 py-5">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
@@ -349,21 +357,21 @@ export function AdminPanel({ onBack }: { onBack: () => void }) {
   return (
     <div className="min-h-screen bg-[#050505] flex flex-col">
       {/* Top bar */}
-      <header className="border-b border-[#1a1a1a] px-6 py-4 sticky top-0 bg-[#050505]/95 backdrop-blur-xl z-20 flex items-center gap-4">
+      <header className="border-b border-white/[0.05] px-6 py-4 sticky top-0 bg-background/80 backdrop-blur-xl z-20 flex items-center gap-4">
         <button onClick={onBack} className="text-neutral-500 hover:text-white transition-colors">
           <ArrowLeft size={16} />
         </button>
         <Logo />
-        <span className="text-[10px] px-2 py-0.5 rounded-md border border-[#1a1a1a] text-neutral-500 uppercase tracking-wider">
-          Admin
+        <span className="font-mono text-[9px] px-2 py-0.5 rounded-md border border-white/[0.08] text-accent uppercase tracking-[0.2em]">
+          ADMIN
         </span>
       </header>
 
       <div className="flex flex-1 min-h-0">
         {/* Sidebar */}
-        <aside className="w-60 shrink-0 border-r border-[#1a1a1a] bg-[#060606] sticky top-[57px] h-[calc(100vh-57px)] flex flex-col py-4 overflow-y-auto">
+        <aside className="w-60 shrink-0 border-r border-white/[0.06] bg-[#0a0a0a]/80 backdrop-blur-xl sticky top-[57px] h-[calc(100vh-57px)] flex flex-col py-4 overflow-y-auto">
           <div className="px-4 mb-3">
-            <span className="text-[10px] text-neutral-600 uppercase tracking-widest font-medium">Menu</span>
+            <span className="font-mono text-[9px] text-neutral-600 uppercase tracking-[0.2em]">MENU</span>
           </div>
           <nav className="flex flex-col gap-0.5 px-2">
             {MENU_ITEMS.map((item) => {
@@ -375,22 +383,22 @@ export function AdminPanel({ onBack }: { onBack: () => void }) {
                   className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left transition-all duration-150 group ${
                     active
                       ? 'bg-white/[0.08] text-white border border-white/[0.08]'
-                      : 'text-neutral-500 hover:text-neutral-200 hover:bg-white/[0.04]'
+                      : 'text-neutral-500 hover:text-neutral-200 hover:bg-white/[0.04] border border-transparent'
                   }`}
                 >
-                  <span className={`shrink-0 transition-colors ${active ? 'text-white' : 'text-neutral-600 group-hover:text-neutral-400'}`}>
+                  <span className={`shrink-0 transition-colors ${active ? 'text-accent' : 'text-neutral-600 group-hover:text-neutral-400'}`}>
                     {item.icon}
                   </span>
                   <div className="min-w-0">
                     <div className={`text-xs font-medium leading-snug ${active ? 'text-white' : ''}`}>
                       {item.label}
                     </div>
-                    <div className="text-[10px] text-neutral-600 leading-snug truncate mt-0.5">
+                    <div className="text-[10px] text-neutral-600 leading-snug truncate mt-0.5 font-mono">
                       {item.description}
                     </div>
                   </div>
                   {item.id === 'tokens' && alertCount > 0 && (
-                    <span className="ml-auto shrink-0 text-[10px] bg-amber-500/20 text-amber-400 border border-amber-500/30 rounded-full px-1.5 py-0.5 leading-none">
+                    <span className="ml-auto shrink-0 font-mono text-[10px] bg-amber-500/20 text-amber-400 border border-amber-500/30 rounded-full px-1.5 py-0.5 leading-none">
                       {alertCount}
                     </span>
                   )}
@@ -408,6 +416,7 @@ export function AdminPanel({ onBack }: { onBack: () => void }) {
             {section === 'dashboard' && (
               <div className="space-y-6">
                 <SectionHeader
+                  tag="SISTEMA"
                   title="Dashboard"
                   subtitle="Visão geral do sistema em tempo real."
                 />
@@ -426,7 +435,7 @@ export function AdminPanel({ onBack }: { onBack: () => void }) {
                     <button
                       key={item.id}
                       onClick={() => setSection(item.id)}
-                      className="flex items-center gap-4 p-4 rounded-xl border border-[#1a1a1a] bg-[#0a0a0a] hover:border-[#262626] hover:bg-[#0d0d0d] transition-all text-left group"
+                      className="flex items-center gap-4 p-4 glass rounded-2xl hover:border-white/10 transition-all text-left group"
                     >
                       <span className="text-neutral-500 group-hover:text-neutral-300 transition-colors">{item.icon}</span>
                       <div>
@@ -443,14 +452,15 @@ export function AdminPanel({ onBack }: { onBack: () => void }) {
             {section === 'users' && (
               <div className="space-y-6">
                 <SectionHeader
+                  tag="USUARIOS"
                   title="Gestão de Usuários"
                   subtitle={`${users.length} ${users.length === 1 ? 'conta cadastrada' : 'contas cadastradas'} · ${users.filter((u) => u.plan_status === 'active').length} ativas`}
                 />
-                <div className="border border-[#1a1a1a] rounded-xl bg-[#0a0a0a] overflow-hidden">
+                <div className="glass rounded-2xl overflow-hidden">
                   <div className="overflow-x-auto">
                     <table className="w-full text-sm">
                       <thead>
-                        <tr className="text-left text-[11px] uppercase tracking-wider text-neutral-500 border-b border-[#1a1a1a]">
+                        <tr className="text-left font-mono text-[11px] uppercase tracking-wider text-neutral-500 border-b border-white/[0.06]">
                           <th className="px-6 py-3 font-normal">E-mail</th>
                           <th className="px-6 py-3 font-normal">Perfil</th>
                           <th className="px-6 py-3 font-normal">Plano</th>
@@ -466,7 +476,7 @@ export function AdminPanel({ onBack }: { onBack: () => void }) {
                             </td>
                           </tr>
                         ) : users.map((u) => (
-                          <tr key={u.id} className="border-b border-[#111] hover:bg-[#0d0d0d] transition-colors">
+                          <tr key={u.id} className="border-b border-white/[0.04] hover:bg-[#0d0d0d] transition-colors">
                             <td className="px-6 py-3 text-white">{u.email}</td>
                             <td className="px-6 py-3">
                               <span className={`text-[11px] px-2 py-0.5 rounded-md border uppercase tracking-wider ${u.role === 'admin' ? 'border-blue-900/40 bg-blue-950/30 text-blue-400' : 'border-[#1a1a1a] text-neutral-400'}`}>
@@ -510,6 +520,7 @@ export function AdminPanel({ onBack }: { onBack: () => void }) {
               <div className="space-y-6">
                 <div className="flex items-start justify-between gap-4 flex-wrap">
                   <SectionHeader
+                    tag="TOKEN ANALYTICS"
                     title="Consumo de Tokens"
                     subtitle="Detalhamento por usuário. Custo estimado com base no preço de saída do Gemini 2.5 Flash (US$ 0,60 / 1M tokens · câmbio R$ 5,10)."
                   />
@@ -525,11 +536,11 @@ export function AdminPanel({ onBack }: { onBack: () => void }) {
                   )}
                 </div>
 
-                <div className="border border-[#1a1a1a] rounded-xl bg-[#0a0a0a] overflow-hidden">
+                <div className="glass rounded-2xl overflow-hidden">
                   <div className="overflow-x-auto">
                     <table className="w-full text-sm">
                       <thead>
-                        <tr className="text-left text-[11px] uppercase tracking-wider text-neutral-500 border-b border-[#1a1a1a]">
+                        <tr className="text-left font-mono text-[11px] uppercase tracking-wider text-neutral-500 border-b border-white/[0.06]">
                           <th className="px-4 py-3 font-normal">E-mail</th>
                           <th className="px-4 py-3 font-normal">Hoje</th>
                           <th className="px-4 py-3 font-normal">7 dias</th>
@@ -572,11 +583,12 @@ export function AdminPanel({ onBack }: { onBack: () => void }) {
             {section === 'credentials' && (
               <div className="space-y-6">
                 <SectionHeader
+                  tag="SEGURANCA"
                   title="Credenciais"
                   subtitle="Chaves de API globais utilizadas por todos os agentes do sistema."
                 />
-                <div className="border border-[#1a1a1a] rounded-xl bg-[#0a0a0a] p-6 space-y-5">
-                  <div className="flex items-center gap-2.5 pb-4 border-b border-[#111]">
+                <div className="glass rounded-2xl p-6 space-y-5">
+                  <div className="flex items-center gap-2.5 pb-4 border-b border-white/[0.04]">
                     <Key size={14} className="text-neutral-500" />
                     <div>
                       <div className="text-xs uppercase tracking-wider text-neutral-500">API Gemini</div>
@@ -594,7 +606,7 @@ export function AdminPanel({ onBack }: { onBack: () => void }) {
                     />
                   </div>
 
-                  <div className="flex items-center gap-2.5 pt-2 pb-4 border-b border-[#111]">
+                  <div className="flex items-center gap-2.5 pt-2 pb-4 border-b border-white/[0.04]">
                     <Key size={14} className="text-neutral-500" />
                     <div>
                       <div className="text-xs uppercase tracking-wider text-neutral-500">Evolution API</div>
@@ -642,10 +654,15 @@ export function AdminPanel({ onBack }: { onBack: () => void }) {
   );
 }
 
-function SectionHeader({ title, subtitle }: { title: string; subtitle?: string }) {
+function SectionHeader({ title, subtitle, tag }: { title: string; subtitle?: string; tag?: string }) {
   return (
     <div className="mb-2">
-      <h1 className="text-xl font-semibold text-white tracking-tight">{title}</h1>
+      {tag && (
+        <span className="font-mono text-[11px] tracking-[0.3em] uppercase text-accent block mb-2">
+          {tag}
+        </span>
+      )}
+      <h1 className="font-display font-bold text-xl tracking-tighter text-white uppercase">{title}</h1>
       {subtitle && <p className="text-sm text-neutral-500 mt-1 leading-relaxed">{subtitle}</p>}
     </div>
   );

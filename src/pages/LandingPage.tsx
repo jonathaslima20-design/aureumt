@@ -16,16 +16,6 @@ interface LandingPageProps {
 export function LandingPage({ onLogin }: LandingPageProps) {
   return (
     <div className="relative min-h-screen text-white overflow-x-hidden">
-      {/* Noise overlay */}
-      <div className="noise">
-        <svg width="100%" height="100%">
-          <filter id="noise">
-            <feTurbulence type="fractalNoise" baseFrequency="0.65" numOctaves="3" stitchTiles="stitch" />
-          </filter>
-          <rect width="100%" height="100%" filter="url(#noise)" />
-        </svg>
-      </div>
-
       <div className="relative z-10">
         <Navbar onLogin={onLogin} />
         <Hero onStart={onLogin} />

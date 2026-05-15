@@ -93,16 +93,17 @@ export function ConnectionsPage({ instances, onUpdate }: Props) {
     <div className="space-y-4 sm:space-y-6">
       <div className="flex items-start sm:items-center justify-between flex-wrap gap-3">
         <div>
-          <h1 className="text-xl sm:text-2xl font-semibold text-white tracking-tight">Conexões WhatsApp</h1>
+          <span className="font-mono text-[11px] tracking-[0.3em] uppercase text-accent block mb-1">INTEGRACAO</span>
+          <h1 className="font-display font-bold text-xl tracking-tighter text-white uppercase">Conexoes WhatsApp</h1>
           <p className="text-xs sm:text-sm text-neutral-500 mt-1">
             Gerencie os números conectados e atribua agentes.
           </p>
         </div>
         <button
           onClick={() => { setShowNewForm(true); setCreateError(''); }}
-          className="bg-white text-black rounded-lg px-3 sm:px-4 py-2 sm:py-2.5 text-xs sm:text-sm font-medium flex items-center gap-2 hover:bg-neutral-200 transition-colors"
+          className="bg-accent text-white rounded-lg px-4 sm:px-5 py-2 sm:py-2.5 text-xs sm:text-sm font-display font-semibold uppercase tracking-wider flex items-center gap-2 shadow-[0_0_20px_rgba(255,59,0,0.25)] hover:shadow-[0_0_30px_rgba(255,59,0,0.4)] transition-all"
         >
-          <Plus size={14} /> Nova conexão
+          <Plus size={14} /> Nova conexao
         </button>
       </div>
 

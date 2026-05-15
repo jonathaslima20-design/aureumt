@@ -121,10 +121,11 @@ export function OverviewPage({ instance }: { instance: Instance | null }) {
     return (
       <div className="space-y-8">
         <header>
-          <h1 className="text-2xl font-semibold text-white tracking-tight">Visão Geral</h1>
+          <span className="font-mono text-[11px] tracking-[0.3em] uppercase text-accent block mb-1">DASHBOARD</span>
+          <h1 className="font-display font-bold text-xl tracking-tighter text-white uppercase">Visao Geral</h1>
           <p className="text-sm text-neutral-500 mt-2">Crie um agente para ver o desempenho.</p>
         </header>
-        <div className="rounded-2xl bg-[#0d0d0d] p-12 text-center">
+        <div className="glass rounded-2xl p-12 text-center">
           <p className="text-sm text-neutral-400">Nenhum agente disponível</p>
         </div>
       </div>
@@ -137,16 +138,17 @@ export function OverviewPage({ instance }: { instance: Instance | null }) {
     <div className="space-y-8">
       <header className="flex items-center justify-between flex-wrap gap-4">
         <div>
-          <h1 className="text-2xl font-semibold text-white tracking-tight">Visão Geral</h1>
+          <span className="font-mono text-[11px] tracking-[0.3em] uppercase text-accent block mb-1">DASHBOARD</span>
+          <h1 className="font-display font-bold text-xl tracking-tighter text-white uppercase">Visao Geral</h1>
           <p className="text-sm text-neutral-500 mt-2">{instance.instance_name}</p>
         </div>
-        <div className="flex gap-1 bg-[#141414] rounded-lg p-1">
+        <div className="flex gap-1 glass rounded-lg p-1">
           {(['7d', '30d'] as PeriodKey[]).map((p) => (
             <button
               key={p}
               onClick={() => setPeriod(p)}
-              className={`px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
-                period === p ? 'bg-[#1e1e1e] text-white' : 'text-neutral-500 hover:text-neutral-300'
+              className={`px-3 py-1.5 rounded-md text-xs font-mono font-medium transition-colors ${
+                period === p ? 'bg-white/[0.08] text-white' : 'text-neutral-500 hover:text-neutral-300'
               }`}
             >
               {p === '7d' ? '7 dias' : '30 dias'}
@@ -181,7 +183,7 @@ export function OverviewPage({ instance }: { instance: Instance | null }) {
         </section>
       )}
 
-      <section className="rounded-2xl bg-[#0d0d0d] p-6">
+      <section className="glass rounded-2xl p-6">
         <div className="text-xs uppercase tracking-wider text-neutral-500 mb-6">
           Mensagens nos últimos {period === '7d' ? '7' : '30'} dias
         </div>
@@ -215,7 +217,7 @@ export function OverviewPage({ instance }: { instance: Instance | null }) {
           </button>
 
           {showActivity && (
-            <div className="rounded-2xl bg-[#0d0d0d] p-6 mt-4 animate-fade-in">
+            <div className="glass rounded-2xl p-6 mt-4 animate-fade-in">
               {last.length === 0 ? (
                 <p className="text-sm text-neutral-600 text-center py-4">Nenhuma mensagem ainda</p>
               ) : (
@@ -256,12 +258,12 @@ function PrimaryKpi({
   accent?: boolean;
 }) {
   return (
-    <div className="rounded-2xl bg-[#0d0d0d] p-6 hover:bg-[#101010] transition-colors">
+    <div className="glass rounded-2xl p-6 hover:border-white/10 transition-colors">
       <div className="flex items-center gap-2 text-neutral-500 mb-3">
         <Icon size={14} strokeWidth={1.6} />
-        <span className="text-xs">{label}</span>
+        <span className="text-xs font-mono uppercase tracking-wider">{label}</span>
       </div>
-      <div className={`text-3xl font-semibold tracking-tight ${accent ? 'text-emerald-400' : 'text-white'}`}>
+      <div className={`text-3xl font-display font-bold tracking-tight ${accent ? 'text-emerald-400' : 'text-white'}`}>
         {value}
       </div>
     </div>
@@ -278,7 +280,7 @@ function SecondaryKpi({
   value: string;
 }) {
   return (
-    <div className="rounded-xl bg-[#0d0d0d] px-4 py-3 flex items-center justify-between">
+    <div className="glass rounded-xl px-4 py-3 flex items-center justify-between">
       <div className="flex items-center gap-2 text-neutral-500">
         <Icon size={12} strokeWidth={1.6} />
         <span className="text-xs">{label}</span>

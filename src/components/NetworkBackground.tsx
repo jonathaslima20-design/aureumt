@@ -31,7 +31,7 @@ export default function NetworkBackground() {
           },
         },
         color: {
-          value: "#67e8f9",
+          value: "#ffffff",
         },
         shape: {
           type: "circle",
@@ -45,7 +45,7 @@ export default function NetworkBackground() {
         links: {
           enable: true,
           distance: 150,
-          color: "#67e8f9",
+          color: "#ffffff",
           opacity: 0.15,
           width: 1,
         },
@@ -72,7 +72,7 @@ export default function NetworkBackground() {
             distance: 180,
             links: {
               opacity: 0.3,
-              color: "#67e8f9",
+              color: "#ffffff",
             },
           },
         },

@@ -483,7 +483,7 @@ export function CreateAgentModal({ userId, onClose, onCreated }: Props) {
           <button
             onClick={handleCreate}
             disabled={saving || !canCreate}
-            className="bg-white text-black rounded-xl px-5 py-2 text-xs font-semibold flex items-center gap-1.5 hover:bg-neutral-200 transition-all duration-200 disabled:opacity-30 shadow-[0_0_20px_rgba(255,255,255,0.08)]"
+            className="bg-accent text-white rounded-xl px-5 py-2 text-xs font-display font-semibold uppercase tracking-wider flex items-center gap-1.5 shadow-[0_0_20px_rgba(255,59,0,0.25)] hover:shadow-[0_0_30px_rgba(255,59,0,0.4)] transition-all duration-200 disabled:opacity-30"
           >
             {saving ? <Loader2 size={12} className="animate-spin" /> : <Check size={12} />}
             Criar agente

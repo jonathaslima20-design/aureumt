@@ -60,7 +60,8 @@ export function AgentsPage({ instances, onCreateAgent, onSelectAgent, onInstance
     <div className="space-y-8">
       <header className="flex items-center justify-between flex-wrap gap-4">
         <div>
-          <h1 className="text-2xl font-semibold text-white tracking-tight">Agentes</h1>
+          <span className="font-mono text-[11px] tracking-[0.3em] uppercase text-accent block mb-1">GESTAO DE AGENTES</span>
+          <h1 className="font-display font-bold text-xl tracking-tighter text-white uppercase">Agentes</h1>
           <p className="text-sm text-neutral-500 mt-2">
             {instances.length === 0
               ? 'Crie seu primeiro agente.'
@@ -77,10 +78,10 @@ export function AgentsPage({ instances, onCreateAgent, onSelectAgent, onInstance
         {instances.length > 0 && (
           <button
             onClick={onCreateAgent}
-            className={`rounded-lg px-4 py-2.5 text-sm font-medium flex items-center gap-2 transition-colors ${
+            className={`rounded-lg px-5 py-2.5 text-sm font-display font-semibold uppercase tracking-wider flex items-center gap-2 transition-all ${
               limitReached
                 ? 'bg-[#1a1a1a] text-neutral-400 hover:bg-[#222] border border-[#2a2a2a]'
-                : 'bg-white text-black hover:bg-neutral-200'
+                : 'bg-accent text-white shadow-[0_0_20px_rgba(255,59,0,0.25)] hover:shadow-[0_0_30px_rgba(255,59,0,0.4)]'
             }`}
           >
             <Plus size={14} /> {limitReached ? 'Fazer upgrade' : 'Novo agente'}
@@ -89,12 +90,12 @@ export function AgentsPage({ instances, onCreateAgent, onSelectAgent, onInstance
       </header>
 
       {instances.length === 0 ? (
-        <div className="rounded-2xl bg-[#0d0d0d] p-16 text-center">
+        <div className="glass rounded-2xl p-16 text-center">
           <p className="text-sm text-white font-medium mb-2">Nenhum agente ainda</p>
           <p className="text-sm text-neutral-500 mb-6">Crie seu primeiro agente em segundos.</p>
           <button
             onClick={onCreateAgent}
-            className="bg-white text-black rounded-lg px-4 py-2.5 text-sm font-medium inline-flex items-center gap-2 hover:bg-neutral-200 transition-colors"
+            className="bg-accent text-white rounded-lg px-6 py-3 text-sm font-display font-semibold uppercase tracking-wider inline-flex items-center gap-2 shadow-[0_0_20px_rgba(255,59,0,0.25)] hover:shadow-[0_0_30px_rgba(255,59,0,0.4)] transition-all"
           >
             <Plus size={14} /> Criar agente
           </button>
@@ -171,15 +172,14 @@ function AgentCard({
   return (
     <button
       onClick={onClick}
-      className="group text-left bg-[#0d0d0d] rounded-2xl p-6 transition-all duration-300 flex flex-col gap-5 hover:bg-[#111111]"
-      style={{
-        boxShadow: 'inset 0 0 0 1px rgba(255,255,255,0.04)',
-      }}
+      className="group text-left glass rounded-2xl p-6 transition-all duration-300 flex flex-col gap-5"
       onMouseEnter={(e) => {
-        (e.currentTarget as HTMLButtonElement).style.boxShadow = `inset 0 0 0 1px ${color}40, 0 0 32px 0 ${color}15, 0 8px 40px 0 rgba(0,0,0,0.5)`;
+        (e.currentTarget as HTMLButtonElement).style.boxShadow = `0 0 32px 0 ${color}15, 0 8px 40px 0 rgba(0,0,0,0.5)`;
+        (e.currentTarget as HTMLButtonElement).style.borderColor = `${color}40`;
       }}
       onMouseLeave={(e) => {
-        (e.currentTarget as HTMLButtonElement).style.boxShadow = 'inset 0 0 0 1px rgba(255,255,255,0.04)';
+        (e.currentTarget as HTMLButtonElement).style.boxShadow = '';
+        (e.currentTarget as HTMLButtonElement).style.borderColor = '';
       }}
     >
       {/* Header: Avatar + Name + Status */}

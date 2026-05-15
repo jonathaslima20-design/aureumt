@@ -113,14 +113,15 @@ export function KnowledgePage() {
     <div className="space-y-4 sm:space-y-6">
       <div className="flex items-start sm:items-center justify-between flex-wrap gap-3">
         <div>
-          <h1 className="text-xl sm:text-2xl font-semibold text-white tracking-tight">Base de Conhecimento</h1>
+          <span className="font-mono text-[11px] tracking-[0.3em] uppercase text-accent block mb-1">KNOWLEDGE BASE</span>
+          <h1 className="font-display font-bold text-xl tracking-tighter text-white uppercase">Base de Conhecimento</h1>
           <p className="text-xs sm:text-sm text-neutral-500 mt-1">
             Organize o conhecimento em bases independentes.
           </p>
         </div>
         <button
           onClick={() => setShowCreate(true)}
-          className="bg-white text-black rounded-lg px-3 sm:px-4 py-2 sm:py-2.5 text-xs sm:text-sm font-medium flex items-center gap-2 hover:bg-neutral-200 transition-colors"
+          className="bg-accent text-white rounded-lg px-4 sm:px-5 py-2 sm:py-2.5 text-xs sm:text-sm font-display font-semibold uppercase tracking-wider flex items-center gap-2 shadow-[0_0_20px_rgba(255,59,0,0.25)] hover:shadow-[0_0_30px_rgba(255,59,0,0.4)] transition-all"
         >
           <Plus size={14} /> Nova base
         </button>

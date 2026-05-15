@@ -26,41 +26,9 @@ export function AuthPage({ onBack }: AuthPageProps) {
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center px-4 relative overflow-hidden">
-      {/* Amplified auth-page aura — cyan top-center */}
-      <div
-        className="absolute pointer-events-none animate-aura-breathe"
-        style={{
-          top: '-10%',
-          left: '50%',
-          transform: 'translateX(-50%)',
-          width: '80vw',
-          height: '80vw',
-          maxWidth: 640,
-          maxHeight: 640,
-          background:
-            'radial-gradient(circle, rgba(255,255,255,0.05) 0%, rgba(255,255,255,0.02) 45%, transparent 68%)',
-          filter: 'blur(48px)',
-          borderRadius: '50%',
-        }}
-        aria-hidden="true"
-      />
-      {/* Blue bottom-right */}
-      <div
-        className="absolute pointer-events-none animate-aura-breathe-alt"
-        style={{
-          bottom: '-8%',
-          right: '-6%',
-          width: '55vw',
-          height: '55vw',
-          maxWidth: 500,
-          maxHeight: 500,
-          background:
-            'radial-gradient(circle, rgba(255,255,255,0.04) 0%, rgba(255,255,255,0.01) 50%, transparent 70%)',
-          filter: 'blur(56px)',
-          borderRadius: '50%',
-        }}
-        aria-hidden="true"
-      />
+      {/* Decorative rings */}
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] border border-white/[0.02] rounded-full animate-spin-slow pointer-events-none" />
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[450px] h-[450px] border border-white/[0.02] rounded-full animate-reverse-spin pointer-events-none" />
 
       <div className="w-full max-w-sm animate-fade-in relative z-10">
         {onBack && (
@@ -69,47 +37,56 @@ export function AuthPage({ onBack }: AuthPageProps) {
             className="flex items-center gap-2 text-xs text-neutral-500 hover:text-white transition-colors mb-8"
           >
             <ArrowLeft size={14} />
-            <span className="font-mono text-[10px] tracking-wider uppercase">VOLTAR</span>
+            <span className="font-mono text-[10px] tracking-[0.2em] uppercase">VOLTAR</span>
           </button>
         )}
+
+        <div className="flex justify-center mb-4">
+          <Logo size="lg" />
+        </div>
+
         <div className="flex justify-center mb-10">
-          <Logo size={56} />
+          <div className="inline-flex items-center gap-2 px-3 py-1.5 border border-white/10 bg-white/5 backdrop-blur-md rounded-full">
+            <span className="font-mono text-[9px] tracking-[0.3em] uppercase text-accent">
+              ACESSO SEGURO
+            </span>
+          </div>
         </div>
 
         <div className="mb-10">
-          <h1 className="text-3xl font-semibold text-white tracking-tight leading-tight">
-            {mode === 'signin' ? 'Bem-vindo de volta' : 'Criar conta'}
+          <h1 className="font-display font-bold text-3xl tracking-tighter text-white uppercase leading-tight">
+            {mode === 'signin' ? 'BEM-VINDO DE VOLTA' : 'CRIAR CONTA'}
           </h1>
           <p className="mt-2 text-sm text-neutral-500 leading-relaxed">
             {mode === 'signin'
-              ? 'Entre no seu espaço AuraTalk.'
+              ? 'Entre no seu espaco AuraTalk.'
               : 'Comece a criar seus agentes de IA em minutos.'}
           </p>
         </div>
 
         <form onSubmit={onSubmit} className="space-y-4">
           <div>
-            <label className="text-xs uppercase tracking-wider text-neutral-500 mb-2 block">E-mail</label>
+            <label className="font-mono text-[10px] uppercase tracking-[0.2em] text-neutral-500 mb-2 block">E-MAIL</label>
             <input
               type="email"
               required
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="w-full bg-[#0a0a0a] border border-[#1a1a1a] rounded-lg px-4 py-3 text-sm text-white focus:outline-none focus:border-neutral-600 transition-colors"
+              className="w-full bg-white/[0.04] border border-white/[0.08] rounded-lg px-4 py-3 text-sm text-white focus:outline-none focus:border-accent/40 transition-colors backdrop-blur-sm"
               placeholder="voce@empresa.com"
             />
           </div>
 
           <div>
-            <label className="text-xs uppercase tracking-wider text-neutral-500 mb-2 block">Senha</label>
+            <label className="font-mono text-[10px] uppercase tracking-[0.2em] text-neutral-500 mb-2 block">SENHA</label>
             <input
               type="password"
               required
               minLength={6}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full bg-[#0a0a0a] border border-[#1a1a1a] rounded-lg px-4 py-3 text-sm text-white focus:outline-none focus:border-neutral-600 transition-colors"
-              placeholder="Mínimo de 6 caracteres"
+              className="w-full bg-white/[0.04] border border-white/[0.08] rounded-lg px-4 py-3 text-sm text-white focus:outline-none focus:border-accent/40 transition-colors backdrop-blur-sm"
+              placeholder="Minimo de 6 caracteres"
             />
           </div>
 
@@ -122,7 +99,7 @@ export function AuthPage({ onBack }: AuthPageProps) {
           <button
             type="submit"
             disabled={loading}
-            className="w-full bg-white text-black rounded-lg py-3 text-sm font-medium flex items-center justify-center gap-2 hover:bg-neutral-200 transition-colors disabled:opacity-50"
+            className="w-full bg-accent text-white rounded-lg py-3 text-sm font-display font-semibold uppercase tracking-wider flex items-center justify-center gap-2 shadow-[0_0_20px_rgba(255,59,0,0.25)] hover:shadow-[0_0_30px_rgba(255,59,0,0.4)] transition-all disabled:opacity-50"
           >
             {loading ? (
               <Loader2 size={16} className="animate-spin" />
@@ -136,10 +113,10 @@ export function AuthPage({ onBack }: AuthPageProps) {
         </form>
 
         <div className="mt-6 text-center text-sm text-neutral-500">
-          {mode === 'signin' ? 'Ainda não tem uma conta?' : 'Já possui uma conta?'}{' '}
+          {mode === 'signin' ? 'Ainda nao tem uma conta?' : 'Ja possui uma conta?'}{' '}
           <button
             onClick={() => setMode(mode === 'signin' ? 'signup' : 'signin')}
-            className="text-white hover:text-neutral-300 transition-colors"
+            className="text-accent hover:text-white transition-colors font-medium"
           >
             {mode === 'signin' ? 'Cadastre-se' : 'Entrar'}
           </button>
