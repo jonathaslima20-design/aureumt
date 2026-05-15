@@ -13,7 +13,7 @@ export function Solution() {
           <p className="text-gray-400 font-light leading-relaxed">
             A demanda cresce mais rápido que sua equipe.
             Cada minuto sem resposta pode virar uma venda perdida.
-            Com o AuraTalk, uma IA atende seus clientes 24h por dia.
+            O AuraTalk resolve isso com IA atendendo 24h por dia.
           </p>
           <div className="grid grid-cols-2 gap-4">
             <div className="border border-white/5 rounded-xl p-6">
