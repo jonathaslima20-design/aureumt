@@ -129,7 +129,7 @@ export function NetworkBackground() {
   }, []);
 
   return (
-    <div className="fixed inset-0 -z-10 w-full h-full pointer-events-none">
+    <div className="fixed inset-0 z-0 w-full h-full pointer-events-none">
       <canvas
         ref={canvasRef}
         className="w-full h-full pointer-events-auto"

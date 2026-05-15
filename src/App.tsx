@@ -38,7 +38,7 @@ function Shell() {
 
   if (loading || (session && !profile)) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
+      <div className="min-h-screen flex items-center justify-center">
         <Loader2 size={20} className="text-neutral-600 animate-spin" />
       </div>
     );
@@ -68,7 +68,9 @@ function App() {
     <AuthProvider>
       <UIPreferencesProvider>
         <NetworkBackground />
-        <Shell />
+        <div className="relative z-10">
+          <Shell />
+        </div>
       </UIPreferencesProvider>
     </AuthProvider>
   );

@@ -25,7 +25,7 @@ export function AuthPage({ onBack }: AuthPageProps) {
   };
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center px-4 bg-[#050505] relative overflow-hidden">
+    <div className="min-h-screen flex flex-col items-center justify-center px-4 relative overflow-hidden">
       {/* Amplified auth-page aura — cyan top-center */}
       <div
         className="absolute pointer-events-none animate-aura-breathe"
