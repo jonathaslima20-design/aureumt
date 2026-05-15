@@ -1,4 +1,3 @@
-import { NetworkBackground } from './landing/NetworkBackground';
 import { Navbar } from './landing/Navbar';
 import { Hero } from './landing/Hero';
 import { Marquee } from './landing/Marquee';
@@ -17,8 +16,6 @@ interface LandingPageProps {
 export function LandingPage({ onLogin }: LandingPageProps) {
   return (
     <div className="relative min-h-screen bg-background text-white overflow-x-hidden">
-      <NetworkBackground />
-
       {/* Noise overlay */}
       <div className="noise">
         <svg width="100%" height="100%">

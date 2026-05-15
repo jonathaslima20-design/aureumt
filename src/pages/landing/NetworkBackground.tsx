@@ -17,12 +17,20 @@ export function NetworkBackground() {
       fullScreen: { enable: false },
       background: { color: { value: 'transparent' } },
       fpsLimit: 60,
+      detectRetina: true,
       particles: {
+        number: {
+          value: 80,
+          density: { enable: true, width: 1920, height: 1080 },
+        },
         color: { value: '#67e8f9' },
+        shape: { type: 'circle' },
+        opacity: { value: 0.25 },
+        size: { value: { min: 1, max: 3 } },
         links: {
-          color: '#67e8f9',
-          distance: 150,
           enable: true,
+          distance: 150,
+          color: '#67e8f9',
           opacity: 0.15,
           width: 1,
         },
@@ -30,31 +38,22 @@ export function NetworkBackground() {
           enable: true,
           speed: 0.8,
           direction: 'none' as const,
+          random: false,
+          straight: false,
           outModes: { default: 'out' as const },
         },
-        number: {
-          density: { enable: true },
-          value: 80,
-        },
-        opacity: { value: 0.25 },
-        shape: { type: 'circle' },
-        size: { value: { min: 0.5, max: 1.5 } },
       },
       interactivity: {
         events: {
-          onHover: {
-            enable: true,
-            mode: 'grab',
-          },
+          onHover: { enable: true, mode: 'grab' },
         },
         modes: {
           grab: {
             distance: 180,
-            links: { opacity: 0.3 },
+            links: { opacity: 0.3, color: '#67e8f9' },
           },
         },
       },
-      detectRetina: true,
     }),
     []
   );
@@ -62,8 +61,8 @@ export function NetworkBackground() {
   if (!init) return null;
 
   return (
-    <div className="fixed inset-0 -z-10 pointer-events-none">
-      <Particles className="w-full h-full pointer-events-auto" options={options} />
+    <div className="fixed inset-0 -z-10 w-full h-full pointer-events-none">
+      <Particles id="network-particles" className="w-full h-full pointer-events-auto" options={options} />
     </div>
   );
 }

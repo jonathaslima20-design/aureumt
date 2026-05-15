@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Loader2 } from 'lucide-react';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { UIPreferencesProvider } from './context/UIPreferencesContext';
+import { NetworkBackground } from './pages/landing/NetworkBackground';
 import { AuthPage } from './pages/AuthPage';
 import { LandingPage } from './pages/LandingPage';
 import { Dashboard } from './pages/Dashboard';
@@ -66,6 +67,7 @@ function App() {
   return (
     <AuthProvider>
       <UIPreferencesProvider>
+        <NetworkBackground />
         <Shell />
       </UIPreferencesProvider>
     </AuthProvider>
