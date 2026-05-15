@@ -82,16 +82,16 @@ function SpotlightCard({ feature }: { feature: FeatureItem }) {
           className="text-accent mb-4"
           strokeWidth={1.5}
         />
-        <h3 className="font-display font-semibold text-sm sm:text-base uppercase tracking-wider text-white mb-3">
+        <h3 className="font-display font-semibold text-base sm:text-lg uppercase tracking-wider text-white mb-3">
           {feature.title}
         </h3>
-        <p className="text-xs sm:text-sm text-gray-500 leading-relaxed">
+        <p className="text-sm sm:text-base text-gray-500 leading-relaxed">
           {feature.description}
         </p>
       </div>
 
       {feature.extra === 'knowledge' && (
-        <div className="mt-4 space-y-1 font-mono text-[9px] text-gray-600">
+        <div className="mt-4 space-y-1 font-mono text-[11px] text-gray-600">
           <div>PDF_DOC_INDEXING...</div>
           <div>URL_CONTENT_PARSING...</div>
           <div className="text-accent/60">INDEXACAO RAG ATIVA</div>
@@ -99,7 +99,7 @@ function SpotlightCard({ feature }: { feature: FeatureItem }) {
       )}
 
       {feature.extra === 'handoff' && (
-        <div className="mt-4 font-mono text-[11px] text-accent/60 animate-blink tracking-widest">
+        <div className="mt-4 font-mono text-xs text-accent/60 animate-blink tracking-widest">
           WAITING_FOR_HUMAN...
         </div>
       )}
@@ -107,7 +107,7 @@ function SpotlightCard({ feature }: { feature: FeatureItem }) {
       {feature.extra === 'retention' && (
         <div className="mt-4 flex items-center gap-2">
           <span className="w-2 h-2 rounded-full bg-accent animate-pulse-fast" />
-          <span className="font-mono text-[9px] text-gray-500 tracking-wider">HUMANIZATION ACTIVE</span>
+          <span className="font-mono text-[11px] text-gray-500 tracking-wider">HUMANIZATION ACTIVE</span>
         </div>
       )}
     </div>
@@ -119,18 +119,18 @@ export function Features() {
     <section id="features" className="py-32 px-6">
       <div className="max-w-7xl mx-auto">
         <div className="text-center mb-16 space-y-3">
-          <span className="font-mono text-[9px] tracking-[0.4em] uppercase text-accent">
+          <span className="font-mono text-[11px] tracking-[0.4em] uppercase text-accent">
             MOTOR: GOOGLE GEMINI
           </span>
           <h2 className="font-display font-bold text-3xl sm:text-4xl tracking-tighter text-white uppercase">
             RECURSOS DE ELITE
           </h2>
-          <p className="font-mono text-[10px] tracking-[0.3em] text-gray-500 uppercase">
+          <p className="font-mono text-xs tracking-[0.3em] text-gray-500 uppercase">
             LATENCIA MEDIA: &lt; 1.2S
           </p>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-4 auto-rows-[220px] gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-4 auto-rows-[240px] gap-4">
           {features.map((feature) => (
             <SpotlightCard key={feature.id} feature={feature} />
           ))}

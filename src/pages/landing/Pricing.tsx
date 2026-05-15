@@ -55,7 +55,7 @@ export function Pricing({ onStart }: PricingProps) {
     <section id="pricing" className="py-32 px-6">
       <div className="max-w-7xl mx-auto">
         <div className="text-center mb-16 space-y-3">
-          <span className="font-mono text-[9px] tracking-[0.4em] uppercase text-accent">
+          <span className="font-mono text-[11px] tracking-[0.4em] uppercase text-accent">
             INVESTIMENTO
           </span>
           <h2 className="font-display font-bold text-3xl sm:text-4xl tracking-tighter text-white uppercase">
@@ -74,23 +74,23 @@ export function Pricing({ onStart }: PricingProps) {
               }`}
             >
               {plan.popular && (
-                <span className="absolute -top-3 right-6 px-3 py-1 bg-accent text-white font-mono text-[9px] tracking-[0.2em] uppercase rounded-full">
+                <span className="absolute -top-3 right-6 px-3 py-1 bg-accent text-white font-mono text-[11px] tracking-[0.2em] uppercase rounded-full">
                   RECOMENDADO
                 </span>
               )}
 
               <div className="mb-8">
-                <span className="font-mono text-[10px] tracking-[0.4em] uppercase text-gray-500">
+                <span className="font-mono text-xs tracking-[0.4em] uppercase text-gray-500">
                   {plan.name}
                 </span>
                 <div className="mt-3 flex items-baseline gap-1">
-                  <span className="font-mono text-[10px] text-gray-500">R$</span>
+                  <span className="font-mono text-xs text-gray-500">R$</span>
                   <span className="font-display font-bold text-4xl text-white">
                     {plan.price}
                   </span>
-                  <span className="font-mono text-[10px] text-gray-500">/MES</span>
+                  <span className="font-mono text-xs text-gray-500">/MES</span>
                 </div>
-                <p className="mt-1 font-mono text-[9px] text-gray-600">
+                <p className="mt-1 font-mono text-[11px] text-gray-600">
                   ANUAL: R${plan.annual}/MES
                 </p>
               </div>
@@ -99,14 +99,14 @@ export function Pricing({ onStart }: PricingProps) {
                 {plan.features.map((feature) => (
                   <li key={feature} className="flex items-center gap-3">
                     <span className="w-1 h-1 rounded-full bg-accent shrink-0" />
-                    <span className="text-xs text-gray-400">{feature}</span>
+                    <span className="text-sm text-gray-400">{feature}</span>
                   </li>
                 ))}
               </ul>
 
               <button
                 onClick={onStart}
-                className={`mt-8 w-full py-4 rounded-xl font-mono text-[10px] tracking-[0.2em] uppercase transition-all duration-300 ${
+                className={`mt-8 w-full py-4 rounded-xl font-mono text-xs tracking-[0.2em] uppercase transition-all duration-300 ${
                   plan.popular
                     ? 'bg-accent text-white hover:bg-accent/90 shadow-[0_0_20px_rgba(255,59,0,0.2)]'
                     : 'border border-white/10 text-gray-400 hover:border-white/30 hover:text-white'

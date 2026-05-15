@@ -32,7 +32,7 @@ export function HowItWorks() {
     <section id="como-funciona" className="py-32 px-6">
       <div className="max-w-7xl mx-auto">
         <div className="text-center mb-16 space-y-3">
-          <span className="font-mono text-[9px] tracking-[0.4em] uppercase text-accent">
+          <span className="font-mono text-[11px] tracking-[0.4em] uppercase text-accent">
             PROCESSO
           </span>
           <h2 className="font-display font-bold text-3xl sm:text-4xl tracking-tighter text-white uppercase">
@@ -54,10 +54,10 @@ export function HowItWorks() {
                 className="text-gray-500 mb-4 group-hover:text-accent transition-colors"
                 strokeWidth={1.5}
               />
-              <h3 className="font-display font-semibold text-sm uppercase tracking-wider text-white mb-3">
+              <h3 className="font-display font-semibold text-base uppercase tracking-wider text-white mb-3">
                 {step.title}
               </h3>
-              <p className="text-xs text-gray-500 leading-relaxed">
+              <p className="text-sm text-gray-500 leading-relaxed">
                 {step.description}
               </p>
             </div>
