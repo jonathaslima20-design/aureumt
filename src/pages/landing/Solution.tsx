@@ -33,10 +33,10 @@ export function Solution() {
         </div>
 
         {/* Right column - Agent visuals grid */}
-        <div className="relative space-y-4">
+        <div className="relative">
           <div className="grid grid-cols-2 gap-4">
             {/* Card 1 */}
-            <div className="glass rounded-2xl overflow-hidden relative aspect-square">
+            <div className="glass rounded-2xl overflow-hidden relative aspect-[3/2]">
               <img
                 src="https://yulbqkwrfyycjxbbuloj.supabase.co/storage/v1/object/public/imageslanding/image32221478956.png"
                 alt="AI Agent"
@@ -46,10 +46,33 @@ export function Solution() {
               <div className="absolute top-3 right-3 w-4 h-4 border-t-2 border-r-2 border-accent/60" />
               <div className="absolute bottom-3 left-3 w-4 h-4 border-b-2 border-l-2 border-accent/60" />
               <div className="absolute bottom-3 right-3 w-4 h-4 border-b-2 border-r-2 border-accent/60" />
+              <div className="absolute bottom-0 left-0 right-0 bg-black/80 backdrop-blur-sm border-t border-accent/30 px-3 py-2">
+                <div className="flex items-center gap-2">
+                  <div className="w-7 h-7 rounded-full bg-accent/20 border border-accent/40 overflow-hidden">
+                    <img src="https://yulbqkwrfyycjxbbuloj.supabase.co/storage/v1/object/public/imageslanding/image32221478956.png" alt="" className="w-full h-full object-cover" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <span className="block font-display font-semibold text-[10px] text-white uppercase tracking-wider">AuraTalk Agent</span>
+                    <span className="flex items-center gap-1 font-mono text-[8px] text-emerald-400">
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+                      RESPONDENDO
+                      <span className="flex gap-0.5 ml-1">
+                        <span className="w-1 h-1 rounded-full bg-accent animate-bounce" style={{ animationDelay: '0ms' }} />
+                        <span className="w-1 h-1 rounded-full bg-accent animate-bounce" style={{ animationDelay: '150ms' }} />
+                        <span className="w-1 h-1 rounded-full bg-accent animate-bounce" style={{ animationDelay: '300ms' }} />
+                      </span>
+                    </span>
+                  </div>
+                  <div className="text-right">
+                    <span className="block font-mono text-[8px] text-gray-500 uppercase">Tempo Resp.</span>
+                    <span className="block font-mono text-sm text-white font-bold">0.8s</span>
+                  </div>
+                </div>
+              </div>
             </div>
 
             {/* Card 2 */}
-            <div className="glass rounded-2xl overflow-hidden relative aspect-square">
+            <div className="glass rounded-2xl overflow-hidden relative aspect-[3/2]">
               <img
                 src="https://yulbqkwrfyycjxbbuloj.supabase.co/storage/v1/object/public/imageslanding/image54478.png"
                 alt="AI Agent"
@@ -59,10 +82,33 @@ export function Solution() {
               <div className="absolute top-3 right-3 w-4 h-4 border-t-2 border-r-2 border-accent/60" />
               <div className="absolute bottom-3 left-3 w-4 h-4 border-b-2 border-l-2 border-accent/60" />
               <div className="absolute bottom-3 right-3 w-4 h-4 border-b-2 border-r-2 border-accent/60" />
+              <div className="absolute bottom-0 left-0 right-0 bg-black/80 backdrop-blur-sm border-t border-accent/30 px-3 py-2">
+                <div className="flex items-center gap-2">
+                  <div className="w-7 h-7 rounded-full bg-accent/20 border border-accent/40 overflow-hidden">
+                    <img src="https://yulbqkwrfyycjxbbuloj.supabase.co/storage/v1/object/public/imageslanding/image54478.png" alt="" className="w-full h-full object-cover" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <span className="block font-display font-semibold text-[10px] text-white uppercase tracking-wider">AuraTalk Agent</span>
+                    <span className="flex items-center gap-1 font-mono text-[8px] text-emerald-400">
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+                      RESPONDENDO
+                      <span className="flex gap-0.5 ml-1">
+                        <span className="w-1 h-1 rounded-full bg-accent animate-bounce" style={{ animationDelay: '0ms' }} />
+                        <span className="w-1 h-1 rounded-full bg-accent animate-bounce" style={{ animationDelay: '150ms' }} />
+                        <span className="w-1 h-1 rounded-full bg-accent animate-bounce" style={{ animationDelay: '300ms' }} />
+                      </span>
+                    </span>
+                  </div>
+                  <div className="text-right">
+                    <span className="block font-mono text-[8px] text-gray-500 uppercase">Tempo Resp.</span>
+                    <span className="block font-mono text-sm text-white font-bold">1.2s</span>
+                  </div>
+                </div>
+              </div>
             </div>
 
             {/* Card 3 */}
-            <div className="glass rounded-2xl overflow-hidden relative aspect-square">
+            <div className="glass rounded-2xl overflow-hidden relative aspect-[3/2]">
               <img
                 src="https://yulbqkwrfyycjxbbuloj.supabase.co/storage/v1/object/public/imageslanding/image55957.jpg"
                 alt="AI Agent"
@@ -72,10 +118,33 @@ export function Solution() {
               <div className="absolute top-3 right-3 w-4 h-4 border-t-2 border-r-2 border-accent/60" />
               <div className="absolute bottom-3 left-3 w-4 h-4 border-b-2 border-l-2 border-accent/60" />
               <div className="absolute bottom-3 right-3 w-4 h-4 border-b-2 border-r-2 border-accent/60" />
+              <div className="absolute bottom-0 left-0 right-0 bg-black/80 backdrop-blur-sm border-t border-accent/30 px-3 py-2">
+                <div className="flex items-center gap-2">
+                  <div className="w-7 h-7 rounded-full bg-accent/20 border border-accent/40 overflow-hidden">
+                    <img src="https://yulbqkwrfyycjxbbuloj.supabase.co/storage/v1/object/public/imageslanding/image55957.jpg" alt="" className="w-full h-full object-cover" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <span className="block font-display font-semibold text-[10px] text-white uppercase tracking-wider">AuraTalk Agent</span>
+                    <span className="flex items-center gap-1 font-mono text-[8px] text-emerald-400">
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+                      RESPONDENDO
+                      <span className="flex gap-0.5 ml-1">
+                        <span className="w-1 h-1 rounded-full bg-accent animate-bounce" style={{ animationDelay: '0ms' }} />
+                        <span className="w-1 h-1 rounded-full bg-accent animate-bounce" style={{ animationDelay: '150ms' }} />
+                        <span className="w-1 h-1 rounded-full bg-accent animate-bounce" style={{ animationDelay: '300ms' }} />
+                      </span>
+                    </span>
+                  </div>
+                  <div className="text-right">
+                    <span className="block font-mono text-[8px] text-gray-500 uppercase">Tempo Resp.</span>
+                    <span className="block font-mono text-sm text-white font-bold">0.5s</span>
+                  </div>
+                </div>
+              </div>
             </div>
 
             {/* Card 4 */}
-            <div className="glass rounded-2xl overflow-hidden relative aspect-square">
+            <div className="glass rounded-2xl overflow-hidden relative aspect-[3/2]">
               <img
                 src="https://yulbqkwrfyycjxbbuloj.supabase.co/storage/v1/object/public/imageslanding/image65565977715.jpg"
                 alt="AI Agent"
@@ -85,29 +154,29 @@ export function Solution() {
               <div className="absolute top-3 right-3 w-4 h-4 border-t-2 border-r-2 border-accent/60" />
               <div className="absolute bottom-3 left-3 w-4 h-4 border-b-2 border-l-2 border-accent/60" />
               <div className="absolute bottom-3 right-3 w-4 h-4 border-b-2 border-r-2 border-accent/60" />
-            </div>
-          </div>
-
-          {/* Bottom overlay card */}
-          <div className="glass rounded-2xl p-4">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-full bg-accent/20 border border-accent/40 flex items-center justify-center">
-                <span className="font-mono text-[10px] text-accent font-bold">AT</span>
+              <div className="absolute bottom-0 left-0 right-0 bg-black/80 backdrop-blur-sm border-t border-accent/30 px-3 py-2">
+                <div className="flex items-center gap-2">
+                  <div className="w-7 h-7 rounded-full bg-accent/20 border border-accent/40 overflow-hidden">
+                    <img src="https://yulbqkwrfyycjxbbuloj.supabase.co/storage/v1/object/public/imageslanding/image65565977715.jpg" alt="" className="w-full h-full object-cover" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <span className="block font-display font-semibold text-[10px] text-white uppercase tracking-wider">AuraTalk Agent</span>
+                    <span className="flex items-center gap-1 font-mono text-[8px] text-emerald-400">
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+                      RESPONDENDO
+                      <span className="flex gap-0.5 ml-1">
+                        <span className="w-1 h-1 rounded-full bg-accent animate-bounce" style={{ animationDelay: '0ms' }} />
+                        <span className="w-1 h-1 rounded-full bg-accent animate-bounce" style={{ animationDelay: '150ms' }} />
+                        <span className="w-1 h-1 rounded-full bg-accent animate-bounce" style={{ animationDelay: '300ms' }} />
+                      </span>
+                    </span>
+                  </div>
+                  <div className="text-right">
+                    <span className="block font-mono text-[8px] text-gray-500 uppercase">Tempo Resp.</span>
+                    <span className="block font-mono text-sm text-white font-bold">0.9s</span>
+                  </div>
+                </div>
               </div>
-              <div className="flex-1">
-                <span className="block font-display font-semibold text-sm text-white uppercase tracking-wider">
-                  AURATALK AGENT
-                </span>
-                <span className="flex items-center gap-2 font-mono text-[10px] text-gray-400">
-                  <span className="flex gap-0.5">
-                    <span className="w-1 h-1 rounded-full bg-accent animate-bounce" style={{ animationDelay: '0ms' }} />
-                    <span className="w-1 h-1 rounded-full bg-accent animate-bounce" style={{ animationDelay: '150ms' }} />
-                    <span className="w-1 h-1 rounded-full bg-accent animate-bounce" style={{ animationDelay: '300ms' }} />
-                  </span>
-                  Respondendo
-                </span>
-              </div>
-              <span className="font-mono text-[9px] text-accent/80">0.8s</span>
             </div>
           </div>
         </div>
