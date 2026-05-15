@@ -9,16 +9,132 @@
 }
 
 body {
-  background-color: #080808;
-  color: #e5e5e5;
+  background-color: #050505;
+  color: #e0e0e0;
   margin: 0;
   min-height: 100vh;
+  overflow-x: hidden;
+}
+
+::selection {
+  background-color: #FF3B00;
+  color: white;
 }
 
 * {
   box-sizing: border-box;
 }
 
+/* Glass */
+.glass {
+  background: rgba(10, 10, 10, 0.8);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+/* Spotlight effect */
+.spotlight {
+  position: relative;
+  overflow: hidden;
+}
+.spotlight::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(800px circle at var(--x, 50%) var(--y, 50%), rgba(255, 255, 255, 0.04), transparent 40%);
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+.spotlight:hover::before {
+  opacity: 1;
+}
+.spotlight::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(600px circle at var(--x, 50%) var(--y, 50%), rgba(255, 59, 0, 0.3), transparent 40%);
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.3s;
+  mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  mask-composite: exclude;
+  padding: 1px;
+  border-radius: inherit;
+}
+.spotlight:hover::after {
+  opacity: 1;
+}
+
+/* Noise overlay */
+.noise {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  pointer-events: none;
+  opacity: 0.04;
+}
+
+/* Marquee mask */
+.marquee-mask {
+  mask-image: linear-gradient(to right, transparent, black 15%, black 85%, transparent);
+  -webkit-mask-image: linear-gradient(to right, transparent, black 15%, black 85%, transparent);
+}
+
+/* Dot grid */
+.dot-grid {
+  background-image: radial-gradient(circle, rgba(255, 255, 255, 0.1) 1px, transparent 1px);
+  background-size: 24px 24px;
+}
+
+/* Pricing popular */
+.pricing-card-popular {
+  border-color: rgba(255, 59, 0, 0.4) !important;
+  box-shadow: 0 0 30px rgba(255, 59, 0, 0.1);
+}
+
+/* Accordion */
+.accordion-content {
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.3s ease;
+}
+.accordion-item.active .accordion-content {
+  max-height: 200px;
+}
+.accordion-item.active .accordion-icon {
+  transform: rotate(45deg);
+}
+
+/* Scanner line */
+@keyframes scanner {
+  0% { top: 0%; opacity: 0; }
+  10% { opacity: 0.6; }
+  90% { opacity: 0.6; }
+  100% { top: 100%; opacity: 0; }
+}
+.scanner-line {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, #FF3B00, transparent);
+  animation: scanner 3s linear infinite;
+}
+
+/* Agent card glass */
+.agent-card-glass {
+  background: rgba(5, 5, 5, 0.7);
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 59, 0, 0.15);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  transition: border-color 0.3s;
+}
+.agent-card-glass:hover {
+  border-color: rgba(255, 59, 0, 0.3);
+}
+
+/* Scrollbar */
 .scrollbar-thin::-webkit-scrollbar {
   width: 6px;
   height: 6px;
@@ -34,11 +150,11 @@ body {
   background: #2a2a2a;
 }
 
+/* Existing app animations */
 @keyframes pulse-subtle {
   0%, 100% { opacity: 1; }
   50% { opacity: 0.6; }
 }
-
 .animate-pulse-subtle {
   animation: pulse-subtle 2s ease-in-out infinite;
 }
@@ -47,7 +163,6 @@ body {
   from { opacity: 0; transform: translateY(4px); }
   to { opacity: 1; transform: translateY(0); }
 }
-
 .animate-fade-in {
   animation: fadeIn 0.3s ease-out;
 }
@@ -56,39 +171,34 @@ body {
   from { transform: translateX(-100%); }
   to { transform: translateX(0); }
 }
-
 .animate-slide-in-left {
   animation: slideInLeft 0.25s ease-out;
 }
 
-/* Slow breathing for aura orbs */
 @keyframes aura-breathe {
-  0%, 100% { opacity: 1;   transform: scale(1); }
-  50%       { opacity: 0.55; transform: scale(1.08); }
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.55; transform: scale(1.08); }
 }
 .animate-aura-breathe {
   animation: aura-breathe 6s ease-in-out infinite;
 }
 
-/* Secondary orb — slightly out of phase */
 @keyframes aura-breathe-alt {
   0%, 100% { opacity: 0.65; transform: scale(1.05); }
-  50%       { opacity: 1;    transform: scale(0.95); }
+  50% { opacity: 1; transform: scale(0.95); }
 }
 .animate-aura-breathe-alt {
   animation: aura-breathe-alt 9s ease-in-out infinite;
 }
 
-/* Gentle vertical drift for third orb */
 @keyframes aura-drift {
-  0%, 100% { transform: translateY(0px)   scale(1); }
-  50%       { transform: translateY(-12px) scale(1.04); }
+  0%, 100% { transform: translateY(0px) scale(1); }
+  50% { transform: translateY(-12px) scale(1.04); }
 }
 .animate-aura-drift {
   animation: aura-drift 12s ease-in-out infinite;
 }
 
-/* Card glow utility */
 .aura-card {
   transition: box-shadow 0.35s ease, border-color 0.35s ease, background 0.35s ease;
 }
