@@ -3,42 +3,53 @@ import { Loader2 } from 'lucide-react';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { UIPreferencesProvider } from './context/UIPreferencesContext';
 import { AuthPage } from './pages/AuthPage';
+import { LandingPage } from './pages/LandingPage';
 import { Dashboard } from './pages/Dashboard';
 import { AdminPanel } from './pages/AdminPanel';
 import { PlanSelectionPage } from './pages/PlanSelectionPage';
 
 function Shell() {
   const { session, loading, profile } = useAuth();
-  const [view, setView] = useState<'dashboard' | 'admin' | 'plan_selection' | null>(null);
+  const [view, setView] = useState<'landing' | 'auth' | 'dashboard' | 'admin' | 'plan_selection' | null>(null);
 
   useEffect(() => {
-    if (!profile || view !== null) return;
+    if (loading) return;
 
-    // Admins always go straight to admin panel
+    if (!session) {
+      if (view !== 'auth') setView('landing');
+      return;
+    }
+
+    if (!profile) return;
+
     if (profile.role === 'admin') {
       setView('admin');
       return;
     }
 
-    // Users with an assigned plan or active status skip plan selection
     if (profile.plan_id || profile.plan_status === 'active') {
       setView('dashboard');
       return;
     }
 
-    // New users without a plan see the plan selection screen
     setView('plan_selection');
-  }, [profile, view]);
+  }, [profile, session, loading]);
 
   if (loading || (session && !profile)) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-[#050505]">
+      <div className="min-h-screen flex items-center justify-center bg-background">
         <Loader2 size={20} className="text-neutral-600 animate-spin" />
       </div>
     );
   }
 
-  if (!session) return <AuthPage />;
+  if (view === 'landing' || (!session && view !== 'auth')) {
+    return <LandingPage onLogin={() => setView('auth')} />;
+  }
+
+  if (view === 'auth' && !session) {
+    return <AuthPage onBack={() => setView('landing')} />;
+  }
 
   if (view === 'plan_selection') {
     return <PlanSelectionPage onPlanSelected={() => setView('dashboard')} />;
@@ -51,63 +62,10 @@ function Shell() {
   return <Dashboard onNavAdmin={() => setView('admin')} />;
 }
 
-function AuraBackground() {
-  return (
-    <div className="fixed inset-0 pointer-events-none overflow-hidden z-0" aria-hidden="true">
-      {/* Top-right white orb */}
-      <div
-        className="absolute animate-aura-breathe"
-        style={{
-          top: '-15%',
-          right: '-10%',
-          width: '55vw',
-          height: '55vw',
-          maxWidth: 700,
-          maxHeight: 700,
-          background: 'radial-gradient(circle, rgba(255,255,255,0.05) 0%, rgba(255,255,255,0.015) 45%, transparent 70%)',
-          filter: 'blur(40px)',
-          borderRadius: '50%',
-        }}
-      />
-      {/* Bottom-left white orb */}
-      <div
-        className="absolute animate-aura-breathe-alt"
-        style={{
-          bottom: '-20%',
-          left: '-12%',
-          width: '60vw',
-          height: '60vw',
-          maxWidth: 760,
-          maxHeight: 760,
-          background: 'radial-gradient(circle, rgba(255,255,255,0.04) 0%, rgba(255,255,255,0.01) 50%, transparent 72%)',
-          filter: 'blur(50px)',
-          borderRadius: '50%',
-        }}
-      />
-      {/* Centre-right subtle white depth orb */}
-      <div
-        className="absolute animate-aura-drift"
-        style={{
-          top: '35%',
-          right: '20%',
-          width: '30vw',
-          height: '30vw',
-          maxWidth: 360,
-          maxHeight: 360,
-          background: 'radial-gradient(circle, rgba(255,255,255,0.025) 0%, transparent 65%)',
-          filter: 'blur(60px)',
-          borderRadius: '50%',
-        }}
-      />
-    </div>
-  );
-}
-
 function App() {
   return (
     <AuthProvider>
       <UIPreferencesProvider>
-        <AuraBackground />
         <Shell />
       </UIPreferencesProvider>
     </AuthProvider>
