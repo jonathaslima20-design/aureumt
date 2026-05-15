@@ -23,7 +23,7 @@ export function Hero({ onStart }: HeroProps) {
 
         {/* H1 */}
         <h1 className="font-display font-bold text-5xl md:text-[8rem] tracking-tighter uppercase leading-[0.85]">
-          <span className="block text-white">A EVOLUCAO DO</span>
+          <span className="block text-white">A EVOLUÇÃO DO</span>
           <span className="block bg-gradient-to-b from-white via-gray-400 to-gray-600 bg-clip-text text-transparent">
             ATENDIMENTO
           </span>
