@@ -36,7 +36,7 @@ export function Solution() {
         <div className="relative">
           <div className="grid grid-cols-2 gap-4">
             {/* Card 1 */}
-            <div className="glass rounded-2xl overflow-hidden relative aspect-[3/2]">
+            <div className="glass rounded-2xl overflow-hidden relative aspect-[2/3]">
               <img
                 src="https://yulbqkwrfyycjxbbuloj.supabase.co/storage/v1/object/public/imageslanding/image32221478956.png"
                 alt="AI Agent"
@@ -72,7 +72,7 @@ export function Solution() {
             </div>
 
             {/* Card 2 */}
-            <div className="glass rounded-2xl overflow-hidden relative aspect-[3/2]">
+            <div className="glass rounded-2xl overflow-hidden relative aspect-[2/3]">
               <img
                 src="https://yulbqkwrfyycjxbbuloj.supabase.co/storage/v1/object/public/imageslanding/image54478.png"
                 alt="AI Agent"
@@ -108,7 +108,7 @@ export function Solution() {
             </div>
 
             {/* Card 3 */}
-            <div className="glass rounded-2xl overflow-hidden relative aspect-[3/2]">
+            <div className="glass rounded-2xl overflow-hidden relative aspect-[2/3]">
               <img
                 src="https://yulbqkwrfyycjxbbuloj.supabase.co/storage/v1/object/public/imageslanding/image55957.jpg"
                 alt="AI Agent"
@@ -144,7 +144,7 @@ export function Solution() {
             </div>
 
             {/* Card 4 */}
-            <div className="glass rounded-2xl overflow-hidden relative aspect-[3/2]">
+            <div className="glass rounded-2xl overflow-hidden relative aspect-[2/3]">
               <img
                 src="https://yulbqkwrfyycjxbbuloj.supabase.co/storage/v1/object/public/imageslanding/image65565977715.jpg"
                 alt="AI Agent"
