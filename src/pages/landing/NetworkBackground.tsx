@@ -138,6 +138,3 @@ export function NetworkBackground() {
     </div>
   );
 }
-
-
-export { NetworkBackground }
