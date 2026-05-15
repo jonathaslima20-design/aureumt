@@ -11,9 +11,9 @@ export function Solution() {
             ONDE A ESCALA HUMANA ENCONTRA O SEU LIMITE.
           </h2>
           <p className="text-gray-400 font-light leading-relaxed">
-            As equipes crescem devagar, mas a demanda dos clientes cresce muito mais rápido.
-            E no atendimento digital, cada minuto sem resposta pode virar uma venda para o concorrente.
-            O AuraTalk resolve isso com Agentes de IA que atendem 24 horas por dia, sem pausas.
+            A demanda cresce mais rápido que sua equipe.
+            Cada minuto sem resposta pode virar uma venda perdida.
+            Com o AuraTalk, uma IA atende seus clientes 24h por dia.
           </p>
           <div className="grid grid-cols-2 gap-4">
             <div className="border border-white/5 rounded-xl p-6">
