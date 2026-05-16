@@ -240,52 +240,49 @@ body {
     0 6px 32px 0 rgba(0, 0, 0, 0.5);
 }
 
-/* Step card – scanner + glow pulse (always-on) */
-@keyframes step-scanner {
+/* Agent photo card – scanner + glow pulse (always-on) */
+@keyframes agent-scanner {
   0% { top: -2px; opacity: 0; }
   5% { opacity: 1; }
   95% { opacity: 1; }
   100% { top: calc(100% + 2px); opacity: 0; }
 }
 
-@keyframes step-glow-pulse {
+@keyframes agent-glow-pulse {
   0%, 100% {
-    box-shadow: 0 0 20px rgba(255, 59, 0, 0.10), 0 0 60px rgba(255, 59, 0, 0.04);
+    box-shadow: 0 0 20px rgba(255, 59, 0, 0.08), 0 0 60px rgba(255, 59, 0, 0.03);
   }
   50% {
-    box-shadow: 0 0 28px rgba(255, 59, 0, 0.22), 0 0 80px rgba(255, 59, 0, 0.10);
+    box-shadow: 0 0 30px rgba(255, 59, 0, 0.20), 0 0 80px rgba(255, 59, 0, 0.08);
   }
 }
 
-@keyframes step-border-pulse {
-  0%, 100% { border-color: rgba(255, 59, 0, 0.12); }
-  50% { border-color: rgba(255, 59, 0, 0.30); }
+@keyframes agent-border-pulse {
+  0%, 100% { border-color: rgba(255, 59, 0, 0.15); }
+  50% { border-color: rgba(255, 59, 0, 0.40); }
 }
 
-.step-card {
-  position: relative;
-  overflow: hidden;
-  background: rgba(255, 59, 0, 0.015);
-  border: 1px solid rgba(255, 59, 0, 0.12) !important;
+.agent-card {
+  border: 1px solid rgba(255, 59, 0, 0.15) !important;
   animation:
-    step-glow-pulse 3s ease-in-out var(--delay, 0s) infinite,
-    step-border-pulse 3s ease-in-out var(--delay, 0s) infinite;
+    agent-glow-pulse 3.5s ease-in-out var(--delay, 0s) infinite,
+    agent-border-pulse 3.5s ease-in-out var(--delay, 0s) infinite;
 }
 
-.step-card::before {
+.agent-card::after {
   content: '';
   position: absolute;
   left: 0;
   right: 0;
   height: 2px;
   top: -2px;
-  z-index: 10;
+  z-index: 20;
   background: linear-gradient(90deg, transparent 5%, #FF3B00 30%, #FF3B00 70%, transparent 95%);
   box-shadow: 0 0 16px 4px rgba(255, 59, 0, 0.4), 0 0 6px 1px rgba(255, 59, 0, 0.25);
   pointer-events: none;
-  animation: step-scanner 3s ease-in-out var(--delay, 0s) infinite;
+  animation: agent-scanner 3.5s ease-in-out var(--delay, 0s) infinite;
 }
 
-.step-card:hover {
-  background: rgba(255, 59, 0, 0.035);
+.agent-card:hover {
+  border-color: rgba(255, 59, 0, 0.5) !important;
 }

@@ -41,11 +41,10 @@ export function HowItWorks() {
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          {steps.map((step, i) => (
+          {steps.map((step) => (
             <div
               key={step.number}
-              className="step-card rounded-3xl p-8 group"
-              style={{ '--delay': `${i * 0.7}s` } as React.CSSProperties}
+              className="border border-white/5 rounded-3xl p-8 group"
             >
               <span className="font-mono text-4xl text-accent/80 block mb-6">
                 {step.number}
