@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { Navbar } from './landing/Navbar';
 import { Hero } from './landing/Hero';
 import { Marquee } from './landing/Marquee';
@@ -14,6 +15,15 @@ interface LandingPageProps {
 }
 
 export function LandingPage({ onLogin }: LandingPageProps) {
+  useEffect(() => {
+    const meta = document.querySelector('meta[name="viewport"]');
+    const original = meta?.getAttribute('content') || '';
+    meta?.setAttribute('content', 'width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no');
+    return () => {
+      meta?.setAttribute('content', original);
+    };
+  }, []);
+
   return (
     <div className="relative min-h-screen text-white overflow-x-hidden">
       <div className="relative z-10">
