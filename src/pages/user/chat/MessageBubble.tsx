@@ -96,19 +96,19 @@ function MessageBubbleComp({
       )}
       <div
         id={`msg-${m.id}`}
-        className={`group flex gap-2 ${isIn ? 'justify-start' : 'justify-end'}`}
+        className={`group flex gap-2 items-end ${isIn ? 'justify-start' : 'justify-end'}`}
       >
         {isIn && (
           contactPictureUrl ? (
             <img
               src={contactPictureUrl}
               alt=""
-              className="w-6 h-6 rounded-full object-cover shrink-0"
+              className="w-7 h-7 rounded-full object-cover shrink-0"
               loading="lazy"
             />
           ) : (
-            <div className="w-6 h-6 rounded-full bg-[#141414] border border-[#242424] flex items-center justify-center shrink-0">
-              <User size={11} className="text-neutral-500" />
+            <div className="w-7 h-7 rounded-full bg-[#141414] border border-[#242424] flex items-center justify-center shrink-0">
+              <User size={12} className="text-neutral-500" />
             </div>
           )
         )}
@@ -286,8 +286,8 @@ function MessageBubbleComp({
         </div>
 
         {!isIn && (
-          <div className="w-6 h-6 rounded-full bg-white flex items-center justify-center shrink-0">
-            <Bot size={11} className="text-black" />
+          <div className="w-7 h-7 rounded-full bg-white flex items-center justify-center shrink-0">
+            <Bot size={12} className="text-black" />
           </div>
         )}
       </div>

@@ -40,9 +40,9 @@ function FilterPill({
     return (
       <button
         onClick={onClick}
-        className={`text-[10px] px-2 py-0.5 rounded-full border transition-colors whitespace-nowrap ${
+        className={`text-[10px] px-2.5 py-1 rounded-full border transition-colors whitespace-nowrap font-medium ${
           active ? 'bg-amber-950/40 border-amber-900/40 text-amber-400'
-                 : 'border-[#1a1a1a] text-neutral-500 hover:text-neutral-300'
+                 : 'border-[#1c1c1c] text-neutral-500 hover:text-neutral-300 hover:border-[#2a2a2a]'
         }`}
       >{children}</button>
     );
@@ -51,18 +51,18 @@ function FilterPill({
     return (
       <button
         onClick={onClick}
-        className="text-[10px] px-2 py-0.5 rounded-full border transition-colors whitespace-nowrap"
+        className="text-[10px] px-2.5 py-1 rounded-full border transition-colors whitespace-nowrap font-medium"
         style={active
           ? { background: color + '22', color, border: `1px solid ${color}55` }
-          : { borderColor: '#1a1a1a', color: '#737373' }}
+          : { borderColor: '#1c1c1c', color: '#737373' }}
       >{children}</button>
     );
   }
   return (
     <button
       onClick={onClick}
-      className={`text-[10px] px-2 py-0.5 rounded-full border transition-colors whitespace-nowrap ${
-        active ? 'bg-white/10 border-white/20 text-white' : 'border-[#1a1a1a] text-neutral-500 hover:text-neutral-300'
+      className={`text-[10px] px-2.5 py-1 rounded-full border transition-colors whitespace-nowrap font-medium ${
+        active ? 'bg-white/10 border-white/20 text-white' : 'border-[#1c1c1c] text-neutral-500 hover:text-neutral-300 hover:border-[#2a2a2a]'
       }`}
     >{children}</button>
   );
@@ -72,10 +72,10 @@ function ContactListSkeleton() {
   return (
     <div className="divide-y divide-[#111]">
       {Array.from({ length: 6 }).map((_, i) => (
-        <div key={i} className="px-3 py-3 flex items-start gap-2.5 animate-pulse-subtle">
-          <div className="w-9 h-9 rounded-full bg-[#1a1a1a]" />
+        <div key={i} className="px-3 py-2.5 flex items-center gap-2.5 animate-pulse-subtle">
+          <div className="w-10 h-10 rounded-full bg-[#1a1a1a] shrink-0" />
           <div className="flex-1 space-y-2">
-            <div className="h-3 bg-[#1a1a1a] rounded w-2/3" />
+            <div className="h-3.5 bg-[#1a1a1a] rounded w-2/3" />
             <div className="h-2.5 bg-[#141414] rounded w-full" />
           </div>
         </div>
@@ -823,40 +823,40 @@ export function ChatPage({ instance, instances, onBack }: { instance: Instance; 
 
   const renderSidebar = () => (
     <div className="border-r border-[#242424] flex flex-col min-w-0 overflow-hidden">
-      <div className="p-3 border-b border-[#242424] space-y-2">
+      <div className="px-3 pt-3 pb-2.5 border-b border-[#242424] space-y-2.5">
         <div className="relative">
-          <Search size={12} className="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-600" />
+          <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-500" />
           <input
             ref={searchRef}
             type="text"
             placeholder={searchMode === 'contacts' ? 'Buscar contato (Ctrl+K)' : 'Buscar em mensagens...'}
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full bg-[#0d0d0d] border border-[#1c1c1c] rounded-lg pl-8 pr-3 py-2 text-xs text-white placeholder:text-neutral-600 focus:outline-none focus:border-[#363636] transition-colors"
+            className="w-full bg-[#0a0a0a] border border-[#1c1c1c] rounded-lg pl-9 pr-3 py-2 text-[13px] text-white placeholder:text-neutral-600 focus:outline-none focus:border-[#363636] transition-colors"
             aria-label="Buscar"
           />
         </div>
-        <div className="flex items-center gap-1 text-[10px]">
+        <div className="flex items-center gap-0.5">
           <button
             onClick={() => setSearchMode('contacts')}
-            className={`flex items-center gap-1 px-2 py-1 rounded-md transition-colors ${
-              searchMode === 'contacts' ? 'bg-[#1a1a1a] text-white' : 'text-neutral-500 hover:text-neutral-300'
+            className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-[11px] font-medium transition-colors ${
+              searchMode === 'contacts' ? 'bg-[#1a1a1a] text-white border border-[#2a2a2a]' : 'text-neutral-500 hover:text-neutral-300'
             }`}
             title="Buscar por nome ou número"
           >
-            <Inbox size={10} /> Contatos
+            <Inbox size={11} /> Contatos
           </button>
           <button
             onClick={() => setSearchMode('messages')}
-            className={`flex items-center gap-1 px-2 py-1 rounded-md transition-colors ${
-              searchMode === 'messages' ? 'bg-[#1a1a1a] text-white' : 'text-neutral-500 hover:text-neutral-300'
+            className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-[11px] font-medium transition-colors ${
+              searchMode === 'messages' ? 'bg-[#1a1a1a] text-white border border-[#2a2a2a]' : 'text-neutral-500 hover:text-neutral-300'
             }`}
             title="Buscar dentro das mensagens"
           >
-            <MessageSquareText size={10} /> Mensagens
+            <MessageSquareText size={11} /> Mensagens
           </button>
         </div>
-        <div className="flex gap-1 flex-wrap">
+        <div className="flex gap-1.5 flex-wrap">
           <FilterPill active={activeFilter === 'all'} onClick={() => setActiveFilter('all')}>
             Todos ({contacts.filter((c) => !c.archived).length})
           </FilterPill>
@@ -905,34 +905,34 @@ export function ChatPage({ instance, instances, onBack }: { instance: Instance; 
     }
     return (
       <>
-        <div className="px-4 py-3 border-b border-[#242424] flex items-center justify-between gap-3">
-          <div className="flex items-center gap-3 min-w-0 flex-1">
+        <div className={`border-b border-[#242424] flex items-center justify-between gap-2 ${compact ? 'px-3 py-2.5' : 'px-4 py-3'}`}>
+          <div className="flex items-center gap-2.5 min-w-0 flex-1">
             {compact && (
               <button
                 onClick={() => setShowMobileThread(false)}
-                className="text-neutral-400 hover:text-white p-1 transition-colors"
+                className="text-neutral-400 hover:text-white p-1 -ml-1 transition-colors shrink-0"
                 aria-label="Voltar"
               >
-                <X size={16} />
+                <ArrowLeft size={18} />
               </button>
             )}
-            <Avatar name={selectedContact?.name ?? null} number={selected} size={36} imageUrl={selectedContact?.profilePictureUrl} />
+            <Avatar name={selectedContact?.name ?? null} number={selected} size={compact ? 32 : 38} imageUrl={selectedContact?.profilePictureUrl} />
             <div className="min-w-0 flex-1">
-              <div className="flex items-center gap-2 flex-wrap">
-                <div className="text-sm text-white font-medium truncate">
+              <div className="flex items-center gap-2 min-w-0">
+                <span className={`${compact ? 'text-[13px]' : 'text-sm'} text-white font-medium truncate`}>
                   {contactName || <span className="font-mono">{selected}</span>}
-                </div>
-                {contactName && (
-                  <span className="text-[10px] font-mono text-neutral-600 shrink-0">{selected}</span>
+                </span>
+                {contactName && !compact && (
+                  <span className="text-[10px] font-mono text-neutral-600 shrink-0 hidden sm:inline">{selected}</span>
                 )}
-                {selectedContact?.labels.map((l) => (
+              </div>
+              <div className="flex items-center gap-2 mt-0.5">
+                <span className={`text-[11px] ${selectedContact?.manual ? 'text-amber-400' : 'text-neutral-500'}`}>
+                  {selectedContact?.manual ? 'Manual' : 'Bot ativo'}
+                </span>
+                {!compact && selectedContact?.labels.slice(0, 2).map((l) => (
                   <LabelChip key={l.id} label={l} />
                 ))}
-              </div>
-              <div className="text-[11px] text-neutral-500 mt-0.5">
-                {selectedContact?.manual
-                  ? 'Modo manual ativo — o bot não responderá'
-                  : 'Bot respondendo automaticamente'}
               </div>
             </div>
           </div>
@@ -949,24 +949,27 @@ export function ChatPage({ instance, instances, onBack }: { instance: Instance; 
             >
               <Pin size={12} />
             </button>
-            <button
-              onClick={() => selected && toggleArchive(selected)}
-              title="Arquivar (Ctrl+E)"
-              className="p-1.5 rounded-lg border border-[#242424] text-neutral-400 hover:text-white transition-colors"
-              aria-label="Arquivar"
-            >
-              <Archive size={12} />
-            </button>
+            {!compact && (
+              <button
+                onClick={() => selected && toggleArchive(selected)}
+                title="Arquivar (Ctrl+E)"
+                className="p-1.5 rounded-lg border border-[#242424] text-neutral-400 hover:text-white transition-colors"
+                aria-label="Arquivar"
+              >
+                <Archive size={12} />
+              </button>
+            )}
             <button
               onClick={toggleManual}
-              className={`text-[11px] px-3 py-1.5 rounded-lg border flex items-center gap-1.5 transition-colors ${
+              className={`text-[11px] px-2.5 py-1.5 rounded-lg border flex items-center gap-1.5 transition-colors ${
                 selectedContact?.manual
                   ? 'bg-amber-950/30 border-amber-900/40 text-amber-400 hover:bg-amber-950/50'
                   : 'border-[#242424] text-neutral-400 hover:text-white hover:border-[#2e2e2e]'
               }`}
             >
               <Hand size={11} />
-              {selectedContact?.manual ? 'Retomar bot' : 'Assumir manual'}
+              <span className="hidden sm:inline">{selectedContact?.manual ? 'Retomar bot' : 'Assumir manual'}</span>
+              <span className="sm:hidden">{selectedContact?.manual ? 'Bot' : 'Manual'}</span>
             </button>
           </div>
         </div>
@@ -1146,12 +1149,12 @@ export function ChatPage({ instance, instances, onBack }: { instance: Instance; 
       </div>
 
       <div
-        className="border border-[#242424] rounded-xl bg-[#141414] overflow-hidden"
+        className="border border-[#242424] rounded-xl bg-[#141414] overflow-hidden lg:rounded-xl rounded-lg"
         style={{ height: 'calc(100vh - 200px)', minHeight: 400 }}
       >
         <div
           className="h-full hidden lg:grid"
-          style={{ gridTemplateColumns: showQRPanel ? '260px 1fr 288px' : '260px 1fr' }}
+          style={{ gridTemplateColumns: showQRPanel ? '280px 1fr 288px' : '280px 1fr' }}
         >
           {renderSidebar()}
           <div className="flex flex-col min-w-0 overflow-hidden relative">
@@ -1169,7 +1172,7 @@ export function ChatPage({ instance, instances, onBack }: { instance: Instance; 
         </div>
 
         {/* Mobile layout */}
-        <div className="lg:hidden h-full flex flex-col">
+        <div className="lg:hidden h-full flex flex-col overflow-hidden">
           {!showMobileThread ? renderSidebar() : (
             <div className="flex flex-col h-full overflow-hidden relative">{renderThread(true)}</div>
           )}

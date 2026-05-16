@@ -55,38 +55,35 @@ function ContactItemComp({
       onClick={onClick}
       role="option"
       aria-selected={active}
-      className={`group w-full text-left px-3 py-3 border-b border-[#1a1a1a] transition-colors relative ${
-        active ? 'bg-[#1a1a1a]' : 'hover:bg-[#0d0d0d]'
+      className={`group w-full text-left px-3 py-2.5 border-b border-[#111] transition-colors relative ${
+        active ? 'bg-[#1a1a1a]' : 'hover:bg-[#0f0f0f]'
       }`}
     >
-      <div className="flex items-start gap-2.5">
-        <Avatar name={c.name} number={c.number} size={36} imageUrl={c.profilePictureUrl} />
+      <div className="flex items-center gap-2.5">
+        <Avatar name={c.name} number={c.number} size={40} imageUrl={c.profilePictureUrl} />
         <div className="min-w-0 flex-1">
-          <div className="flex items-center justify-between gap-2 mb-0.5">
-            <div className="flex items-center gap-1.5 min-w-0">
-              {c.pinned && <Pin size={10} className="text-neutral-400 shrink-0" />}
-              <span className={`text-xs truncate ${hasUnread ? 'text-white font-semibold' : 'text-white font-medium'}`}>
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center gap-1.5 min-w-0 flex-1">
+              {c.pinned && <Pin size={9} className="text-amber-400 shrink-0" />}
+              <span className={`text-[13px] truncate leading-tight ${hasUnread ? 'text-white font-semibold' : 'text-neutral-200 font-medium'}`}>
                 <HL text={c.name || c.number} query={searchQuery} />
               </span>
             </div>
-            <span className={`text-[10px] shrink-0 ${hasUnread ? 'text-emerald-400 font-medium' : 'text-neutral-600'}`}>
-              {formatRelativeTime(c.lastAt)}
-            </span>
-          </div>
-          {c.name && (
-            <div className="text-[10px] text-neutral-600 font-mono mb-0.5 truncate">
-              <HL text={c.number} query={searchQuery} />
+            <div className="flex items-center gap-1.5 shrink-0">
+              {hasUnread && (
+                <span className="text-[10px] bg-emerald-500 text-black font-bold rounded-full min-w-[18px] h-[18px] px-1 flex items-center justify-center">
+                  {c.unread > 99 ? '99+' : c.unread}
+                </span>
+              )}
+              <span className={`text-[10px] ${hasUnread ? 'text-emerald-400 font-medium' : 'text-neutral-600'}`}>
+                {formatRelativeTime(c.lastAt)}
+              </span>
             </div>
-          )}
-          <div className="flex items-center justify-between gap-2">
-            <p className={`text-[11px] truncate flex-1 ${hasUnread ? 'text-neutral-300' : 'text-neutral-500'}`}>
+          </div>
+          <div className="flex items-center justify-between gap-2 mt-0.5">
+            <p className={`text-[11px] truncate flex-1 leading-snug ${hasUnread ? 'text-neutral-300' : 'text-neutral-500'}`}>
               {snippet ? <HL text={snippet} query={searchQuery} /> : c.lastMessage}
             </p>
-            {hasUnread && (
-              <span className="text-[10px] bg-emerald-500 text-black font-semibold rounded-full min-w-[18px] h-[18px] px-1.5 flex items-center justify-center shrink-0">
-                {c.unread > 99 ? '99+' : c.unread}
-              </span>
-            )}
           </div>
           {(c.manual || c.labels.length > 0) && (
             <div className="flex items-center gap-1 mt-1 flex-wrap">
