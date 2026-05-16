@@ -133,11 +133,10 @@ export function Sidebar({
           </div>
           <div className="flex-1 min-w-0">
             <div className="text-xs text-neutral-200 truncate font-medium">{displayName}</div>
-            <div className="text-[10px] text-neutral-500 truncate font-mono">{profile?.email}</div>
+            <span className="inline-block mt-1 font-mono text-[9px] uppercase tracking-[0.15em] font-semibold px-1.5 py-0.5 rounded bg-white/[0.06] text-accent border border-white/[0.08]">
+              {userPlanName || 'Free'}
+            </span>
           </div>
-          <span className="font-mono text-[9px] uppercase tracking-[0.15em] font-semibold px-1.5 py-0.5 rounded bg-white/[0.06] text-accent border border-white/[0.08] shrink-0">
-            {userPlanName || 'Free'}
-          </span>
         </button>
       </div>
     </div>
