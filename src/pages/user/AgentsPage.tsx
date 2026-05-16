@@ -12,8 +12,6 @@ type Props = {
   personaMap: Record<string, boolean>;
   exampleCounts: Record<string, number>;
   connectionCounts: Record<string, number>;
-  maxAgents: number | null;
-  planName: string;
 };
 
 type Maturity = 'basic' | 'intermediate' | 'advanced';
@@ -50,12 +48,7 @@ const TONE_LABELS: Record<string, string> = {
   warm: 'Acolhedor',
 };
 
-export function AgentsPage({ instances, onCreateAgent, onSelectAgent, onInstanceUpdate, linkedBaseCounts, personaMap, exampleCounts, connectionCounts, maxAgents, planName }: Props) {
-  const limitReached = maxAgents !== null && instances.length >= maxAgents;
-  const limitLabel = maxAgents !== null
-    ? `${instances.length}/${maxAgents}`
-    : `${instances.length}`;
-
+export function AgentsPage({ instances, onCreateAgent, onSelectAgent, onInstanceUpdate, linkedBaseCounts, personaMap, exampleCounts, connectionCounts }: Props) {
   return (
     <div className="space-y-8">
       <header className="flex items-center justify-between flex-wrap gap-4">
@@ -65,26 +58,15 @@ export function AgentsPage({ instances, onCreateAgent, onSelectAgent, onInstance
           <p className="text-sm text-neutral-500 mt-2">
             {instances.length === 0
               ? 'Crie seu primeiro agente.'
-              : (
-                <>
-                  {limitLabel} agente{instances.length !== 1 ? 's' : ''} configurado{instances.length !== 1 ? 's' : ''}.
-                  {limitReached && (
-                    <span className="ml-2 text-amber-400">Limite do plano {planName} atingido.</span>
-                  )}
-                </>
-              )}
+              : `${instances.length} agente${instances.length !== 1 ? 's' : ''} configurado${instances.length !== 1 ? 's' : ''}.`}
           </p>
         </div>
         {instances.length > 0 && (
           <button
             onClick={onCreateAgent}
-            className={`rounded-lg px-5 py-2.5 text-sm font-display font-semibold uppercase tracking-wider flex items-center gap-2 transition-all ${
-              limitReached
-                ? 'bg-[#1a1a1a] text-neutral-400 hover:bg-[#222] border border-[#2a2a2a]'
-                : 'bg-accent text-white shadow-[0_0_20px_rgba(255,59,0,0.25)] hover:shadow-[0_0_30px_rgba(255,59,0,0.4)]'
-            }`}
+            className="rounded-lg px-5 py-2.5 text-sm font-display font-semibold uppercase tracking-wider flex items-center gap-2 transition-all bg-accent text-white shadow-[0_0_20px_rgba(255,59,0,0.25)] hover:shadow-[0_0_30px_rgba(255,59,0,0.4)]"
           >
-            <Plus size={14} /> {limitReached ? 'Fazer upgrade' : 'Novo agente'}
+            <Plus size={14} /> Novo agente
           </button>
         )}
       </header>

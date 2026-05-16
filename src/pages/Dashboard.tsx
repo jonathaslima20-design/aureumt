@@ -174,8 +174,6 @@ export function Dashboard({ onNavAdmin }: { onNavAdmin: () => void }) {
             personaMap={personaMap}
             exampleCounts={exampleCounts}
             connectionCounts={connectionCounts}
-            maxAgents={planLimits?.max_agents ?? null}
-            planName={planLimits?.plan_name ?? 'Free'}
           />
         );
 
