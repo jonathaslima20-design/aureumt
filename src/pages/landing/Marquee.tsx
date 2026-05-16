@@ -4,7 +4,7 @@ export function Marquee() {
   const repeated = [...items, ...items, ...items];
 
   return (
-    <section className="border-y border-white/5 bg-[#080808] py-10 overflow-hidden marquee-mask">
+    <section className="border-y border-white/5 bg-[#080808] py-5 md:py-10 overflow-hidden marquee-mask">
       <div className="animate-marquee w-[300%] flex items-center gap-24">
         {repeated.map((item, i) => (
           <span
