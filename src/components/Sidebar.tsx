@@ -1,9 +1,8 @@
 import { useState, useEffect } from 'react';
-import { LayoutDashboard, Link2, MessagesSquare, LogOut, Shield, Menu, X, Bot, Database, Sparkles, GraduationCap, Eye, EyeOff } from 'lucide-react';
+import { LayoutDashboard, Link2, MessagesSquare, LogOut, Shield, Menu, X, Bot, Database, Sparkles, GraduationCap } from 'lucide-react';
 import { Logo } from './Logo';
 import { NotificationsDropdown } from './NotificationsDropdown';
 import { useAuth } from '../context/AuthContext';
-import { useUIPreferences } from '../context/UIPreferencesContext';
 import { supabase } from '../lib/supabase';
 
 export type PageKey = 'overview' | 'agents' | 'templates' | 'connections' | 'knowledge' | 'training' | 'chat' | 'profile';
@@ -28,7 +27,6 @@ export function Sidebar({
   onNavAdmin?: () => void;
 }) {
   const { profile, signOut } = useAuth();
-  const { focusMode, setFocusMode } = useUIPreferences();
   const [openMobile, setOpenMobile] = useState(false);
   const [userPlanName, setUserPlanName] = useState<string | null>(null);
 
@@ -88,18 +86,6 @@ export function Sidebar({
             </button>
           );
         })}
-
-        <button
-          onClick={() => setFocusMode(!focusMode)}
-          className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-all duration-150 ${
-            focusMode
-              ? 'bg-white/[0.08] text-white border border-white/[0.08]'
-              : 'text-neutral-500 hover:text-neutral-200 hover:bg-white/[0.04] border border-transparent'
-          }`}
-        >
-          {focusMode ? <Eye size={15} strokeWidth={1.6} className="text-accent" /> : <EyeOff size={15} strokeWidth={1.6} />}
-          <span className="font-medium">{focusMode ? 'Modo Focado' : 'Modo Focado'}</span>
-        </button>
       </nav>
 
       <div className="p-3 relative z-10 space-y-1">
