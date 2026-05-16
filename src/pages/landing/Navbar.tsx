@@ -50,10 +50,6 @@ export function Navbar({ onLogin }: NavbarProps) {
         </div>
 
         <div className="hidden md:flex items-center gap-4">
-          <div className="flex items-center gap-2">
-            <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
-            <span className="font-mono text-[9px] text-green-500 tracking-[0.2em]">PLATFORM ONLINE</span>
-          </div>
           <button
             onClick={onLogin}
             className="bg-white text-black px-6 py-2 text-[10px] font-bold uppercase tracking-widest rounded hover:bg-accent hover:text-white transition-all duration-300"
