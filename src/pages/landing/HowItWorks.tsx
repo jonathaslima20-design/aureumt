@@ -44,7 +44,7 @@ export function HowItWorks() {
           {steps.map((step) => (
             <div
               key={step.number}
-              className="border border-white/5 rounded-3xl p-8 hover:bg-white/[0.03] transition-all duration-300 group"
+              className="step-card border border-white/5 rounded-3xl p-8 group"
             >
               <span className="font-mono text-4xl text-accent/80 block mb-6">
                 {step.number}
