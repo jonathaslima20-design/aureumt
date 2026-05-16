@@ -55,20 +55,20 @@ export function Navbar({ onLogin }: NavbarProps) {
       </div>
 
       {menuOpen && (
-        <div className="md:hidden fixed inset-0 top-20 bg-background/95 backdrop-blur-2xl z-40 flex flex-col items-center justify-center gap-8">
+        <div className="md:hidden fixed inset-0 top-20 bg-background/95 backdrop-blur-2xl z-40 flex flex-col items-center justify-start pt-14 gap-5">
           {navLinks.map((link) => (
             <a
               key={link.href}
               href={link.href}
               onClick={() => setMenuOpen(false)}
-              className="text-3xl font-display font-bold text-white/80 hover:text-accent transition-colors uppercase tracking-tight"
+              className="text-lg font-display font-bold text-white/80 hover:text-accent transition-colors uppercase tracking-tight"
             >
               {link.label}
             </a>
           ))}
           <button
             onClick={() => { setMenuOpen(false); onLogin(); }}
-            className="mt-4 bg-accent text-white px-8 py-3 text-sm font-bold uppercase tracking-widest rounded"
+            className="mt-2 bg-accent text-white px-8 py-3 text-sm font-bold uppercase tracking-widest rounded"
           >
             LOGIN
           </button>
