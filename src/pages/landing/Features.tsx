@@ -172,7 +172,7 @@ function SpotlightCard({ feature }: { feature: FeatureItem }) {
 
 export function Features() {
   return (
-    <section id="features" className="py-16 md:py-32 px-6">
+    <section id="features" className="py-10 md:py-32 px-6">
       <div className="max-w-7xl mx-auto">
         <div className="text-center mb-16 space-y-3">
           <span className="font-mono text-[11px] tracking-[0.4em] uppercase text-accent">
