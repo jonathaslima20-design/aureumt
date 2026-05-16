@@ -140,7 +140,6 @@ export function OverviewPage({ instance }: { instance: Instance | null }) {
         <div>
           <span className="font-mono text-[11px] tracking-[0.3em] uppercase text-accent block mb-1">DASHBOARD</span>
           <h1 className="font-display font-bold text-xl tracking-tighter text-white uppercase">Visao Geral</h1>
-          <p className="text-sm text-neutral-500 mt-2">{instance.instance_name}</p>
         </div>
         <div className="flex gap-1 glass rounded-lg p-1">
           {(['7d', '30d'] as PeriodKey[]).map((p) => (

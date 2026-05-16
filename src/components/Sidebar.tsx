@@ -64,16 +64,8 @@ export function Sidebar({
         aria-hidden="true"
       />
 
-      <div className="px-5 pt-5 pb-3 relative z-10">
-        <Logo size="sm" />
-        <div className="flex items-center gap-1.5 mt-3">
-          <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
-          <span className="font-mono text-[8px] text-green-500 tracking-[0.2em] uppercase">PLATFORM ONLINE</span>
-        </div>
-      </div>
-
-      <div className="px-4 mb-1 relative z-10">
-        <span className="font-mono text-[9px] text-neutral-600 tracking-[0.2em] uppercase">NAVEGACAO</span>
+      <div className="px-5 pt-5 pb-4 relative z-10">
+        <Logo size="md" />
       </div>
 
       <nav className="flex-1 py-1 px-3 space-y-0.5 relative z-10">
