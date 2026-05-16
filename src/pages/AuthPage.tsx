@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Logo } from '../components/Logo';
 import { useAuth } from '../context/AuthContext';
-import { ArrowLeft, ArrowRight, Loader2 } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Loader2, Eye, EyeOff } from 'lucide-react';
 
 interface AuthPageProps {
   onBack?: () => void;
@@ -12,12 +12,29 @@ export function AuthPage({ onBack }: AuthPageProps) {
   const [mode, setMode] = useState<'signin' | 'signup'>('signin');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+
+  const switchMode = (newMode: 'signin' | 'signup') => {
+    setMode(newMode);
+    setConfirmPassword('');
+    setShowPassword(false);
+    setShowConfirmPassword(false);
+    setError(null);
+  };
 
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
+
+    if (mode === 'signup' && password !== confirmPassword) {
+      setError('As senhas nao coincidem.');
+      return;
+    }
+
     setLoading(true);
     const res = mode === 'signin' ? await signIn(email, password) : await signUp(email, password);
     if (res.error) setError(res.error);
@@ -79,16 +96,49 @@ export function AuthPage({ onBack }: AuthPageProps) {
 
           <div>
             <label className="font-mono text-[10px] uppercase tracking-[0.2em] text-neutral-500 mb-2 block">SENHA</label>
-            <input
-              type="password"
-              required
-              minLength={6}
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="w-full bg-white/[0.04] border border-white/[0.08] rounded-lg px-4 py-3 text-sm text-white focus:outline-none focus:border-accent/40 transition-colors backdrop-blur-sm"
-              placeholder="Minimo de 6 caracteres"
-            />
+            <div className="relative">
+              <input
+                type={showPassword ? 'text' : 'password'}
+                required
+                minLength={6}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className="w-full bg-white/[0.04] border border-white/[0.08] rounded-lg px-4 py-3 pr-11 text-sm text-white focus:outline-none focus:border-accent/40 transition-colors backdrop-blur-sm"
+                placeholder="Minimo de 6 caracteres"
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-500 hover:text-white transition-colors"
+              >
+                {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+              </button>
+            </div>
           </div>
+
+          {mode === 'signup' && (
+            <div>
+              <label className="font-mono text-[10px] uppercase tracking-[0.2em] text-neutral-500 mb-2 block">CONFIRMAR SENHA</label>
+              <div className="relative">
+                <input
+                  type={showConfirmPassword ? 'text' : 'password'}
+                  required
+                  minLength={6}
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  className="w-full bg-white/[0.04] border border-white/[0.08] rounded-lg px-4 py-3 pr-11 text-sm text-white focus:outline-none focus:border-accent/40 transition-colors backdrop-blur-sm"
+                  placeholder="Repita sua senha"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-500 hover:text-white transition-colors"
+                >
+                  {showConfirmPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                </button>
+              </div>
+            </div>
+          )}
 
           {error && (
             <div className="text-xs text-red-400 bg-red-950/30 border border-red-900/40 rounded-lg px-3 py-2">
@@ -115,7 +165,7 @@ export function AuthPage({ onBack }: AuthPageProps) {
         <div className="mt-6 text-center text-sm text-neutral-500">
           {mode === 'signin' ? 'Ainda nao tem uma conta?' : 'Ja possui uma conta?'}{' '}
           <button
-            onClick={() => setMode(mode === 'signin' ? 'signup' : 'signin')}
+            onClick={() => switchMode(mode === 'signin' ? 'signup' : 'signin')}
             className="text-accent hover:text-white transition-colors font-medium"
           >
             {mode === 'signin' ? 'Cadastre-se' : 'Entrar'}
