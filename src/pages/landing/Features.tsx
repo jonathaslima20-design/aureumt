@@ -1,5 +1,5 @@
 import { useRef, useCallback } from 'react';
-import { Users, Layers, Database, ArrowRightLeft, BarChart3, Heart } from 'lucide-react';
+import { Fingerprint, Layers, Database, ArrowRightLeft, BarChart3, Heart } from 'lucide-react';
 
 interface FeatureItem {
   id: string;
@@ -13,7 +13,7 @@ interface FeatureItem {
 const features: FeatureItem[] = [
   {
     id: 'personality',
-    icon: Users,
+    icon: Fingerprint,
     title: 'AGENTES COM PERSONALIDADE',
     description: 'Defina tom de voz, formalidade, girias regionais e padrao de comunicacao. Cada agente reflete a identidade da sua marca de forma unica.',
     span: 'col-span-1 sm:col-span-2 row-span-2',
