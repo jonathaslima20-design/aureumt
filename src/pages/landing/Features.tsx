@@ -70,25 +70,62 @@ function SpotlightCard({ feature }: { feature: FeatureItem }) {
     cardRef.current.style.setProperty('--y', `${y}px`);
   }, []);
 
+  const isPersonality = feature.id === 'personality';
+
   return (
     <div
       ref={cardRef}
       onMouseMove={handleMouseMove}
-      className={`spotlight glass rounded-3xl p-6 sm:p-8 ${feature.span} flex flex-col justify-between group hover:border-white/10 transition-colors`}
+      className={`spotlight glass rounded-3xl p-6 sm:p-8 ${feature.span} flex flex-col justify-between group hover:border-white/10 transition-all ${isPersonality ? 'personality-card hover:scale-[1.01]' : ''}`}
     >
       <div>
-        <feature.icon
-          size={feature.span.includes('row-span-2') ? 28 : 20}
-          className="text-accent mb-4"
-          strokeWidth={1.5}
-        />
+        {isPersonality ? (
+          <div className="w-10 h-10 rounded-xl bg-accent/10 flex items-center justify-center mb-4 icon-glow">
+            <feature.icon size={22} className="text-accent" strokeWidth={1.5} />
+          </div>
+        ) : (
+          <feature.icon
+            size={20}
+            className="text-accent mb-4"
+            strokeWidth={1.5}
+          />
+        )}
         <h3 className="font-display font-semibold text-base sm:text-lg uppercase tracking-wider text-white mb-3">
           {feature.title}
         </h3>
+        {isPersonality && (
+          <div className="w-10 h-0.5 bg-accent/40 rounded-full mb-3" />
+        )}
         <p className="text-sm sm:text-base text-gray-500 leading-relaxed">
           {feature.description}
         </p>
       </div>
+
+      {isPersonality && (
+        <div className="mt-4 space-y-2.5">
+          <div className="flex justify-start chat-bubble-1">
+            <div className="max-w-[75%] rounded-2xl rounded-bl-md px-3.5 py-2 bg-white/[0.04] border border-white/[0.06]">
+              <p className="text-[11px] text-gray-400 leading-relaxed font-mono">
+                Ola, preciso de ajuda com meu pedido
+              </p>
+            </div>
+          </div>
+          <div className="flex justify-end chat-bubble-2">
+            <div className="max-w-[75%] rounded-2xl rounded-br-md px-3.5 py-2 bg-accent/[0.08] border border-accent/20">
+              <p className="text-[11px] text-gray-300 leading-relaxed font-mono">
+                Oi! Claro, me passa o numero do pedido que resolvo pra voce rapidinho 😊
+              </p>
+            </div>
+          </div>
+          <div className="flex justify-start chat-bubble-3">
+            <div className="flex items-center gap-1 px-3.5 py-2 rounded-2xl rounded-bl-md bg-white/[0.04] border border-white/[0.06]">
+              <span className="typing-dot w-1.5 h-1.5 rounded-full bg-gray-500" />
+              <span className="typing-dot w-1.5 h-1.5 rounded-full bg-gray-500" style={{ animationDelay: '0.15s' }} />
+              <span className="typing-dot w-1.5 h-1.5 rounded-full bg-gray-500" style={{ animationDelay: '0.3s' }} />
+            </div>
+          </div>
+        </div>
+      )}
 
       {feature.extra === 'knowledge' && (
         <div className="mt-4 space-y-1 font-mono text-[11px] text-gray-600">
