@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react';
-import { Check, Loader2, Star, ArrowRight, QrCode, CreditCard, Clock } from 'lucide-react';
+import { Loader2, QrCode, CreditCard, Clock } from 'lucide-react';
 import { supabase, Plan, UserPlan } from '../../lib/supabase';
 import { useAuth } from '../../context/AuthContext';
 import { CheckoutPage } from './CheckoutPage';
+import { PlanCard } from '../../components/PlanCard';
 
 type BillingCycle = 'monthly' | 'semiannual' | 'annual';
 
@@ -34,12 +35,6 @@ const CYCLE_LABELS: Record<BillingCycle, string> = {
 
 function formatPrice(price: number): string {
   return price.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
-}
-
-function installmentInfo(cycle: BillingCycle, price: number): string | null {
-  if (cycle === 'semiannual') return `ou 6x de ${formatPrice(price / 6)}`;
-  if (cycle === 'annual') return `ou 12x de ${formatPrice(price / 12)}`;
-  return null;
 }
 
 export function PlansPage() {
@@ -91,15 +86,7 @@ export function PlansPage() {
     })();
   }, [profile?.id]);
 
-  const getPrice = (plan: Plan, c: BillingCycle): number => {
-    if (c === 'semiannual') return plan.price_semiannual;
-    if (c === 'annual') return plan.price_annual;
-    return plan.price_monthly;
-  };
-
-  const isCurrentPlan = (planId: string): boolean => {
-    return userPlan?.plan_id === planId;
-  };
+  const isCurrentPlan = (planId: string): boolean => userPlan?.plan_id === planId;
 
   if (loading) {
     return (
@@ -126,7 +113,12 @@ export function PlansPage() {
   return (
     <div className="space-y-6 sm:space-y-8">
       <div className="text-center max-w-2xl mx-auto px-2">
-        <h1 className="text-xl sm:text-2xl font-semibold text-white tracking-tight">Planos</h1>
+        <span className="font-mono text-[11px] tracking-[0.4em] uppercase text-accent block mb-2">
+          INVESTIMENTO
+        </span>
+        <h1 className="font-display font-bold text-xl sm:text-2xl tracking-tighter text-white uppercase">
+          Dimensione sua operacao.
+        </h1>
         <p className="text-xs sm:text-sm text-neutral-500 mt-2 leading-relaxed">
           Escolha o plano ideal para o seu negocio. Todos incluem suporte e atualizacoes.
         </p>
@@ -157,80 +149,17 @@ export function PlansPage() {
       </div>
 
       {/* Plans grid */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-3 sm:gap-4 max-w-5xl mx-auto">
-        {plans.map((plan) => {
-          const price = getPrice(plan, cycle);
-          const isCurrent = isCurrentPlan(plan.id);
-          const installment = installmentInfo(cycle, price);
-
-          return (
-            <div
-              key={plan.id}
-              className={`relative rounded-2xl border p-4 sm:p-6 flex flex-col transition-all ${
-                plan.highlight
-                  ? 'border-white/20 bg-[#0d0d0d] shadow-[0_0_40px_-12px_rgba(255,255,255,0.1)]'
-                  : 'border-[#1a1a1a] bg-[#0a0a0a] hover:border-[#262626]'
-              }`}
-            >
-              {plan.highlight && (
-                <div className="absolute -top-3 left-1/2 -translate-x-1/2">
-                  <span className="inline-flex items-center gap-1 bg-white text-black text-[10px] font-semibold uppercase tracking-wider px-3 py-1 rounded-full">
-                    <Star size={10} className="fill-current" /> Recomendado
-                  </span>
-                </div>
-              )}
-
-              <div className="mb-4">
-                <h3 className="text-lg font-semibold text-white">{plan.name}</h3>
-                <p className="text-xs text-neutral-500 mt-1 leading-relaxed">{plan.description}</p>
-              </div>
-
-              <div className="mb-6">
-                <div className="flex items-baseline gap-1">
-                  <span className="text-3xl font-bold text-white tracking-tight">
-                    {formatPrice(price)}
-                  </span>
-                  <span className="text-xs text-neutral-500">
-                    /{cycle === 'monthly' ? 'mes' : cycle === 'semiannual' ? 'sem' : 'ano'}
-                  </span>
-                </div>
-                {installment && (
-                  <p className="text-[11px] text-neutral-500 mt-1">{installment}</p>
-                )}
-              </div>
-
-              <ul className="space-y-2.5 mb-6 flex-1">
-                {(plan.features || []).map((feature, i) => (
-                  <li key={i} className="flex items-start gap-2 text-sm text-neutral-300">
-                    <Check size={14} className="text-emerald-400 mt-0.5 shrink-0" />
-                    <span>{feature}</span>
-                  </li>
-                ))}
-              </ul>
-
-              {isCurrent ? (
-                <div className="w-full py-3 rounded-xl text-center text-sm font-medium border border-emerald-900/40 bg-emerald-950/20 text-emerald-400">
-                  Plano Atual
-                </div>
-              ) : price > 0 ? (
-                <button
-                  onClick={() => setCheckout({ plan, cycle })}
-                  className={`w-full py-3 rounded-xl text-center text-sm font-medium flex items-center justify-center gap-2 transition-colors ${
-                    plan.highlight
-                      ? 'bg-white text-black hover:bg-neutral-200'
-                      : 'border border-[#2a2a2a] text-white hover:bg-[#141414] hover:border-[#3a3a3a]'
-                  }`}
-                >
-                  Assinar agora <ArrowRight size={13} />
-                </button>
-              ) : (
-                <div className="w-full py-3 rounded-xl text-center text-sm font-medium border border-[#1a1a1a] text-neutral-600">
-                  Em breve
-                </div>
-              )}
-            </div>
-          );
-        })}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 max-w-5xl mx-auto">
+        {plans.map((plan) => (
+          <PlanCard
+            key={plan.id}
+            plan={plan}
+            cycle={cycle}
+            isCurrent={isCurrentPlan(plan.id)}
+            onAction={() => setCheckout({ plan, cycle })}
+            actionLabel="ASSINAR AGORA"
+          />
+        ))}
       </div>
 
       {userPlan?.plan && (
