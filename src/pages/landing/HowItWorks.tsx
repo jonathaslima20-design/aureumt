@@ -46,7 +46,7 @@ export function HowItWorks() {
               key={step.number}
               className="border border-white/5 rounded-3xl p-8 hover:bg-white/[0.03] transition-all duration-300 group"
             >
-              <span className="font-mono text-4xl text-accent/40 block mb-6">
+              <span className="font-mono text-4xl text-accent/80 block mb-6">
                 {step.number}
               </span>
               <step.icon
