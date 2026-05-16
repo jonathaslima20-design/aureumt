@@ -223,30 +223,46 @@ Deno.serve(async (req) => {
         return json(res.json, 200);
       }
 
-      case "fetchProfilePicture": {
+      case "fetchProfilePicture":
+      case "fetchContactInfo": {
         if (!number) return json({ error: "Missing number" }, 400);
         const clean = String(number).replace(/@.*/, "");
-        const res = await evoFetch(creds, `/chat/fetchProfilePictureUrl/${evoName}`, {
-          method: "POST",
-          body: JSON.stringify({ number: clean }),
-        });
-        const picData = res.json as { profilePictureUrl?: string } | null;
+
+        const [picRes, contactRes] = await Promise.all([
+          evoFetch(creds, `/chat/fetchProfilePictureUrl/${evoName}`, {
+            method: "POST",
+            body: JSON.stringify({ number: clean }),
+          }),
+          evoFetch(creds, `/chat/findContacts/${evoName}`, {
+            method: "POST",
+            body: JSON.stringify({ where: { id: `${clean}@s.whatsapp.net` } }),
+          }),
+        ]);
+
+        const picData = picRes.json as { profilePictureUrl?: string } | null;
         const pictureUrl = picData?.profilePictureUrl || null;
 
+        const contactArr = contactRes.json as Array<{ pushName?: string; profilePictureUrl?: string }> | null;
+        const contactData = Array.isArray(contactArr) ? contactArr[0] : null;
+        const contactName = contactData?.pushName || null;
+        const contactPicFallback = contactData?.profilePictureUrl || null;
+        const finalPicture = pictureUrl || contactPicFallback;
+
         if (agentInstanceId) {
+          const upsertData: Record<string, unknown> = {
+            instance_id: agentInstanceId,
+            customer_number: clean,
+            profile_picture_url: finalPicture,
+            profile_picture_fetched_at: new Date().toISOString(),
+          };
+          if (contactName) {
+            upsertData.contact_name = contactName;
+          }
           await admin
             .from("conversation_states")
-            .upsert(
-              {
-                instance_id: agentInstanceId,
-                customer_number: clean,
-                profile_picture_url: pictureUrl,
-                profile_picture_fetched_at: new Date().toISOString(),
-              },
-              { onConflict: "instance_id,customer_number" }
-            );
+            .upsert(upsertData, { onConflict: "instance_id,customer_number" });
         }
-        return json({ profilePictureUrl: pictureUrl });
+        return json({ profilePictureUrl: finalPicture, contactName });
       }
 
       case "setManualOverride": {

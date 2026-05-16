@@ -294,31 +294,34 @@ export function ChatPage({ instance, instances, onBack }: { instance: Instance; 
   }, [instance.id]);
 
   // ────────────────────────────────────────────────────────────────────────
-  // Profile picture fetcher: fetch pictures for contacts without a cached URL
-  const fetchingPicsRef = useRef(new Set<string>());
+  // Contact info fetcher: fetch profile picture + name for contacts without cached data
+  const fetchingInfoRef = useRef(new Set<string>());
   useEffect(() => {
     if (loadingContacts || contacts.length === 0) return;
     const toFetch = contacts.filter((c) => {
-      if (fetchingPicsRef.current.has(c.number)) return false;
-      if (c.profilePictureUrl) return false;
+      if (fetchingInfoRef.current.has(c.number)) return false;
+      if (c.profilePictureUrl && c.name) return false;
       return true;
     }).slice(0, 5);
 
     if (toFetch.length === 0) return;
-    toFetch.forEach((c) => fetchingPicsRef.current.add(c.number));
+    toFetch.forEach((c) => fetchingInfoRef.current.add(c.number));
 
     toFetch.forEach(async (c) => {
       try {
-        const result = await evolution.fetchProfilePicture(instance.id, c.number);
-        if (result.profilePictureUrl) {
+        const result = await evolution.fetchContactInfo(instance.id, c.number);
+        const updates: Partial<ContactSummary> = {};
+        if (result.profilePictureUrl) updates.profilePictureUrl = result.profilePictureUrl;
+        if (result.contactName && !c.name) updates.name = result.contactName;
+        if (Object.keys(updates).length > 0) {
           setContacts((prev) => prev.map((x) =>
-            x.number === c.number ? { ...x, profilePictureUrl: result.profilePictureUrl } : x
+            x.number === c.number ? { ...x, ...updates } : x
           ));
         }
       } catch {
-        // silently ignore - contact may not have a profile picture
+        // silently ignore - contact may not have info available
       } finally {
-        fetchingPicsRef.current.delete(c.number);
+        fetchingInfoRef.current.delete(c.number);
       }
     });
   }, [contacts, loadingContacts, instance.id]);
