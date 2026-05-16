@@ -26,7 +26,7 @@ export function Navbar({ onLogin }: NavbarProps) {
   }, [menuOpen]);
 
   const navLinks = [
-    { label: 'O QUE E', href: '#solucao' },
+    { label: 'COMO FUNCIONA', href: '#solucao' },
     { label: 'RECURSOS', href: '#features' },
     { label: 'SETUP', href: '#como-funciona' },
     { label: 'PLANOS', href: '#pricing' },
