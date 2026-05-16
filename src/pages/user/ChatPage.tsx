@@ -149,7 +149,7 @@ export function ChatPage({ instance, instances, onBack }: { instance: Instance; 
         .limit(800),
       supabase
         .from('conversation_states')
-        .select('customer_number, manual_override, contact_name, is_pinned, is_archived, unread_count, last_seen_at')
+        .select('customer_number, manual_override, contact_name, is_pinned, is_archived, unread_count, last_seen_at, profile_picture_url, profile_picture_fetched_at')
         .eq('instance_id', instance.id),
       supabase
         .from('contact_labels')
@@ -160,14 +160,18 @@ export function ChatPage({ instance, instances, onBack }: { instance: Instance; 
     const stateMap = new Map<string, {
       manual: boolean; name: string | null;
       pinned: boolean; archived: boolean; unread: number; last_seen_at: string;
+      profilePictureUrl: string | null; profilePictureFetchedAt: string | null;
     }>();
     (statesRes.data || []).forEach((s: {
       customer_number: string; manual_override: boolean; contact_name: string | null;
       is_pinned: boolean; is_archived: boolean; unread_count: number; last_seen_at: string;
+      profile_picture_url: string | null; profile_picture_fetched_at: string | null;
     }) => stateMap.set(s.customer_number, {
       manual: s.manual_override, name: s.contact_name,
       pinned: s.is_pinned, archived: s.is_archived, unread: s.unread_count,
       last_seen_at: s.last_seen_at,
+      profilePictureUrl: s.profile_picture_url,
+      profilePictureFetchedAt: s.profile_picture_fetched_at,
     }));
 
     const labelMap = new Map<string, ContactLabel[]>();
@@ -191,6 +195,7 @@ export function ChatPage({ instance, instances, onBack }: { instance: Instance; 
           archived: state?.archived ?? false,
           unread: state?.unread ?? 0,
           labels: labelMap.get(row.customer_number) || [],
+          profilePictureUrl: state?.profilePictureUrl ?? null,
         });
       }
     }
@@ -254,6 +259,7 @@ export function ChatPage({ instance, instances, onBack }: { instance: Instance; 
               archived: false,
               unread: row.direction === 'in' ? 1 : 0,
               labels: [],
+              profilePictureUrl: null,
             });
           }
           return next.sort((a, b) => {
@@ -286,6 +292,36 @@ export function ChatPage({ instance, instances, onBack }: { instance: Instance; 
     return () => { supabase.removeChannel(channel); };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [instance.id]);
+
+  // ────────────────────────────────────────────────────────────────────────
+  // Profile picture fetcher: fetch pictures for contacts without a cached URL
+  const fetchingPicsRef = useRef(new Set<string>());
+  useEffect(() => {
+    if (loadingContacts || contacts.length === 0) return;
+    const toFetch = contacts.filter((c) => {
+      if (fetchingPicsRef.current.has(c.number)) return false;
+      if (c.profilePictureUrl) return false;
+      return true;
+    }).slice(0, 5);
+
+    if (toFetch.length === 0) return;
+    toFetch.forEach((c) => fetchingPicsRef.current.add(c.number));
+
+    toFetch.forEach(async (c) => {
+      try {
+        const result = await evolution.fetchProfilePicture(instance.id, c.number);
+        if (result.profilePictureUrl) {
+          setContacts((prev) => prev.map((x) =>
+            x.number === c.number ? { ...x, profilePictureUrl: result.profilePictureUrl } : x
+          ));
+        }
+      } catch {
+        // silently ignore - contact may not have a profile picture
+      } finally {
+        fetchingPicsRef.current.delete(c.number);
+      }
+    });
+  }, [contacts, loadingContacts, instance.id]);
 
   // ────────────────────────────────────────────────────────────────────────
   // Message search (full-text)
@@ -880,7 +916,7 @@ export function ChatPage({ instance, instances, onBack }: { instance: Instance; 
                 <X size={16} />
               </button>
             )}
-            <Avatar name={selectedContact?.name ?? null} number={selected} size={36} />
+            <Avatar name={selectedContact?.name ?? null} number={selected} size={36} imageUrl={selectedContact?.profilePictureUrl} />
             <div className="min-w-0 flex-1">
               <div className="flex items-center gap-2 flex-wrap">
                 <div className="text-sm text-white font-medium truncate">
@@ -976,6 +1012,7 @@ export function ChatPage({ instance, instances, onBack }: { instance: Instance; 
                     quoted={quoted}
                     isUnreadDivider={m.id === unreadDividerId}
                     isTrainingExample={!!m.is_training_example}
+                    contactPictureUrl={selectedContact?.profilePictureUrl}
                     onReply={(msg) => { setReplyTo(msg); composeRef.current?.focus(); }}
                     onImage={openImage}
                     onQuoteClick={scrollToMessage}

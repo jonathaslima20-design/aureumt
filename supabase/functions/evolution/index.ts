@@ -223,6 +223,32 @@ Deno.serve(async (req) => {
         return json(res.json, 200);
       }
 
+      case "fetchProfilePicture": {
+        if (!number) return json({ error: "Missing number" }, 400);
+        const clean = String(number).replace(/@.*/, "");
+        const res = await evoFetch(creds, `/chat/fetchProfilePictureUrl/${evoName}`, {
+          method: "POST",
+          body: JSON.stringify({ number: clean }),
+        });
+        const picData = res.json as { profilePictureUrl?: string } | null;
+        const pictureUrl = picData?.profilePictureUrl || null;
+
+        if (agentInstanceId) {
+          await admin
+            .from("conversation_states")
+            .upsert(
+              {
+                instance_id: agentInstanceId,
+                customer_number: clean,
+                profile_picture_url: pictureUrl,
+                profile_picture_fetched_at: new Date().toISOString(),
+              },
+              { onConflict: "instance_id,customer_number" }
+            );
+        }
+        return json({ profilePictureUrl: pictureUrl });
+      }
+
       case "setManualOverride": {
         if (!number) return json({ error: "Missing number" }, 400);
         const clean = String(number).replace(/@.*/, "");

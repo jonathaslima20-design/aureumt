@@ -11,6 +11,7 @@ type Props = {
   quoted: ChatLog | null;
   isUnreadDivider: boolean;
   isTrainingExample?: boolean;
+  contactPictureUrl?: string | null;
   onReply: (m: ChatLog) => void;
   onImage: (url: string) => void;
   onQuoteClick: (id: string) => void;
@@ -34,6 +35,7 @@ function MessageBubbleComp({
   quoted,
   isUnreadDivider,
   isTrainingExample,
+  contactPictureUrl,
   onReply,
   onImage,
   onQuoteClick,
@@ -97,9 +99,18 @@ function MessageBubbleComp({
         className={`group flex gap-2 ${isIn ? 'justify-start' : 'justify-end'}`}
       >
         {isIn && (
-          <div className="w-6 h-6 rounded-full bg-[#141414] border border-[#242424] flex items-center justify-center shrink-0">
-            <User size={11} className="text-neutral-500" />
-          </div>
+          contactPictureUrl ? (
+            <img
+              src={contactPictureUrl}
+              alt=""
+              className="w-6 h-6 rounded-full object-cover shrink-0"
+              loading="lazy"
+            />
+          ) : (
+            <div className="w-6 h-6 rounded-full bg-[#141414] border border-[#242424] flex items-center justify-center shrink-0">
+              <User size={11} className="text-neutral-500" />
+            </div>
+          )
         )}
 
         <div className="flex flex-col max-w-[75%] min-w-0">

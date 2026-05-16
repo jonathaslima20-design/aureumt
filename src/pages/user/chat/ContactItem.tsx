@@ -14,6 +14,7 @@ export type ContactSummary = {
   archived: boolean;
   unread: number;
   labels: ContactLabel[];
+  profilePictureUrl: string | null;
 };
 
 type Props = {
@@ -59,7 +60,7 @@ function ContactItemComp({
       }`}
     >
       <div className="flex items-start gap-2.5">
-        <Avatar name={c.name} number={c.number} size={36} />
+        <Avatar name={c.name} number={c.number} size={36} imageUrl={c.profilePictureUrl} />
         <div className="min-w-0 flex-1">
           <div className="flex items-center justify-between gap-2 mb-0.5">
             <div className="flex items-center gap-1.5 min-w-0">

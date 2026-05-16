@@ -33,4 +33,6 @@ export const evolution = {
     call('sendMessage', { instanceId, number, text }),
   setManualOverride: (instanceId: string, number: string, manual: boolean) =>
     call('setManualOverride', { instanceId, number, manual }),
+  fetchProfilePicture: (instanceId: string, number: string) =>
+    call('fetchProfilePicture', { instanceId, number }) as Promise<{ profilePictureUrl: string | null }>,
 };
