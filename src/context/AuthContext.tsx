@@ -7,14 +7,14 @@ type AuthContextType = {
   profile: Profile | null;
   loading: boolean;
   signIn: (email: string, password: string) => Promise<{ error: string | null }>;
-  signUp: (email: string, password: string) => Promise<{ error: string | null }>;
+  signUp: (email: string, password: string, fullName?: string) => Promise<{ error: string | null }>;
   signOut: () => Promise<void>;
   refreshProfile: () => Promise<void>;
 };
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-async function ensureProfile(userId: string, email: string): Promise<Profile | null> {
+async function ensureProfile(userId: string, email: string, fullName?: string): Promise<Profile | null> {
   const { data: existing, error: selErr } = await supabase
     .from('profiles')
     .select('*')
@@ -24,14 +24,18 @@ async function ensureProfile(userId: string, email: string): Promise<Profile | n
   if (existing) return existing;
   if (selErr) {
     console.error('profile select error', selErr);
-    // Do NOT fall through to insert when select fails — that could overwrite
-    // an existing row (e.g. an admin profile) with default values.
     return null;
   }
 
   const { data: created, error: insErr } = await supabase
     .from('profiles')
-    .insert({ id: userId, email, role: 'user', plan_status: 'trial' })
+    .insert({
+      id: userId,
+      email,
+      role: 'user',
+      plan_status: 'trial',
+      full_name: fullName || null,
+    })
     .select()
     .maybeSingle();
 
@@ -68,7 +72,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (!session?.user) return;
     let cancelled = false;
     (async () => {
-      const p = await ensureProfile(session.user.id, session.user.email || '');
+      const metaName = session.user.user_metadata?.full_name as string | undefined;
+      const p = await ensureProfile(session.user.id, session.user.email || '', metaName);
       if (cancelled) return;
       setProfile(p);
       setLoading(false);
@@ -83,8 +88,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return { error: error?.message || null };
   };
 
-  const signUp = async (email: string, password: string) => {
-    const { error } = await supabase.auth.signUp({ email, password });
+  const signUp = async (email: string, password: string, fullName?: string) => {
+    const { error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: fullName ? { data: { full_name: fullName } } : undefined,
+    });
     return { error: error?.message || null };
   };
 

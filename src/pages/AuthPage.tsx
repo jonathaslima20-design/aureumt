@@ -10,6 +10,7 @@ interface AuthPageProps {
 export function AuthPage({ onBack }: AuthPageProps) {
   const { signIn, signUp } = useAuth();
   const [mode, setMode] = useState<'signin' | 'signup'>('signin');
+  const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -20,6 +21,7 @@ export function AuthPage({ onBack }: AuthPageProps) {
 
   const switchMode = (newMode: 'signin' | 'signup') => {
     setMode(newMode);
+    setFullName('');
     setConfirmPassword('');
     setShowPassword(false);
     setShowConfirmPassword(false);
@@ -30,13 +32,20 @@ export function AuthPage({ onBack }: AuthPageProps) {
     e.preventDefault();
     setError(null);
 
+    if (mode === 'signup' && !fullName.trim()) {
+      setError('Informe seu nome completo.');
+      return;
+    }
+
     if (mode === 'signup' && password !== confirmPassword) {
       setError('As senhas nao coincidem.');
       return;
     }
 
     setLoading(true);
-    const res = mode === 'signin' ? await signIn(email, password) : await signUp(email, password);
+    const res = mode === 'signin'
+      ? await signIn(email, password)
+      : await signUp(email, password, fullName.trim());
     if (res.error) setError(res.error);
     setLoading(false);
   };
@@ -82,6 +91,20 @@ export function AuthPage({ onBack }: AuthPageProps) {
         </div>
 
         <form onSubmit={onSubmit} className="space-y-4">
+          {mode === 'signup' && (
+            <div>
+              <label className="font-mono text-[10px] uppercase tracking-[0.2em] text-neutral-500 mb-2 block">NOME COMPLETO</label>
+              <input
+                type="text"
+                required
+                value={fullName}
+                onChange={(e) => setFullName(e.target.value)}
+                className="w-full bg-white/[0.04] border border-white/[0.08] rounded-lg px-4 py-3 text-sm text-white focus:outline-none focus:border-accent/40 transition-colors backdrop-blur-sm"
+                placeholder="Seu nome completo"
+              />
+            </div>
+          )}
+
           <div>
             <label className="font-mono text-[10px] uppercase tracking-[0.2em] text-neutral-500 mb-2 block">E-MAIL</label>
             <input

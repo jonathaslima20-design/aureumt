@@ -6,7 +6,7 @@ import { useAuth } from '../context/AuthContext';
 import { useUIPreferences } from '../context/UIPreferencesContext';
 import { supabase } from '../lib/supabase';
 
-export type PageKey = 'overview' | 'agents' | 'templates' | 'connections' | 'knowledge' | 'training' | 'chat';
+export type PageKey = 'overview' | 'agents' | 'templates' | 'connections' | 'knowledge' | 'training' | 'chat' | 'profile';
 
 const ITEMS: { key: PageKey; label: string; icon: typeof LayoutDashboard }[] = [
   { key: 'overview', label: 'Visão Geral', icon: LayoutDashboard },
@@ -22,12 +22,10 @@ export function Sidebar({
   current,
   onChange,
   onNavAdmin,
-  onOpenPlans,
 }: {
   current: PageKey;
   onChange: (p: PageKey) => void;
   onNavAdmin?: () => void;
-  onOpenPlans?: () => void;
 }) {
   const { profile, signOut } = useAuth();
   const { focusMode, setFocusMode } = useUIPreferences();
@@ -46,8 +44,8 @@ export function Sidebar({
     })();
   }, [profile?.plan_id]);
 
-  const initial = (profile?.email || 'U').slice(0, 1).toUpperCase();
-  const handle = profile?.email?.split('@')[0] || 'Usuário';
+  const initial = (profile?.full_name || profile?.email || 'U').slice(0, 1).toUpperCase();
+  const displayName = profile?.full_name || profile?.email?.split('@')[0] || 'Usuario';
 
   const content = (
     <div className="flex flex-col h-full relative">
@@ -123,14 +121,18 @@ export function Sidebar({
         <div className="h-px bg-white/[0.06] mx-1" />
 
         <button
-          onClick={() => onOpenPlans?.()}
+          onClick={() => { onChange('profile'); setOpenMobile(false); }}
           className="w-full flex items-center gap-2.5 px-2 py-2.5 rounded-lg hover:bg-white/[0.04] transition-colors text-left"
         >
-          <div className="w-8 h-8 rounded-full bg-white/[0.06] border border-white/[0.08] flex items-center justify-center shrink-0">
-            <span className="text-xs font-medium text-neutral-300">{initial}</span>
+          <div className="w-8 h-8 rounded-full bg-white/[0.06] border border-white/[0.08] flex items-center justify-center shrink-0 overflow-hidden">
+            {profile?.avatar_url ? (
+              <img src={profile.avatar_url} alt="" className="w-full h-full object-cover" />
+            ) : (
+              <span className="text-xs font-medium text-neutral-300">{initial}</span>
+            )}
           </div>
           <div className="flex-1 min-w-0">
-            <div className="text-xs text-neutral-200 truncate font-medium">{handle}</div>
+            <div className="text-xs text-neutral-200 truncate font-medium">{displayName}</div>
             <div className="text-[10px] text-neutral-500 truncate font-mono">{profile?.email}</div>
           </div>
           <span className="font-mono text-[9px] uppercase tracking-[0.15em] font-semibold px-1.5 py-0.5 rounded bg-white/[0.06] text-accent border border-white/[0.08] shrink-0">

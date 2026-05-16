@@ -14,6 +14,7 @@ import { KnowledgePage } from './user/KnowledgePage';
 import { ChatPage } from './user/ChatPage';
 import { TemplateGalleryPage } from './user/TemplateGalleryPage';
 import { AgentTrainingPage } from './user/AgentTrainingPage';
+import { ProfilePage } from './user/ProfilePage';
 import { fetchUserPlanLimits, canCreateAgent, PlanLimits } from '../lib/planLimits';
 
 const STORAGE_KEY = 'auratalk:lastPage';
@@ -34,7 +35,7 @@ export function Dashboard({ onNavAdmin }: { onNavAdmin: () => void }) {
 
   const [page, setPage] = useState<PageKey>(() => {
     const saved = localStorage.getItem(STORAGE_KEY) as PageKey | null;
-    const valid: PageKey[] = ['overview', 'agents', 'templates', 'connections', 'knowledge', 'training', 'chat'];
+    const valid: PageKey[] = ['overview', 'agents', 'templates', 'connections', 'knowledge', 'training', 'chat', 'profile'];
     return saved && valid.includes(saved) ? saved : 'overview';
   });
 
@@ -225,6 +226,9 @@ export function Dashboard({ onNavAdmin }: { onNavAdmin: () => void }) {
           />
         );
 
+      case 'profile':
+        return <ProfilePage onOpenPlans={() => setShowPlans(true)} />;
+
       default:
         return null;
     }
@@ -232,7 +236,7 @@ export function Dashboard({ onNavAdmin }: { onNavAdmin: () => void }) {
 
   return (
     <div className="min-h-screen bg-[#050505]">
-      <Sidebar current={page} onChange={handlePageChange} onNavAdmin={onNavAdmin} onOpenPlans={() => setShowPlans(true)} />
+      <Sidebar current={page} onChange={handlePageChange} onNavAdmin={onNavAdmin} />
 
       <div className="lg:pl-60">
         <main className="px-4 sm:px-6 lg:px-10 py-6 pt-16 lg:pt-8 max-w-7xl mx-auto">
