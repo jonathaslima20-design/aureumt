@@ -3,11 +3,11 @@ export function Footer() {
     <footer className="border-t border-white/5 bg-[#050505] py-20 px-6">
       <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-8">
         <div className="text-center md:text-left space-y-2">
-          <span className="font-display font-bold text-xl tracking-tighter">
-            <span className="text-white">AURA</span>
-            <span className="text-accent">//</span>
-            <span className="text-white">TALK</span>
-          </span>
+          <img
+            src="/auratalk_logo_sem_fundo.png"
+            alt="AuraTalk"
+            className="h-8 w-auto object-contain"
+          />
           <p className="font-mono text-[9px] tracking-[0.2em] text-gray-600 uppercase">
             Agentes de IA para WhatsApp. Automacao Conversacional Deterministica.
           </p>
