@@ -23,6 +23,12 @@ export function Footer() {
           <a href="/politica-de-cookies" className="font-mono text-[9px] tracking-[0.2em] uppercase text-gray-500 hover:text-white transition-colors">
             COOKIES
           </a>
+          <button
+            onClick={() => window.dispatchEvent(new Event('open-cookie-preferences'))}
+            className="font-mono text-[9px] tracking-[0.2em] uppercase text-gray-500 hover:text-white transition-colors"
+          >
+            PREFERÊNCIAS DE COOKIES
+          </button>
           <a href="#" className="font-mono text-[9px] tracking-[0.2em] uppercase text-gray-500 hover:text-white transition-colors">
             API STATUS
           </a>

@@ -9,6 +9,7 @@ import { Dashboard } from './pages/Dashboard';
 import { AdminPanel } from './pages/AdminPanel';
 import { PlanSelectionPage } from './pages/PlanSelectionPage';
 import { CookiePolicy } from './pages/CookiePolicy';
+import { CookieConsent } from './components/CookieConsent';
 
 function Shell() {
   const { session, loading, profile } = useAuth();
@@ -115,6 +116,7 @@ function App() {
         <AuraBackground />
         <Shell />
         <NoiseOverlay />
+        <CookieConsent />
       </UIPreferencesProvider>
     </AuthProvider>
   );
