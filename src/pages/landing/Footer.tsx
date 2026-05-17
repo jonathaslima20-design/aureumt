@@ -20,6 +20,9 @@ export function Footer() {
           <a href="#" className="font-mono text-[9px] tracking-[0.2em] uppercase text-gray-500 hover:text-white transition-colors">
             PRIVACIDADE
           </a>
+          <a href="/politica-de-cookies" className="font-mono text-[9px] tracking-[0.2em] uppercase text-gray-500 hover:text-white transition-colors">
+            COOKIES
+          </a>
           <a href="#" className="font-mono text-[9px] tracking-[0.2em] uppercase text-gray-500 hover:text-white transition-colors">
             API STATUS
           </a>

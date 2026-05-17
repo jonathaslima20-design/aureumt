@@ -8,12 +8,18 @@ import { LandingPage } from './pages/LandingPage';
 import { Dashboard } from './pages/Dashboard';
 import { AdminPanel } from './pages/AdminPanel';
 import { PlanSelectionPage } from './pages/PlanSelectionPage';
+import { CookiePolicy } from './pages/CookiePolicy';
 
 function Shell() {
   const { session, loading, profile } = useAuth();
-  const [view, setView] = useState<'landing' | 'auth' | 'dashboard' | 'admin' | 'plan_selection' | null>(null);
+  const [view, setView] = useState<'landing' | 'auth' | 'dashboard' | 'admin' | 'plan_selection' | 'cookie_policy' | null>(null);
 
   useEffect(() => {
+    if (window.location.pathname === '/politica-de-cookies') {
+      setView('cookie_policy');
+      return;
+    }
+
     if (loading) return;
 
     if (!session) {
@@ -42,6 +48,10 @@ function Shell() {
         <Loader2 size={20} className="text-neutral-600 animate-spin" />
       </div>
     );
+  }
+
+  if (view === 'cookie_policy') {
+    return <CookiePolicy onBack={() => { window.history.pushState({}, '', '/'); setView('landing'); }} />;
   }
 
   if (view === 'landing' || (!session && view !== 'auth')) {
