@@ -61,7 +61,7 @@ export function Sidebar({
       />
 
       <div className="px-5 pt-5 pb-4 relative z-10">
-        <Logo size="md" />
+        <Logo size="lg" />
       </div>
 
       <nav className="flex-1 py-1 px-3 space-y-0.5 relative z-10">
