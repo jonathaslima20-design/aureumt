@@ -1,7 +1,7 @@
 const HEIGHTS: Record<string, string> = {
-  sm: 'h-6',
-  md: 'h-8',
-  lg: 'h-12',
+  sm: 'h-8',
+  md: 'h-11',
+  lg: 'h-16',
 };
 
 export function Logo({ size = 'md' }: { size?: 'sm' | 'md' | 'lg' }) {
