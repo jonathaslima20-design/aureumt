@@ -235,7 +235,7 @@ const MENU_ITEMS: { id: AdminSection; label: string; icon: React.ReactNode; desc
   { id: 'dashboard',   label: 'Dashboard',          icon: <LayoutDashboard size={15} />, description: 'Visão geral do sistema' },
   { id: 'users',       label: 'Gestão de Usuários', icon: <Users size={15} />,           description: 'Contas, planos e perfis' },
   { id: 'plans',       label: 'Gestão de Planos',   icon: <CreditCard size={15} />,      description: 'Planos, preços e links' },
-  { id: 'templates',   label: 'Templates de Agente', icon: <LayoutTemplate size={15} />, description: 'Biblioteca do marketplace' },
+  { id: 'templates',   label: 'Templates de Agente', icon: <LayoutTemplate size={15} />, description: 'Biblioteca de Agentes' },
   { id: 'tokens',      label: 'Consumo de Tokens',  icon: <Zap size={15} />,             description: 'Uso e limites por usuário' },
   { id: 'credentials', label: 'Credenciais',        icon: <ShieldCheck size={15} />,     description: 'Chaves de API globais' },
   { id: 'mercadopago', label: 'Mercado Pago',       icon: <Wallet size={15} />,          description: 'Checkout Transparente' },

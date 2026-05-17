@@ -116,8 +116,8 @@ export function TemplateGalleryPage({ onAgentCreated }: Props) {
           }}
         />
         <div className="relative">
-          <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-950/40 border border-emerald-900/40 text-emerald-400 text-[10px] uppercase tracking-wider font-medium mb-3">
-            <Sparkles size={10} /> Marketplace de agentes
+          <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-orange-950/40 border border-orange-900/40 text-orange-400 text-[10px] uppercase tracking-wider font-medium mb-3">
+            <Sparkles size={10} /> Biblioteca de Agentes
           </div>
           <h1 className="font-display font-bold text-2xl sm:text-3xl tracking-tighter text-white uppercase">
             Coloque um agente no ar em 2 minutos

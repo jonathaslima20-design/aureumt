@@ -485,10 +485,10 @@ function TemplateForm({
         />
       </div>
 
-      {/* Marketplace metadata */}
+      {/* Biblioteca metadata */}
       <div className="border border-[#1a1a1a] rounded-xl bg-[#060606] p-4 space-y-4">
         <div className="text-[10px] text-neutral-500 uppercase tracking-wider">
-          Metadados do marketplace
+          Metadados da biblioteca
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
