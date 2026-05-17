@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { LayoutDashboard, Link2, MessagesSquare, LogOut, Shield, Menu, X, Bot, Database, Sparkles, GraduationCap } from 'lucide-react';
+import { LayoutDashboard, Link2, MessagesSquare, LogOut, Shield, Menu, X, Bot, Database, LibrarySquare, GraduationCap } from 'lucide-react';
 import { Logo } from './Logo';
 import { NotificationsDropdown } from './NotificationsDropdown';
 import { useAuth } from '../context/AuthContext';
@@ -11,7 +11,7 @@ const ITEMS: { key: PageKey; label: string; icon: typeof LayoutDashboard }[] = [
   { key: 'overview', label: 'Visão Geral', icon: LayoutDashboard },
   { key: 'chat', label: 'Chat', icon: MessagesSquare },
   { key: 'agents', label: 'Agentes', icon: Bot },
-  { key: 'templates', label: 'Templates', icon: Sparkles },
+  { key: 'templates', label: 'Templates', icon: LibrarySquare },
   { key: 'connections', label: 'Conexões', icon: Link2 },
   { key: 'knowledge', label: 'Conhecimento', icon: Database },
   { key: 'training', label: 'Treinamento', icon: GraduationCap },
