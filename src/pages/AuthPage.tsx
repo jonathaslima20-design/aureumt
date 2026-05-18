@@ -211,22 +211,19 @@ export function AuthPage({ onBack }: AuthPageProps) {
           )}
 
           {mode === 'signup' && (
-            <label className="flex items-start gap-3 cursor-pointer group">
-              <div className="relative flex-shrink-0 mt-0.5">
-                <input
-                  type="checkbox"
-                  checked={acceptedTerms}
-                  onChange={(e) => setAcceptedTerms(e.target.checked)}
-                  className="sr-only peer"
-                />
-                <div className="w-5 h-5 rounded border border-white/20 bg-white/5 peer-checked:bg-[#ff3b00] peer-checked:border-[#ff3b00] transition-all flex items-center justify-center">
-                  {acceptedTerms && (
-                    <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
-                      <path d="M2.5 6L5 8.5L9.5 3.5" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-                    </svg>
-                  )}
-                </div>
-              </div>
+            <div className="flex items-start gap-3">
+              <button
+                type="button"
+                onClick={() => setAcceptedTerms(!acceptedTerms)}
+                className="relative flex-shrink-0 mt-0.5 w-5 h-5 rounded border border-white/20 bg-white/5 transition-all flex items-center justify-center cursor-pointer"
+                style={acceptedTerms ? { backgroundColor: '#ff3b00', borderColor: '#ff3b00' } : undefined}
+              >
+                {acceptedTerms && (
+                  <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+                    <path d="M2.5 6L5 8.5L9.5 3.5" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                )}
+              </button>
               <span className="text-xs text-neutral-400 leading-relaxed">
                 Li e aceito os{' '}
                 <a
@@ -234,7 +231,6 @@ export function AuthPage({ onBack }: AuthPageProps) {
                   target="_blank"
                   rel="noopener noreferrer"
                   className="text-[#ff3b00] hover:text-[#ff3b00]/80 underline underline-offset-2 transition-colors"
-                  onClick={(e) => e.stopPropagation()}
                 >
                   Termos de Uso
                 </a>
@@ -244,13 +240,12 @@ export function AuthPage({ onBack }: AuthPageProps) {
                   target="_blank"
                   rel="noopener noreferrer"
                   className="text-[#ff3b00] hover:text-[#ff3b00]/80 underline underline-offset-2 transition-colors"
-                  onClick={(e) => e.stopPropagation()}
                 >
                   Politica de Privacidade
                 </a>
                 {' '}do AuraTalk.
               </span>
-            </label>
+            </div>
           )}
 
           {error && (

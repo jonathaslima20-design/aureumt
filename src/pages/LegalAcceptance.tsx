@@ -76,22 +76,19 @@ export function LegalAcceptance({ onAccepted }: LegalAcceptanceProps) {
             Para continuar usando o AuraTalk, aceite os Termos de Uso e a Politica de Privacidade.
           </p>
 
-          <label className="flex items-start gap-3 cursor-pointer group mb-6">
-            <div className="relative flex-shrink-0 mt-0.5">
-              <input
-                type="checkbox"
-                checked={accepted}
-                onChange={(e) => setAccepted(e.target.checked)}
-                className="sr-only peer"
-              />
-              <div className="w-5 h-5 rounded border border-white/20 bg-white/5 peer-checked:bg-[#ff3b00] peer-checked:border-[#ff3b00] transition-all flex items-center justify-center">
-                {accepted && (
-                  <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
-                    <path d="M2.5 6L5 8.5L9.5 3.5" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-                  </svg>
-                )}
-              </div>
-            </div>
+          <div className="flex items-start gap-3 mb-6">
+            <button
+              type="button"
+              onClick={() => setAccepted(!accepted)}
+              className="relative flex-shrink-0 mt-0.5 w-5 h-5 rounded border border-white/20 bg-white/5 transition-all flex items-center justify-center cursor-pointer"
+              style={accepted ? { backgroundColor: '#ff3b00', borderColor: '#ff3b00' } : undefined}
+            >
+              {accepted && (
+                <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+                  <path d="M2.5 6L5 8.5L9.5 3.5" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+              )}
+            </button>
             <span className="text-sm text-neutral-300 leading-relaxed">
               Li e aceito os{' '}
               <a
@@ -99,7 +96,6 @@ export function LegalAcceptance({ onAccepted }: LegalAcceptanceProps) {
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-[#ff3b00] hover:text-[#ff3b00]/80 underline underline-offset-2 transition-colors"
-                onClick={(e) => e.stopPropagation()}
               >
                 Termos de Uso
               </a>
@@ -109,13 +105,12 @@ export function LegalAcceptance({ onAccepted }: LegalAcceptanceProps) {
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-[#ff3b00] hover:text-[#ff3b00]/80 underline underline-offset-2 transition-colors"
-                onClick={(e) => e.stopPropagation()}
               >
                 Politica de Privacidade
               </a>
               {' '}do AuraTalk.
             </span>
-          </label>
+          </div>
 
           {error && (
             <div className="text-xs text-red-400 bg-red-950/30 border border-red-900/40 rounded-lg px-3 py-2 mb-4">
