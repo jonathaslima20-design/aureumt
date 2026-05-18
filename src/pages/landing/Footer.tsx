@@ -18,7 +18,7 @@ export function Footer() {
             TERMOS DE USO
           </a>
           <a href="/politica-de-privacidade" className="font-mono text-[9px] tracking-[0.2em] uppercase text-gray-500 hover:text-white transition-colors">
-            PRIVACIDADE
+            POLITICA DE PRIVACIDADE
           </a>
           <a href="/politica-de-cookies" className="font-mono text-[9px] tracking-[0.2em] uppercase text-gray-500 hover:text-white transition-colors">
             COOKIES

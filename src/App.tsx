@@ -10,12 +10,13 @@ import { AdminPanel } from './pages/AdminPanel';
 import { PlanSelectionPage } from './pages/PlanSelectionPage';
 import { CookiePolicy } from './pages/CookiePolicy';
 import { TermsOfUse } from './pages/TermsOfUse';
+import { PrivacyPolicy } from './pages/PrivacyPolicy';
 import { LegalAcceptance } from './pages/LegalAcceptance';
 import { CookieConsent } from './components/CookieConsent';
 
 function Shell() {
   const { session, loading, profile, hasLegalAcceptance, refreshLegalAcceptance } = useAuth();
-  const [view, setView] = useState<'landing' | 'auth' | 'dashboard' | 'admin' | 'plan_selection' | 'cookie_policy' | 'terms_of_use' | 'legal_acceptance' | null>(null);
+  const [view, setView] = useState<'landing' | 'auth' | 'dashboard' | 'admin' | 'plan_selection' | 'cookie_policy' | 'terms_of_use' | 'privacy_policy' | 'legal_acceptance' | null>(null);
 
   useEffect(() => {
     const path = window.location.pathname;
@@ -27,6 +28,11 @@ function Shell() {
 
     if (path === '/termos-de-uso') {
       setView('terms_of_use');
+      return;
+    }
+
+    if (path === '/politica-de-privacidade') {
+      setView('privacy_policy');
       return;
     }
 
@@ -73,6 +79,10 @@ function Shell() {
 
   if (view === 'terms_of_use') {
     return <TermsOfUse onBack={() => { window.history.pushState({}, '', '/'); setView('landing'); }} />;
+  }
+
+  if (view === 'privacy_policy') {
+    return <PrivacyPolicy onBack={() => { window.history.pushState({}, '', '/'); setView('landing'); }} />;
   }
 
   if (view === 'legal_acceptance' && session) {
