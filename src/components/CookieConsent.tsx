@@ -156,8 +156,8 @@ export function CookieConsent() {
   if (!visible) return null;
 
   return (
-    <div className="fixed inset-x-0 bottom-0 z-[9999] p-4 sm:p-6 pointer-events-none">
-      <div className="max-w-2xl mx-auto pointer-events-auto">
+    <div className="fixed inset-x-0 bottom-0 z-[9999] p-4 sm:p-6 flex justify-center">
+      <div className="max-w-2xl w-full">
         <div className="bg-[#0a0a0a]/95 backdrop-blur-xl border border-white/[0.08] rounded-2xl shadow-2xl shadow-black/40 overflow-hidden">
           {!showPreferences ? (
             <div className="p-5 sm:p-6">
