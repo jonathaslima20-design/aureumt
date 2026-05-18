@@ -2,12 +2,21 @@ import { useEffect, useState } from 'react';
 import { supabase, Plan } from '../../lib/supabase';
 import { PlanCard } from '../../components/PlanCard';
 
+type BillingCycle = 'monthly' | 'semiannual' | 'annual';
+
+const CYCLE_LABELS: Record<BillingCycle, string> = {
+  monthly: 'Mensal',
+  semiannual: 'Semestral',
+  annual: 'Anual',
+};
+
 interface PricingProps {
   onStart: () => void;
 }
 
 export function Pricing({ onStart }: PricingProps) {
   const [plans, setPlans] = useState<Plan[]>([]);
+  const [cycle, setCycle] = useState<BillingCycle>('monthly');
 
   useEffect(() => {
     (async () => {
@@ -34,14 +43,36 @@ export function Pricing({ onStart }: PricingProps) {
           </h2>
         </div>
 
+        <div className="flex justify-center mb-8">
+          <div className="inline-flex items-center bg-[#080808] border border-[#1a1a1a] rounded-xl p-1 gap-0.5">
+            {(['monthly', 'semiannual', 'annual'] as BillingCycle[]).map((c) => (
+              <button
+                key={c}
+                onClick={() => setCycle(c)}
+                className={`px-4 py-2 rounded-lg text-xs font-medium transition-all whitespace-nowrap ${
+                  cycle === c
+                    ? 'bg-white text-black'
+                    : 'text-neutral-400 hover:text-white'
+                }`}
+              >
+                {CYCLE_LABELS[c]}
+                {c === 'annual' && (
+                  <span className={`ml-1.5 text-[10px] ${cycle === c ? 'text-emerald-600' : 'text-emerald-400'}`}>
+                    -20%
+                  </span>
+                )}
+              </button>
+            ))}
+          </div>
+        </div>
+
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 max-w-5xl mx-auto">
           {plans.map((plan) => (
             <PlanCard
               key={plan.id}
               plan={plan}
-              cycle="monthly"
+              cycle={cycle}
               onAction={onStart}
-              showAnnualEquiv
             />
           ))}
         </div>
