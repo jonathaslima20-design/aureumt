@@ -9,15 +9,24 @@ import { Dashboard } from './pages/Dashboard';
 import { AdminPanel } from './pages/AdminPanel';
 import { PlanSelectionPage } from './pages/PlanSelectionPage';
 import { CookiePolicy } from './pages/CookiePolicy';
+import { TermsOfUse } from './pages/TermsOfUse';
+import { LegalAcceptance } from './pages/LegalAcceptance';
 import { CookieConsent } from './components/CookieConsent';
 
 function Shell() {
-  const { session, loading, profile } = useAuth();
-  const [view, setView] = useState<'landing' | 'auth' | 'dashboard' | 'admin' | 'plan_selection' | 'cookie_policy' | null>(null);
+  const { session, loading, profile, hasLegalAcceptance, refreshLegalAcceptance } = useAuth();
+  const [view, setView] = useState<'landing' | 'auth' | 'dashboard' | 'admin' | 'plan_selection' | 'cookie_policy' | 'terms_of_use' | 'legal_acceptance' | null>(null);
 
   useEffect(() => {
-    if (window.location.pathname === '/politica-de-cookies') {
+    const path = window.location.pathname;
+
+    if (path === '/politica-de-cookies') {
       setView('cookie_policy');
+      return;
+    }
+
+    if (path === '/termos-de-uso') {
+      setView('terms_of_use');
       return;
     }
 
@@ -30,6 +39,13 @@ function Shell() {
 
     if (!profile) return;
 
+    if (hasLegalAcceptance === false) {
+      setView('legal_acceptance');
+      return;
+    }
+
+    if (hasLegalAcceptance === null) return;
+
     if (profile.role === 'admin') {
       setView('admin');
       return;
@@ -41,7 +57,7 @@ function Shell() {
     }
 
     setView('plan_selection');
-  }, [profile, session, loading]);
+  }, [profile, session, loading, hasLegalAcceptance]);
 
   if (loading || (session && !profile)) {
     return (
@@ -53,6 +69,20 @@ function Shell() {
 
   if (view === 'cookie_policy') {
     return <CookiePolicy onBack={() => { window.history.pushState({}, '', '/'); setView('landing'); }} />;
+  }
+
+  if (view === 'terms_of_use') {
+    return <TermsOfUse onBack={() => { window.history.pushState({}, '', '/'); setView('landing'); }} />;
+  }
+
+  if (view === 'legal_acceptance' && session) {
+    return (
+      <LegalAcceptance
+        onAccepted={() => {
+          refreshLegalAcceptance();
+        }}
+      />
+    );
   }
 
   if (view === 'landing' || (!session && view !== 'auth')) {

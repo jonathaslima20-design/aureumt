@@ -14,10 +14,10 @@ export function Footer() {
         </div>
 
         <div className="flex items-center gap-6">
-          <a href="#" className="font-mono text-[9px] tracking-[0.2em] uppercase text-gray-500 hover:text-white transition-colors">
-            TERMOS
+          <a href="/termos-de-uso" className="font-mono text-[9px] tracking-[0.2em] uppercase text-gray-500 hover:text-white transition-colors">
+            TERMOS DE USO
           </a>
-          <a href="#" className="font-mono text-[9px] tracking-[0.2em] uppercase text-gray-500 hover:text-white transition-colors">
+          <a href="/politica-de-privacidade" className="font-mono text-[9px] tracking-[0.2em] uppercase text-gray-500 hover:text-white transition-colors">
             PRIVACIDADE
           </a>
           <a href="/politica-de-cookies" className="font-mono text-[9px] tracking-[0.2em] uppercase text-gray-500 hover:text-white transition-colors">

@@ -6,11 +6,15 @@ type AuthContextType = {
   session: Session | null;
   profile: Profile | null;
   loading: boolean;
+  hasLegalAcceptance: boolean | null;
   signIn: (email: string, password: string) => Promise<{ error: string | null }>;
   signUp: (email: string, password: string, fullName?: string) => Promise<{ error: string | null }>;
   signOut: () => Promise<void>;
   refreshProfile: () => Promise<void>;
+  refreshLegalAcceptance: () => Promise<void>;
 };
+
+const CURRENT_LEGAL_VERSION = '2026-05-17';
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
@@ -46,10 +50,25 @@ async function ensureProfile(userId: string, email: string, fullName?: string): 
   return created;
 }
 
+async function checkLegalAcceptance(userId: string): Promise<boolean> {
+  const { data, error } = await supabase
+    .from('user_legal_acceptances')
+    .select('document_type')
+    .eq('user_id', userId)
+    .eq('document_version', CURRENT_LEGAL_VERSION)
+    .in('document_type', ['terms_of_use', 'privacy_policy']);
+
+  if (error || !data) return false;
+
+  const types = data.map((r: { document_type: string }) => r.document_type);
+  return types.includes('terms_of_use') && types.includes('privacy_policy');
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
+  const [hasLegalAcceptance, setHasLegalAcceptance] = useState<boolean | null>(null);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
@@ -76,6 +95,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const p = await ensureProfile(session.user.id, session.user.email || '', metaName);
       if (cancelled) return;
       setProfile(p);
+
+      const accepted = await checkLegalAcceptance(session.user.id);
+      if (cancelled) return;
+      setHasLegalAcceptance(accepted);
+
       setLoading(false);
     })();
     return () => {
@@ -101,6 +125,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await supabase.auth.signOut();
     setSession(null);
     setProfile(null);
+    setHasLegalAcceptance(null);
   };
 
   const refreshProfile = async () => {
@@ -113,8 +138,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (data) setProfile(data);
   };
 
+  const refreshLegalAcceptance = async () => {
+    if (!session?.user) return;
+    const accepted = await checkLegalAcceptance(session.user.id);
+    setHasLegalAcceptance(accepted);
+  };
+
   return (
-    <AuthContext.Provider value={{ session, profile, loading, signIn, signUp, signOut, refreshProfile }}>
+    <AuthContext.Provider value={{ session, profile, loading, hasLegalAcceptance, signIn, signUp, signOut, refreshProfile, refreshLegalAcceptance }}>
       {children}
     </AuthContext.Provider>
   );

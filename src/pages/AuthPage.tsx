@@ -1,7 +1,10 @@
 import { useState } from 'react';
 import { Logo } from '../components/Logo';
 import { useAuth } from '../context/AuthContext';
+import { supabase } from '../lib/supabase';
 import { ArrowLeft, ArrowRight, Loader2, Eye, EyeOff } from 'lucide-react';
+
+const CURRENT_LEGAL_VERSION = '2026-05-17';
 
 interface AuthPageProps {
   onBack?: () => void;
@@ -16,6 +19,7 @@ export function AuthPage({ onBack }: AuthPageProps) {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [acceptedTerms, setAcceptedTerms] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -25,6 +29,7 @@ export function AuthPage({ onBack }: AuthPageProps) {
     setConfirmPassword('');
     setShowPassword(false);
     setShowConfirmPassword(false);
+    setAcceptedTerms(false);
     setError(null);
   };
 
@@ -42,11 +47,53 @@ export function AuthPage({ onBack }: AuthPageProps) {
       return;
     }
 
+    if (mode === 'signup' && !acceptedTerms) {
+      setError('Para criar sua conta, e necessario aceitar os Termos de Uso e a Politica de Privacidade.');
+      return;
+    }
+
     setLoading(true);
-    const res = mode === 'signin'
-      ? await signIn(email, password)
-      : await signUp(email, password, fullName.trim());
-    if (res.error) setError(res.error);
+
+    if (mode === 'signin') {
+      const res = await signIn(email, password);
+      if (res.error) setError(res.error);
+      setLoading(false);
+      return;
+    }
+
+    const res = await signUp(email, password, fullName.trim());
+    if (res.error) {
+      setError(res.error);
+      setLoading(false);
+      return;
+    }
+
+    const { data: { session: newSession } } = await supabase.auth.getSession();
+    if (newSession?.user) {
+      const records = [
+        {
+          user_id: newSession.user.id,
+          document_type: 'terms_of_use',
+          document_version: CURRENT_LEGAL_VERSION,
+          user_agent: navigator.userAgent,
+        },
+        {
+          user_id: newSession.user.id,
+          document_type: 'privacy_policy',
+          document_version: CURRENT_LEGAL_VERSION,
+          user_agent: navigator.userAgent,
+        },
+      ];
+
+      const { error: legalError } = await supabase
+        .from('user_legal_acceptances')
+        .insert(records);
+
+      if (legalError) {
+        console.error('Legal acceptance insert error', legalError);
+      }
+    }
+
     setLoading(false);
   };
 
@@ -163,6 +210,49 @@ export function AuthPage({ onBack }: AuthPageProps) {
             </div>
           )}
 
+          {mode === 'signup' && (
+            <label className="flex items-start gap-3 cursor-pointer group">
+              <div className="relative flex-shrink-0 mt-0.5">
+                <input
+                  type="checkbox"
+                  checked={acceptedTerms}
+                  onChange={(e) => setAcceptedTerms(e.target.checked)}
+                  className="sr-only peer"
+                />
+                <div className="w-5 h-5 rounded border border-white/20 bg-white/5 peer-checked:bg-[#ff3b00] peer-checked:border-[#ff3b00] transition-all flex items-center justify-center">
+                  {acceptedTerms && (
+                    <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+                      <path d="M2.5 6L5 8.5L9.5 3.5" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                    </svg>
+                  )}
+                </div>
+              </div>
+              <span className="text-xs text-neutral-400 leading-relaxed">
+                Li e aceito os{' '}
+                <a
+                  href="/termos-de-uso"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-[#ff3b00] hover:text-[#ff3b00]/80 underline underline-offset-2 transition-colors"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  Termos de Uso
+                </a>
+                {' '}e a{' '}
+                <a
+                  href="/politica-de-privacidade"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-[#ff3b00] hover:text-[#ff3b00]/80 underline underline-offset-2 transition-colors"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  Politica de Privacidade
+                </a>
+                {' '}do AuraTalk.
+              </span>
+            </label>
+          )}
+
           {error && (
             <div className="text-xs text-red-400 bg-red-950/30 border border-red-900/40 rounded-lg px-3 py-2">
               {error}
@@ -171,8 +261,8 @@ export function AuthPage({ onBack }: AuthPageProps) {
 
           <button
             type="submit"
-            disabled={loading}
-            className="w-full bg-accent text-white rounded-lg py-3 text-sm font-display font-semibold uppercase tracking-wider flex items-center justify-center gap-2 shadow-[0_0_20px_rgba(255,59,0,0.25)] hover:shadow-[0_0_30px_rgba(255,59,0,0.4)] transition-all disabled:opacity-50"
+            disabled={loading || (mode === 'signup' && !acceptedTerms)}
+            className="w-full bg-accent text-white rounded-lg py-3 text-sm font-display font-semibold uppercase tracking-wider flex items-center justify-center gap-2 shadow-[0_0_20px_rgba(255,59,0,0.25)] hover:shadow-[0_0_30px_rgba(255,59,0,0.4)] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {loading ? (
               <Loader2 size={16} className="animate-spin" />
