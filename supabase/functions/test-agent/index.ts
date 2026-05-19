@@ -19,6 +19,27 @@ function cleanText(raw: string): string {
     .trim();
 }
 
+async function generateQueryEmbedding(apiKey: string, text: string): Promise<number[] | null> {
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-embedding-001:embedContent?key=${apiKey}`;
+  const body = {
+    model: "models/gemini-embedding-001",
+    content: { parts: [{ text: text.slice(0, 2000) }] },
+    outputDimensionality: 768,
+  };
+  try {
+    const res = await fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    });
+    if (!res.ok) return null;
+    const data = await res.json();
+    return data?.embedding?.values || null;
+  } catch {
+    return null;
+  }
+}
+
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { status: 200, headers: corsHeaders });
@@ -70,7 +91,7 @@ Deno.serve(async (req: Request) => {
       );
     }
 
-    // ── Load knowledge bases (same as webhook) ─────────────────────────────
+    // ── Load knowledge bases (RAG with fallback) ───────────────────────────
     let knowledgeContent = "";
 
     const { data: kbLinks } = await admin
@@ -80,20 +101,66 @@ Deno.serve(async (req: Request) => {
 
     const kbIds = (kbLinks || []).map((l: { knowledge_base_id: string }) => l.knowledge_base_id);
 
-    if (kbIds.length > 0) {
-      const { data: kbSources } = await admin
-        .from("knowledge_sources")
-        .select("content, title, type")
-        .in("knowledge_base_id", kbIds)
-        .eq("is_active", true)
-        .limit(30);
+    // Load Gemini key early (needed for RAG embedding)
+    const { data: ownConfig } = await admin
+      .from("api_configs")
+      .select("gemini_key")
+      .eq("user_id", user.id)
+      .eq("is_active", true)
+      .maybeSingle();
 
-      if (kbSources && kbSources.length > 0) {
-        const chunks = kbSources.map((s: { title: string; type: string; content: string }) => {
-          const cleaned = cleanText(s.content);
-          return `### ${s.title} (${s.type.toUpperCase()})\n${cleaned}`;
+    const { data: globalConfig } = await admin
+      .from("api_configs")
+      .select("gemini_key")
+      .is("user_id", null)
+      .eq("is_active", true)
+      .maybeSingle();
+
+    const geminiKey = ownConfig?.gemini_key || globalConfig?.gemini_key;
+    if (!geminiKey) {
+      return new Response(
+        JSON.stringify({ error: "Gemini API key not configured" }),
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    if (kbIds.length > 0) {
+      // Try RAG semantic search first
+      const queryText = message || "";
+      const queryEmbedding = queryText ? await generateQueryEmbedding(geminiKey, queryText) : null;
+
+      if (queryEmbedding) {
+        const { data: ragChunks } = await admin.rpc("match_knowledge_chunks", {
+          query_embedding: JSON.stringify(queryEmbedding),
+          base_ids: kbIds,
+          match_threshold: 0.4,
+          match_count: 10,
         });
-        knowledgeContent = chunks.join("\n\n---\n\n").slice(0, 80000);
+
+        if (ragChunks && ragChunks.length > 0) {
+          knowledgeContent = ragChunks
+            .map((c: { content: string; similarity: number }) => c.content)
+            .join("\n\n---\n\n")
+            .slice(0, 30000);
+        }
+      }
+
+      // Fallback: use full consolidated text if RAG returned nothing
+      if (!knowledgeContent) {
+        const { data: kbSources } = await admin
+          .from("knowledge_sources")
+          .select("content, title, type")
+          .in("knowledge_base_id", kbIds)
+          .eq("is_active", true)
+          .limit(30);
+
+        if (kbSources && kbSources.length > 0) {
+          const chunks = kbSources.map((s: { title: string; type: string; content: string }) => {
+            const cleaned = cleanText(s.content);
+            return `### ${s.title} (${s.type.toUpperCase()})\n${cleaned}`;
+          });
+          knowledgeContent = chunks.join("\n\n---\n\n").slice(0, 80000);
+        }
       }
     }
 
@@ -192,29 +259,6 @@ Deno.serve(async (req: Request) => {
 
     if (contents.length === 0) {
       contents.push({ role: "user", parts: [{ text: "oi" }] });
-    }
-
-    // ── Load Gemini API key ────────────────────────────────────────────────
-    const { data: ownConfig } = await admin
-      .from("api_configs")
-      .select("gemini_key")
-      .eq("user_id", user.id)
-      .eq("is_active", true)
-      .maybeSingle();
-
-    const { data: globalConfig } = await admin
-      .from("api_configs")
-      .select("gemini_key")
-      .is("user_id", null)
-      .eq("is_active", true)
-      .maybeSingle();
-
-    const geminiKey = ownConfig?.gemini_key || globalConfig?.gemini_key;
-    if (!geminiKey) {
-      return new Response(
-        JSON.stringify({ error: "Gemini API key not configured" }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
     }
 
     // ── If audio is provided, transcribe it first ──────────────────────────

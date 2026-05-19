@@ -15,6 +15,27 @@ async function loadCreds(admin: ReturnType<typeof createClient>, userId: string)
   return { gemini: own?.gemini_key || global?.gemini_key || "", url: own?.evolution_url || global?.evolution_url || "", key: own?.evolution_key || global?.evolution_key || "" };
 }
 
+async function generateQueryEmbedding(apiKey: string, text: string): Promise<number[] | null> {
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-embedding-001:embedContent?key=${apiKey}`;
+  const body = {
+    model: "models/gemini-embedding-001",
+    content: { parts: [{ text: text.slice(0, 2000) }] },
+    outputDimensionality: 768,
+  };
+  try {
+    const res = await fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    });
+    if (!res.ok) return null;
+    const data = await res.json();
+    return data?.embedding?.values || null;
+  } catch {
+    return null;
+  }
+}
+
 type MediaInfo = { type: "audio" | "image"; mimetype: string } | null;
 
 function extractText(msg: Record<string, unknown> | null | undefined): string {
@@ -605,7 +626,7 @@ Deno.serve(async (req) => {
       // ── PHASE 7: Anti-repetition - load recent response hashes ─────────
       const { data: recentHashes } = await admin.from("response_history_hash").select("response_preview").eq("instance_id", instance.id).eq("customer_number", customerNumber).order("created_at", { ascending: false }).limit(5);
 
-      // ── Knowledge base ──────────────────────────────────────────────────
+      // ── Knowledge base (RAG with fallback) ─────────────────────────────
       let knowledgeContent = "";
       let knowledgeHit = false;
 
@@ -613,11 +634,35 @@ Deno.serve(async (req) => {
       const kbIds = (kbLinks || []).map((l: { knowledge_base_id: string }) => l.knowledge_base_id);
 
       if (kbIds.length > 0) {
-        const { data: kbSources } = await admin.from("knowledge_sources").select("content, title, type").in("knowledge_base_id", kbIds).eq("is_active", true).limit(30);
-        if (kbSources && kbSources.length > 0) {
-          const chunks = kbSources.map((s: { title: string; type: string; content: string }) => `### ${s.title} (${s.type.toUpperCase()})\n${cleanText(s.content)}`);
-          knowledgeContent = chunks.join("\n\n---\n\n").slice(0, 80000);
-          knowledgeHit = true;
+        // Try RAG semantic search first
+        const queryText = mediaContext || text;
+        const queryEmbedding = await generateQueryEmbedding(creds.gemini, queryText);
+
+        if (queryEmbedding) {
+          const { data: ragChunks } = await admin.rpc("match_knowledge_chunks", {
+            query_embedding: JSON.stringify(queryEmbedding),
+            base_ids: kbIds,
+            match_threshold: 0.4,
+            match_count: 10,
+          });
+
+          if (ragChunks && ragChunks.length > 0) {
+            knowledgeContent = ragChunks
+              .map((c: { content: string; similarity: number }) => c.content)
+              .join("\n\n---\n\n")
+              .slice(0, 30000);
+            knowledgeHit = true;
+          }
+        }
+
+        // Fallback: use full consolidated text if RAG returned nothing
+        if (!knowledgeHit) {
+          const { data: kbSources } = await admin.from("knowledge_sources").select("content, title, type").in("knowledge_base_id", kbIds).eq("is_active", true).limit(30);
+          if (kbSources && kbSources.length > 0) {
+            const chunks = kbSources.map((s: { title: string; type: string; content: string }) => `### ${s.title} (${s.type.toUpperCase()})\n${cleanText(s.content)}`);
+            knowledgeContent = chunks.join("\n\n---\n\n").slice(0, 80000);
+            knowledgeHit = true;
+          }
         }
       }
 

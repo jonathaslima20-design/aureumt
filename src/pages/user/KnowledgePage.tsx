@@ -276,10 +276,12 @@ function KnowledgeBaseDetail({
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState<KBTab>('sources');
   const [feedback, setFeedback] = useState<FeedbackState>(null);
+  const [indexing, setIndexing] = useState(false);
+  const [chunkCount, setChunkCount] = useState<number | null>(null);
 
   const fetchData = async () => {
     setLoading(true);
-    const [{ data: sources }, { data: hist }] = await Promise.all([
+    const [{ data: sources }, { data: hist }, { count }] = await Promise.all([
       supabase
         .from('knowledge_sources')
         .select('*')
@@ -291,10 +293,37 @@ function KnowledgeBaseDetail({
         .select('*')
         .eq('knowledge_base_id', base.id)
         .order('created_at', { ascending: false }),
+      supabase
+        .from('knowledge_chunks')
+        .select('id', { count: 'exact', head: true })
+        .eq('knowledge_base_id', base.id),
     ]);
     setConsolidatedSource(sources as KnowledgeSource | null);
     setHistory(hist || []);
+    setChunkCount(count ?? 0);
     setLoading(false);
+  };
+
+  const handleReindex = async () => {
+    setIndexing(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) throw new Error('Not authenticated');
+      const apiUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/generate-embeddings`;
+      const res = await fetch(apiUrl, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${session.access_token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ knowledge_base_id: base.id }),
+      });
+      const data = await res.json();
+      if (!res.ok || data.error) throw new Error(data.error || 'Erro ao indexar');
+      setChunkCount(data.chunks_created || 0);
+      showFeedback('success', `Base indexada com ${data.chunks_created} blocos para busca inteligente`);
+    } catch (e) {
+      showFeedback('error', e instanceof Error ? e.message : 'Erro ao indexar');
+    } finally {
+      setIndexing(false);
+    }
   };
 
   useEffect(() => {
@@ -384,12 +413,28 @@ function KnowledgeBaseDetail({
             )}
           </div>
         </div>
-        <button
-          onClick={onDelete}
-          className="ml-auto text-neutral-500 hover:text-red-400 border border-[#242424] hover:border-red-900/60 rounded-lg px-3 py-1.5 text-xs flex items-center gap-1.5 transition-colors"
-        >
-          <Trash2 size={12} /> Excluir base
-        </button>
+        <div className="ml-auto flex items-center gap-2">
+          <button
+            onClick={handleReindex}
+            disabled={indexing}
+            className="text-neutral-500 hover:text-emerald-400 border border-[#242424] hover:border-emerald-900/60 rounded-lg px-3 py-1.5 text-xs flex items-center gap-1.5 transition-colors disabled:opacity-50"
+            title="Re-indexar base para busca inteligente"
+          >
+            {indexing ? <Loader2 size={12} className="animate-spin" /> : <RefreshCw size={12} />}
+            {indexing ? 'Indexando...' : 'Indexar'}
+            {chunkCount !== null && chunkCount > 0 && !indexing && (
+              <span className="text-[10px] bg-emerald-950/40 text-emerald-400 border border-emerald-900/40 rounded-full px-1.5 py-0.5 leading-none">
+                {chunkCount}
+              </span>
+            )}
+          </button>
+          <button
+            onClick={onDelete}
+            className="text-neutral-500 hover:text-red-400 border border-[#242424] hover:border-red-900/60 rounded-lg px-3 py-1.5 text-xs flex items-center gap-1.5 transition-colors"
+          >
+            <Trash2 size={12} /> Excluir base
+          </button>
+        </div>
       </div>
 
       {feedback && (

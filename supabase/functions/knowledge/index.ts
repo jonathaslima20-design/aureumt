@@ -77,6 +77,20 @@ async function extractTextWithGemini(
   return data?.candidates?.[0]?.content?.parts?.[0]?.text || "";
 }
 
+function triggerEmbeddingGeneration(knowledgeBaseId: string): void {
+  const url = `${Deno.env.get("SUPABASE_URL")}/functions/v1/generate-embeddings`;
+  fetch(url, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "Authorization": `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")}`,
+    },
+    body: JSON.stringify({ knowledge_base_id: knowledgeBaseId }),
+  }).catch((err) => {
+    console.error("Failed to trigger embedding generation:", err);
+  });
+}
+
 function cleanExtractedText(raw: string): string {
   return raw
     .replace(/\r\n/g, "\n")
@@ -323,6 +337,7 @@ Deno.serve(async (req: Request) => {
 
       if (histErr) console.error("History insert error:", histErr.message);
 
+      triggerEmbeddingGeneration(knowledge_base_id);
       return jsonResponse({ ok: true, source: consolidatedSource, history: historyEntry });
     }
 
@@ -399,6 +414,7 @@ Deno.serve(async (req: Request) => {
 
       if (histErr) console.error("History insert error:", histErr.message);
 
+      triggerEmbeddingGeneration(knowledgeBaseId);
       return jsonResponse({ ok: true, source: consolidatedSource, history: historyEntry });
     }
 
@@ -465,6 +481,7 @@ Deno.serve(async (req: Request) => {
 
       if (histErr) console.error("History insert error:", histErr.message);
 
+      triggerEmbeddingGeneration(knowledgeBaseId);
       return jsonResponse({ ok: true, source: consolidatedSource, history: historyEntry });
     }
 
@@ -500,6 +517,7 @@ Deno.serve(async (req: Request) => {
           .eq("knowledge_base_id", knowledge_base_id)
           .eq("type", "consolidated");
 
+        triggerEmbeddingGeneration(knowledge_base_id);
         return jsonResponse({ ok: true, charCount: 0 });
       }
 
@@ -515,6 +533,7 @@ Deno.serve(async (req: Request) => {
         .eq("knowledge_base_id", knowledge_base_id)
         .eq("type", "consolidated");
 
+      triggerEmbeddingGeneration(knowledge_base_id);
       return jsonResponse({ ok: true, charCount: rebuilt.length });
     }
 
