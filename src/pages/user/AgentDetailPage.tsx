@@ -4,6 +4,7 @@ import {
   Save, Pause, Play, Database, Link2, X, Plus, Wifi, WifiOff, ExternalLink,
   ShieldAlert, Clock, MessageSquare, Copy, Mic, Square,
   ChevronUp, ChevronDown, GripVertical,
+  ThumbsUp, ThumbsDown, MessageSquarePlus,
 } from 'lucide-react';
 import {
   supabase, Instance, KnowledgeBase, WhatsappConnection, BusinessHours,
@@ -1089,7 +1090,14 @@ function BusinessHoursSection({ instance, onUpdate }: { instance: Instance; onUp
 
 // ─── Agent Test Modal ────────────────────────────────────────────────────────
 
-type TestMessage = { role: 'user' | 'assistant'; content: string; isAudio?: boolean };
+type TestMessage = {
+  role: 'user' | 'assistant';
+  content: string;
+  isAudio?: boolean;
+  dbId?: string;
+  feedback_quality?: string;
+  feedback_comment?: string;
+};
 
 function AgentTestModal({ instance, onClose }: { instance: Instance; onClose: () => void }) {
   const [messages, setMessages] = useState<TestMessage[]>([]);
@@ -1109,6 +1117,21 @@ function AgentTestModal({ instance, onClose }: { instance: Instance; onClose: ()
   useEffect(() => {
     setTimeout(() => scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight }), 50);
   }, [messages, loading]);
+
+  const saveToDb = async (direction: 'in' | 'out', body: string): Promise<string | undefined> => {
+    const { data } = await supabase
+      .from('chat_logs')
+      .insert({
+        instance_id: instance.id,
+        customer_number: 'test-mode',
+        direction,
+        message_body: body,
+        delivery_status: 'sent',
+      })
+      .select('id')
+      .maybeSingle();
+    return data?.id;
+  };
 
   const callTestAgent = async (payload: Record<string, unknown>, historyMessages: TestMessage[]) => {
     const { data: { session } } = await supabase.auth.getSession();
@@ -1136,6 +1159,7 @@ function AgentTestModal({ instance, onClose }: { instance: Instance; onClose: ()
     const updated = [...messages, { role: 'user' as const, content: text }];
     setMessages(updated);
     setLoading(true);
+    saveToDb('in', text);
 
     try {
       const data = await callTestAgent({ message: text }, updated);
@@ -1146,7 +1170,8 @@ function AgentTestModal({ instance, onClose }: { instance: Instance; onClose: ()
       for (const fragment of fragments) {
         const typingMs = Math.max(2000, Math.min(15000, Math.round((fragment.length / 50) * 1000)));
         await new Promise((r) => setTimeout(r, typingMs));
-        setMessages((prev) => [...prev, { role: 'assistant' as const, content: fragment }]);
+        const dbId = await saveToDb('out', fragment);
+        setMessages((prev) => [...prev, { role: 'assistant' as const, content: fragment, dbId, feedback_quality: '', feedback_comment: '' }]);
       }
     } catch {
       setMessages((prev) => [...prev, { role: 'assistant', content: 'Erro ao conectar com o agente.' }]);
@@ -1190,6 +1215,7 @@ function AgentTestModal({ instance, onClose }: { instance: Instance; onClose: ()
             }, updated);
 
             if (data.transcription) {
+              saveToDb('in', data.transcription);
               setMessages((prev) =>
                 prev.map((m, i) =>
                   i === prev.length - 1 && m.role === 'assistant'
@@ -1208,7 +1234,8 @@ function AgentTestModal({ instance, onClose }: { instance: Instance; onClose: ()
             for (const fragment of fragments) {
               const typingMs = Math.max(2000, Math.min(15000, Math.round((fragment.length / 50) * 1000)));
               await new Promise((r) => setTimeout(r, typingMs));
-              setMessages((prev) => [...prev, { role: 'assistant' as const, content: fragment }]);
+              const dbId = await saveToDb('out', fragment);
+              setMessages((prev) => [...prev, { role: 'assistant' as const, content: fragment, dbId, feedback_quality: '', feedback_comment: '' }]);
             }
           } catch {
             setMessages((prev) => [...prev, { role: 'assistant', content: 'Erro ao processar o áudio.' }]);
@@ -1235,6 +1262,19 @@ function AgentTestModal({ instance, onClose }: { instance: Instance; onClose: ()
     }
     setRecording(false);
     if (timerRef.current) { clearInterval(timerRef.current); timerRef.current = null; }
+  };
+
+  const updateFeedback = async (idx: number, patch: Partial<TestMessage>) => {
+    const msg = messages[idx];
+    if (!msg?.dbId) return;
+    const dbPatch: Record<string, unknown> = {};
+    if (patch.feedback_quality !== undefined) dbPatch.feedback_quality = patch.feedback_quality;
+    if (patch.feedback_comment !== undefined) dbPatch.feedback_comment = patch.feedback_comment;
+    const { error } = await supabase.from('chat_logs').update(dbPatch).eq('id', msg.dbId);
+    if (!error) {
+      setMessages((prev) => prev.map((m, i) => i === idx ? { ...m, ...patch } : m));
+    }
+    return error;
   };
 
   const formatTime = (s: number) => `${Math.floor(s / 60)}:${(s % 60).toString().padStart(2, '0')}`;
@@ -1277,23 +1317,32 @@ function AgentTestModal({ instance, onClose }: { instance: Instance; onClose: ()
           </div>
         )}
         {messages.map((msg, i) => (
-          <div key={i} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-            <div
-              className={`max-w-[85%] sm:max-w-[70%] rounded-2xl px-3 sm:px-4 py-2 sm:py-2.5 text-sm leading-relaxed ${
-                msg.role === 'user'
-                  ? 'bg-white text-black rounded-br-md'
-                  : 'bg-[#1a1a1a] border border-[#242424] text-neutral-200 rounded-bl-md'
-              }`}
-            >
-              {msg.isAudio && (
-                <div className="flex items-center gap-1.5 mb-1">
-                  <Mic size={12} className={msg.role === 'user' ? 'text-neutral-500' : 'text-neutral-400'} />
-                  <span className={`text-[10px] uppercase tracking-wider ${msg.role === 'user' ? 'text-neutral-500' : 'text-neutral-500'}`}>
-                    Audio transcrito
-                  </span>
-                </div>
+          <div key={i} className={`group flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+            <div className="flex flex-col max-w-[85%] sm:max-w-[70%]">
+              <div
+                className={`rounded-2xl px-3 sm:px-4 py-2 sm:py-2.5 text-sm leading-relaxed ${
+                  msg.role === 'user'
+                    ? 'bg-white text-black rounded-br-md'
+                    : 'bg-[#1a1a1a] border border-[#242424] text-neutral-200 rounded-bl-md'
+                }`}
+              >
+                {msg.isAudio && (
+                  <div className="flex items-center gap-1.5 mb-1">
+                    <Mic size={12} className={msg.role === 'user' ? 'text-neutral-500' : 'text-neutral-400'} />
+                    <span className="text-[10px] uppercase tracking-wider text-neutral-500">
+                      Audio transcrito
+                    </span>
+                  </div>
+                )}
+                {msg.content}
+              </div>
+              {msg.role === 'assistant' && msg.dbId && (
+                <TestMessageFeedback
+                  msg={msg}
+                  idx={i}
+                  onUpdate={updateFeedback}
+                />
               )}
-              {msg.content}
             </div>
           </div>
         ))}
@@ -1356,6 +1405,109 @@ function AgentTestModal({ instance, onClose }: { instance: Instance; onClose: ()
           )}
         </div>
       </div>
+    </div>
+  );
+}
+
+function TestMessageFeedback({
+  msg, idx, onUpdate,
+}: {
+  msg: TestMessage;
+  idx: number;
+  onUpdate: (idx: number, patch: Partial<TestMessage>) => Promise<unknown>;
+}) {
+  const [saving, setSaving] = useState<null | 'up' | 'down' | 'comment'>(null);
+  const [showComment, setShowComment] = useState(false);
+  const [comment, setComment] = useState(msg.feedback_comment || '');
+  const quality = msg.feedback_quality || '';
+
+  const setQuality = async (next: 'good' | 'bad') => {
+    setSaving(next === 'bad' ? 'down' : 'up');
+    const value = quality === next ? '' : next;
+    await onUpdate(idx, { feedback_quality: value });
+    setSaving(null);
+  };
+
+  const saveComment = async () => {
+    setSaving('comment');
+    await onUpdate(idx, { feedback_comment: comment.trim() });
+    setSaving(null);
+    setShowComment(false);
+  };
+
+  return (
+    <div className="self-start mt-1 space-y-1.5">
+      <div className="flex items-center gap-1">
+        <button
+          onClick={() => setQuality('good')}
+          disabled={saving !== null}
+          className={`p-1 rounded border transition-colors ${
+            quality === 'good'
+              ? 'bg-emerald-950/40 border-emerald-900/50 text-emerald-400'
+              : 'bg-[#1a1a1a] border-[#242424] text-neutral-500 hover:text-white opacity-0 group-hover:opacity-100'
+          }`}
+          title="Resposta boa"
+        >
+          {saving === 'up' ? <Loader2 size={11} className="animate-spin" /> : <ThumbsUp size={11} />}
+        </button>
+        <button
+          onClick={() => setQuality('bad')}
+          disabled={saving !== null}
+          className={`p-1 rounded border transition-colors ${
+            quality === 'bad'
+              ? 'bg-red-950/40 border-red-900/50 text-red-400'
+              : 'bg-[#1a1a1a] border-[#242424] text-neutral-500 hover:text-white opacity-0 group-hover:opacity-100'
+          }`}
+          title="Resposta ruim"
+        >
+          {saving === 'down' ? <Loader2 size={11} className="animate-spin" /> : <ThumbsDown size={11} />}
+        </button>
+        <button
+          onClick={() => { setComment(msg.feedback_comment || ''); setShowComment((v) => !v); }}
+          className={`p-1 rounded border transition-colors ${
+            msg.feedback_comment
+              ? 'bg-sky-950/40 border-sky-900/50 text-sky-400'
+              : 'bg-[#1a1a1a] border-[#242424] text-neutral-500 hover:text-white opacity-0 group-hover:opacity-100'
+          }`}
+          title={msg.feedback_comment ? 'Editar comentario' : 'Comentar'}
+        >
+          <MessageSquarePlus size={11} />
+        </button>
+      </div>
+
+      {showComment && (
+        <div className="w-full max-w-md bg-[#0d0d0d] border border-[#242424] rounded-lg p-2.5">
+          <div className="flex items-center justify-between mb-1.5">
+            <span className="text-[10px] uppercase tracking-wider text-neutral-500">Comentario de treinamento</span>
+            <button onClick={() => setShowComment(false)} className="text-neutral-600 hover:text-white">
+              <X size={11} />
+            </button>
+          </div>
+          <textarea
+            value={comment}
+            onChange={(e) => setComment(e.target.value)}
+            rows={3}
+            placeholder="O que poderia ser melhorado nesta resposta?"
+            className="w-full bg-[#070707] border border-[#1c1c1c] rounded px-2 py-1.5 text-[12px] text-white placeholder-neutral-700 focus:outline-none focus:border-[#363636] resize-none"
+          />
+          <div className="flex items-center justify-end gap-2 mt-2">
+            <button
+              onClick={() => setShowComment(false)}
+              className="text-[11px] text-neutral-500 hover:text-white px-2 py-1 rounded"
+            >
+              Cancelar
+            </button>
+            <button
+              onClick={saveComment}
+              disabled={saving === 'comment'}
+              className="text-[11px] bg-white text-black hover:bg-neutral-200 disabled:opacity-50 px-2.5 py-1 rounded font-medium flex items-center gap-1"
+            >
+              {saving === 'comment' ? <Loader2 size={10} className="animate-spin" /> : <Check size={10} />}
+              Salvar
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
