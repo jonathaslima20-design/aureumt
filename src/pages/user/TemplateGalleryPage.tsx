@@ -247,11 +247,6 @@ function FeaturedCard({
           </p>
           <div className="flex items-center gap-3 mt-2.5 text-[10px] text-neutral-500">
             <span className="flex items-center gap-1"><Clock size={9} /> {template.setup_time_minutes} min</span>
-            {usageCount > 0 && (
-              <span className="flex items-center gap-1 text-accent/70">
-                <TrendingUp size={9} /> {usageCount} {usageCount === 1 ? 'uso' : 'usos'}
-              </span>
-            )}
             <span className="ml-auto text-neutral-500 group-hover:text-accent transition-colors flex items-center gap-1 text-[10px]">
               Ver <ArrowRight size={9} className="group-hover:translate-x-0.5 transition-transform" />
             </span>
@@ -319,11 +314,6 @@ function TemplateCard({
         <div className="flex items-center justify-between text-[10px] text-neutral-500 -mt-1">
           <div className="flex items-center gap-3">
             <span className="flex items-center gap-1"><Clock size={10} /> {template.setup_time_minutes} min</span>
-            {usageCount > 0 && (
-              <span className="flex items-center gap-1 text-accent/60">
-                <TrendingUp size={10} /> {usageCount} {usageCount === 1 ? 'uso' : 'usos'}
-              </span>
-            )}
           </div>
           <span className="text-neutral-500 group-hover:text-accent transition-colors flex items-center gap-1">
             Ver detalhes <ArrowRight size={10} className="group-hover:translate-x-0.5 transition-transform" />
