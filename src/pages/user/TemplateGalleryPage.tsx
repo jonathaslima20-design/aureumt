@@ -108,11 +108,11 @@ export function TemplateGalleryPage({ onAgentCreated }: Props) {
   return (
     <div className="space-y-6 sm:space-y-8">
       {/* Hero */}
-      <div className="relative overflow-hidden rounded-2xl border border-[#1f1f1f] bg-gradient-to-br from-[#0f0f0f] via-[#0c0c0c] to-[#0a0a0a] p-6 sm:p-8">
+      <div className="relative overflow-hidden rounded-2xl border border-accent/10 bg-gradient-to-br from-[#0f0f0f] via-[#0c0c0c] to-[#0a0a0a] p-6 sm:p-8">
         <div
           className="absolute inset-0 opacity-40 pointer-events-none"
           style={{
-            background: 'radial-gradient(ellipse 60% 80% at 80% 0%, rgba(16,185,129,0.10), transparent 60%), radial-gradient(ellipse 60% 80% at 0% 100%, rgba(59,130,246,0.08), transparent 60%)',
+            background: 'radial-gradient(ellipse 60% 80% at 80% 0%, rgba(255,59,0,0.08), transparent 60%), radial-gradient(ellipse 60% 80% at 0% 100%, rgba(255,59,0,0.04), transparent 60%)',
           }}
         />
         <div className="relative">
@@ -133,8 +133,8 @@ export function TemplateGalleryPage({ onAgentCreated }: Props) {
       {featured.length > 0 && (
         <div>
           <div className="flex items-center gap-2 mb-3">
-            <TrendingUp size={14} className="text-emerald-500" />
-            <h2 className="text-sm font-medium text-white">Recomendados para voce</h2>
+            <TrendingUp size={14} className="text-accent" />
+            <h2 className="text-sm font-display font-medium text-white">Recomendados para voce</h2>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
             {featured.map((t) => (
@@ -220,29 +220,41 @@ function FeaturedCard({
   return (
     <button
       onClick={onSelect}
-      className="group relative text-left bg-gradient-to-br from-[#141414] to-[#0d0d0d] border border-[#242424] hover:border-emerald-900/60 rounded-xl p-4 transition-all overflow-hidden"
+      onMouseMove={(e) => {
+        const r = e.currentTarget.getBoundingClientRect();
+        e.currentTarget.style.setProperty('--x', `${e.clientX - r.left}px`);
+        e.currentTarget.style.setProperty('--y', `${e.clientY - r.top}px`);
+      }}
+      className="group relative text-left template-card-featured spotlight rounded-2xl p-4 overflow-hidden"
     >
       <div
-        className="absolute -top-12 -right-12 w-32 h-32 rounded-full opacity-30 group-hover:opacity-60 transition-opacity"
-        style={{ background: 'radial-gradient(circle, rgba(16,185,129,0.4), transparent 70%)' }}
+        className="absolute -top-12 -right-12 w-36 h-36 rounded-full opacity-20 group-hover:opacity-50 transition-opacity"
+        style={{ background: 'radial-gradient(circle, rgba(255,59,0,0.35), transparent 70%)' }}
+      />
+      <div
+        className="absolute -bottom-16 -left-16 w-36 h-36 rounded-full opacity-10 group-hover:opacity-30 transition-opacity"
+        style={{ background: 'radial-gradient(circle, rgba(255,59,0,0.25), transparent 70%)' }}
       />
       <div className="relative flex items-start gap-3">
-        <Avatar template={template} size={44} />
+        <Avatar template={template} size={44} featured />
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-1.5 mb-0.5">
-            <h3 className="text-sm font-medium text-white truncate">{template.title}</h3>
-            <Star size={10} className="text-emerald-400 fill-emerald-400 shrink-0" />
+            <h3 className="text-sm font-display font-semibold text-white truncate">{template.title}</h3>
+            <Star size={10} className="text-accent fill-accent shrink-0" />
           </div>
-          <p className="text-[11px] text-neutral-500 line-clamp-2 leading-relaxed">
+          <p className="text-[11px] text-neutral-400 line-clamp-2 leading-relaxed">
             {template.tagline || template.description}
           </p>
-          <div className="flex items-center gap-3 mt-2 text-[10px] text-neutral-600">
+          <div className="flex items-center gap-3 mt-2.5 text-[10px] text-neutral-500">
             <span className="flex items-center gap-1"><Clock size={9} /> {template.setup_time_minutes} min</span>
             {usageCount > 0 && (
-              <span className="flex items-center gap-1 text-emerald-500">
+              <span className="flex items-center gap-1 text-accent/70">
                 <TrendingUp size={9} /> {usageCount} {usageCount === 1 ? 'uso' : 'usos'}
               </span>
             )}
+            <span className="ml-auto text-neutral-500 group-hover:text-accent transition-colors flex items-center gap-1 text-[10px]">
+              Ver <ArrowRight size={9} className="group-hover:translate-x-0.5 transition-transform" />
+            </span>
           </div>
         </div>
       </div>
@@ -259,20 +271,25 @@ function TemplateCard({
   return (
     <button
       onClick={onSelect}
-      className="group text-left bg-[#141414] border border-[#242424] hover:border-[#363636] rounded-xl overflow-hidden transition-all hover:shadow-lg hover:shadow-black/40"
+      onMouseMove={(e) => {
+        const r = e.currentTarget.getBoundingClientRect();
+        e.currentTarget.style.setProperty('--x', `${e.clientX - r.left}px`);
+        e.currentTarget.style.setProperty('--y', `${e.clientY - r.top}px`);
+      }}
+      className="group text-left template-card spotlight rounded-2xl overflow-hidden"
     >
-      <div className="p-4 sm:p-5 space-y-3">
+      <div className="relative p-4 sm:p-5 space-y-4">
         <div className="flex items-start justify-between gap-2">
           <div className="flex items-start gap-3 min-w-0 flex-1">
             <Avatar template={template} size={48} />
             <div className="min-w-0 flex-1">
               <div className="flex items-center gap-1.5">
-                <h3 className="text-sm font-medium text-white truncate">{template.title}</h3>
+                <h3 className="text-sm font-display font-semibold text-white truncate">{template.title}</h3>
                 {template.is_featured && (
-                  <Star size={10} className="text-emerald-400 fill-emerald-400 shrink-0" />
+                  <Star size={10} className="text-accent fill-accent shrink-0" />
                 )}
               </div>
-              <p className="text-xs text-neutral-500 mt-0.5 line-clamp-2 leading-relaxed">
+              <p className="text-xs text-neutral-400 mt-0.5 line-clamp-2 leading-relaxed">
                 {template.tagline || template.description}
               </p>
             </div>
@@ -289,7 +306,7 @@ function TemplateCard({
             {template.tags.slice(0, 4).map((tag) => (
               <span
                 key={tag}
-                className="text-[10px] px-2 py-0.5 rounded-full border border-[#242424] bg-[#0d0d0d] text-neutral-400"
+                className="text-[10px] px-2 py-0.5 rounded-full border border-accent/10 bg-accent/[0.04] text-neutral-300"
               >
                 {tag}
               </span>
@@ -297,17 +314,19 @@ function TemplateCard({
           </div>
         )}
 
-        <div className="flex items-center justify-between pt-1 text-[10px] text-neutral-600">
+        <div className="border-t border-white/[0.04] pt-3" />
+
+        <div className="flex items-center justify-between text-[10px] text-neutral-500 -mt-1">
           <div className="flex items-center gap-3">
             <span className="flex items-center gap-1"><Clock size={10} /> {template.setup_time_minutes} min</span>
             {usageCount > 0 && (
-              <span className="flex items-center gap-1">
+              <span className="flex items-center gap-1 text-accent/60">
                 <TrendingUp size={10} /> {usageCount} {usageCount === 1 ? 'uso' : 'usos'}
               </span>
             )}
           </div>
-          <span className="text-neutral-500 group-hover:text-white transition-colors flex items-center gap-1">
-            Ver detalhes <ArrowRight size={10} />
+          <span className="text-neutral-500 group-hover:text-accent transition-colors flex items-center gap-1">
+            Ver detalhes <ArrowRight size={10} className="group-hover:translate-x-0.5 transition-transform" />
           </span>
         </div>
       </div>
@@ -315,23 +334,30 @@ function TemplateCard({
   );
 }
 
-function Avatar({ template, size }: { template: AgentTemplate; size: number }) {
+function Avatar({ template, size, featured }: { template: AgentTemplate; size: number; featured?: boolean }) {
   if (template.profile_image_url) {
     return (
-      <img
-        src={template.profile_image_url}
-        alt={template.title}
-        className="rounded-full object-cover shrink-0 border border-[#242424]"
-        style={{ width: size, height: size }}
-      />
+      <div className={`shrink-0 rounded-full ${featured ? 'template-avatar-glow' : ''}`} style={{ width: size, height: size }}>
+        <img
+          src={template.profile_image_url}
+          alt={template.title}
+          className="rounded-full object-cover border border-accent/15 group-hover:border-accent/30 transition-colors"
+          style={{ width: size, height: size }}
+        />
+      </div>
     );
   }
   return (
     <div
-      className="rounded-full bg-[#1a1a1a] border border-[#242424] flex items-center justify-center shrink-0"
-      style={{ width: size, height: size, fontSize: size * 0.45 }}
+      className={`rounded-full flex items-center justify-center shrink-0 border border-accent/15 group-hover:border-accent/30 transition-colors ${featured ? 'template-avatar-glow' : ''}`}
+      style={{
+        width: size,
+        height: size,
+        fontSize: size * 0.45,
+        background: 'radial-gradient(circle at 30% 30%, rgba(255,59,0,0.10), rgba(20,20,20,1) 70%)',
+      }}
     >
-      {template.icon || <Bot size={size * 0.4} className="text-neutral-500" />}
+      {template.icon || <Bot size={size * 0.4} className="text-neutral-400" />}
     </div>
   );
 }
