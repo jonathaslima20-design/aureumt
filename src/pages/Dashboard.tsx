@@ -35,12 +35,13 @@ export function Dashboard({ onNavAdmin }: { onNavAdmin: () => void }) {
 
   const [page, setPage] = useState<PageKey>(() => {
     const saved = localStorage.getItem(STORAGE_KEY) as PageKey | null;
-    const valid: PageKey[] = ['overview', 'agents', 'templates', 'connections', 'knowledge', 'training', 'chat', 'profile'];
+    const valid: PageKey[] = ['overview', 'agents', 'connections', 'knowledge', 'training', 'chat', 'profile'];
     return saved && valid.includes(saved) ? saved : 'overview';
   });
 
   const [selectedAgent, setSelectedAgent] = useState<Instance | null>(null);
   const [openTestOnLoad, setOpenTestOnLoad] = useState(false);
+  const [showTemplates, setShowTemplates] = useState(false);
   const [selectedChatInstance, setSelectedChatInstance] = useState<Instance | null>(null);
 
   useEffect(() => {
@@ -133,6 +134,7 @@ export function Dashboard({ onNavAdmin }: { onNavAdmin: () => void }) {
   const handlePageChange = (p: PageKey) => {
     setPage(p);
     setSelectedAgent(null);
+    setShowTemplates(false);
   };
 
   if (loading) {
@@ -167,28 +169,30 @@ export function Dashboard({ onNavAdmin }: { onNavAdmin: () => void }) {
             />
           );
         }
+        if (showTemplates) {
+          return (
+            <TemplateGalleryPage
+              onBack={() => setShowTemplates(false)}
+              onAgentCreated={(inst) => {
+                setInstances((prev) => [...prev, inst]);
+                setSelectedAgent(inst);
+                setShowTemplates(false);
+              }}
+            />
+          );
+        }
         return (
           <AgentsPage
             instances={instances}
             onCreateAgent={handleCreateAgent}
             onSelectAgent={(inst) => setSelectedAgent(inst)}
             onTestAgent={(inst) => { setSelectedAgent(inst); setOpenTestOnLoad(true); }}
+            onOpenTemplates={() => setShowTemplates(true)}
             onInstanceUpdate={(updated) => setInstances((prev) => prev.map((i) => i.id === updated.id ? updated : i))}
             linkedBaseCounts={linkedBaseCounts}
             personaMap={personaMap}
             exampleCounts={exampleCounts}
             connectionCounts={connectionCounts}
-          />
-        );
-
-      case 'templates':
-        return (
-          <TemplateGalleryPage
-            onAgentCreated={(inst) => {
-              setInstances((prev) => [...prev, inst]);
-              setSelectedAgent(inst);
-              setPage('agents');
-            }}
           />
         );
 

@@ -10,12 +10,13 @@ import {
 import { useAuth } from '../../context/AuthContext';
 
 type Props = {
+  onBack?: () => void;
   onAgentCreated: (inst: Instance) => void;
 };
 
 type View = 'gallery' | 'detail' | 'wizard';
 
-export function TemplateGalleryPage({ onAgentCreated }: Props) {
+export function TemplateGalleryPage({ onBack, onAgentCreated }: Props) {
   const { profile } = useAuth();
   const [templates, setTemplates] = useState<AgentTemplate[]>([]);
   const [counts, setCounts] = useState<Record<string, number>>({});
@@ -107,6 +108,16 @@ export function TemplateGalleryPage({ onAgentCreated }: Props) {
 
   return (
     <div className="space-y-6 sm:space-y-8">
+      {onBack && (
+        <button
+          onClick={onBack}
+          className="flex items-center gap-2 text-sm text-neutral-400 hover:text-white transition-colors"
+        >
+          <ArrowLeft size={14} />
+          <span>Voltar para Agentes</span>
+        </button>
+      )}
+
       {/* Hero */}
       <div className="relative overflow-hidden rounded-2xl border border-accent/10 bg-gradient-to-br from-[#0f0f0f] via-[#0c0c0c] to-[#0a0a0a] p-6 sm:p-8">
         <div

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Plus, Play, Pause, ChevronRight, Database, Link2, Power, Sparkles, MessageSquare } from 'lucide-react';
+import { Plus, Play, Pause, ChevronRight, Database, Link2, Power, Sparkles, MessageSquare, LibrarySquare } from 'lucide-react';
 import { supabase, Instance } from '../../lib/supabase';
 import { AgentAvatar } from '../../components/AgentAvatar';
 
@@ -8,6 +8,7 @@ type Props = {
   onCreateAgent: () => void;
   onSelectAgent: (instance: Instance) => void;
   onTestAgent: (instance: Instance) => void;
+  onOpenTemplates: () => void;
   onInstanceUpdate: (updated: Instance) => void;
   linkedBaseCounts: Record<string, number>;
   personaMap: Record<string, boolean>;
@@ -49,7 +50,7 @@ const TONE_LABELS: Record<string, string> = {
   warm: 'Acolhedor',
 };
 
-export function AgentsPage({ instances, onCreateAgent, onSelectAgent, onTestAgent, onInstanceUpdate, linkedBaseCounts, personaMap, exampleCounts, connectionCounts }: Props) {
+export function AgentsPage({ instances, onCreateAgent, onSelectAgent, onTestAgent, onOpenTemplates, onInstanceUpdate, linkedBaseCounts, personaMap, exampleCounts, connectionCounts }: Props) {
   return (
     <div className="space-y-8">
       <header className="flex items-center justify-between flex-wrap gap-4">
@@ -63,12 +64,20 @@ export function AgentsPage({ instances, onCreateAgent, onSelectAgent, onTestAgen
           </p>
         </div>
         {instances.length > 0 && (
-          <button
-            onClick={onCreateAgent}
-            className="rounded-lg px-5 py-2.5 text-sm font-display font-semibold uppercase tracking-wider flex items-center gap-2 transition-all bg-accent text-white shadow-[0_0_20px_rgba(255,59,0,0.25)] hover:shadow-[0_0_30px_rgba(255,59,0,0.4)]"
-          >
-            <Plus size={14} /> Novo agente
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={onOpenTemplates}
+              className="rounded-lg px-4 py-2.5 text-sm font-display font-semibold uppercase tracking-wider flex items-center gap-2 transition-all border border-white/[0.08] text-neutral-300 hover:text-white hover:border-white/[0.15] hover:bg-white/[0.04]"
+            >
+              <LibrarySquare size={14} /> Templates
+            </button>
+            <button
+              onClick={onCreateAgent}
+              className="rounded-lg px-5 py-2.5 text-sm font-display font-semibold uppercase tracking-wider flex items-center gap-2 transition-all bg-accent text-white shadow-[0_0_20px_rgba(255,59,0,0.25)] hover:shadow-[0_0_30px_rgba(255,59,0,0.4)]"
+            >
+              <Plus size={14} /> Novo agente
+            </button>
+          </div>
         )}
       </header>
 
