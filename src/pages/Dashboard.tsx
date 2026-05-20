@@ -170,6 +170,7 @@ export function Dashboard({ onNavAdmin }: { onNavAdmin: () => void }) {
             instances={instances}
             onCreateAgent={handleCreateAgent}
             onSelectAgent={(inst) => setSelectedAgent(inst)}
+            onTestAgent={(inst) => { setSelectedChatInstance(inst); setPage('chat'); }}
             onInstanceUpdate={(updated) => setInstances((prev) => prev.map((i) => i.id === updated.id ? updated : i))}
             linkedBaseCounts={linkedBaseCounts}
             personaMap={personaMap}

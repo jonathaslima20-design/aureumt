@@ -7,6 +7,7 @@ type Props = {
   instances: Instance[];
   onCreateAgent: () => void;
   onSelectAgent: (instance: Instance) => void;
+  onTestAgent: (instance: Instance) => void;
   onInstanceUpdate: (updated: Instance) => void;
   linkedBaseCounts: Record<string, number>;
   personaMap: Record<string, boolean>;
@@ -48,7 +49,7 @@ const TONE_LABELS: Record<string, string> = {
   warm: 'Acolhedor',
 };
 
-export function AgentsPage({ instances, onCreateAgent, onSelectAgent, onInstanceUpdate, linkedBaseCounts, personaMap, exampleCounts, connectionCounts }: Props) {
+export function AgentsPage({ instances, onCreateAgent, onSelectAgent, onTestAgent, onInstanceUpdate, linkedBaseCounts, personaMap, exampleCounts, connectionCounts }: Props) {
   return (
     <div className="space-y-8">
       <header className="flex items-center justify-between flex-wrap gap-4">
@@ -101,6 +102,7 @@ export function AgentsPage({ instances, onCreateAgent, onSelectAgent, onInstance
                 maturity={maturity}
                 hasPersona={!!personaMap[inst.id]}
                 onClick={() => onSelectAgent(inst)}
+                onTest={() => onTestAgent(inst)}
                 onToggleStatus={onInstanceUpdate}
               />
             );
@@ -120,6 +122,7 @@ function AgentCard({
   maturity,
   hasPersona,
   onClick,
+  onTest,
   onToggleStatus,
 }: {
   instance: Instance;
@@ -129,6 +132,7 @@ function AgentCard({
   maturity: Maturity;
   hasPersona: boolean;
   onClick: () => void;
+  onTest: () => void;
   onToggleStatus: (updated: Instance) => void;
 }) {
   const [toggling, setToggling] = useState(false);
@@ -239,7 +243,7 @@ function AgentCard({
 
         <div className="flex items-center gap-2">
           <button
-            onClick={(e) => { e.stopPropagation(); onClick(); }}
+            onClick={(e) => { e.stopPropagation(); onTest(); }}
             className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-medium border border-accent/30 bg-accent/10 text-accent hover:bg-accent/20 transition-all"
             title="Testar agente no chat"
           >
