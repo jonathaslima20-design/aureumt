@@ -2,13 +2,14 @@ import React, { useEffect, useState } from 'react';
 import {
   ArrowLeft, Save, Loader2, Check, Users, MessageCircle, Key,
   Zap, DollarSign, ChevronDown, ChevronUp, AlertTriangle, TrendingUp,
-  LayoutDashboard, ShieldCheck, CreditCard, LayoutTemplate, Wallet,
+  LayoutDashboard, ShieldCheck, CreditCard, LayoutTemplate, Wallet, BookOpen,
 } from 'lucide-react';
 import { Logo } from '../components/Logo';
 import { supabase, Profile, ApiConfig, TokenStatsByUser, TokenDailySeries, calcCostBRL, Plan } from '../lib/supabase';
 import { PlansManagementPage } from './admin/PlansManagementPage';
 import { TemplatesPage } from './admin/TemplatesPage';
 import { MercadoPagoPage } from './admin/MercadoPagoPage';
+import { HelpCenterAdminPage } from './admin/HelpCenterAdminPage';
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -229,13 +230,14 @@ function TokenRow({ stat, onSaved }: { stat: TokenStatsByUser; onSaved: () => vo
 
 // ─── Menu items ───────────────────────────────────────────────────────────────
 
-type AdminSection = 'dashboard' | 'users' | 'tokens' | 'credentials' | 'plans' | 'templates' | 'mercadopago';
+type AdminSection = 'dashboard' | 'users' | 'tokens' | 'credentials' | 'plans' | 'templates' | 'mercadopago' | 'helpcenter';
 
 const MENU_ITEMS: { id: AdminSection; label: string; icon: React.ReactNode; description: string }[] = [
   { id: 'dashboard',   label: 'Dashboard',          icon: <LayoutDashboard size={15} />, description: 'Visão geral do sistema' },
   { id: 'users',       label: 'Gestão de Usuários', icon: <Users size={15} />,           description: 'Contas, planos e perfis' },
   { id: 'plans',       label: 'Gestão de Planos',   icon: <CreditCard size={15} />,      description: 'Planos, preços e links' },
   { id: 'templates',   label: 'Templates de Agente', icon: <LayoutTemplate size={15} />, description: 'Biblioteca de Agentes' },
+  { id: 'helpcenter',  label: 'Central de Ajuda',   icon: <BookOpen size={15} />,        description: 'Artigos e tutoriais' },
   { id: 'tokens',      label: 'Consumo de Tokens',  icon: <Zap size={15} />,             description: 'Uso e limites por usuário' },
   { id: 'credentials', label: 'Credenciais',        icon: <ShieldCheck size={15} />,     description: 'Chaves de API globais' },
   { id: 'mercadopago', label: 'Mercado Pago',       icon: <Wallet size={15} />,          description: 'Checkout Transparente' },
@@ -575,6 +577,9 @@ export function AdminPanel({ onBack }: { onBack: () => void }) {
 
             {/* ── Templates de Agente ── */}
             {section === 'templates' && <TemplatesPage />}
+
+            {/* ── Central de Ajuda ── */}
+            {section === 'helpcenter' && <HelpCenterAdminPage />}
 
             {/* ── Mercado Pago ── */}
             {section === 'mercadopago' && <MercadoPagoPage />}

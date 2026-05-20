@@ -323,3 +323,130 @@ body {
 .template-avatar-glow {
   box-shadow: 0 0 12px rgba(255, 59, 0, 0.15), 0 0 4px rgba(255, 59, 0, 0.08);
 }
+
+/* Help Center markdown prose */
+.prose-help {
+  color: #d4d4d4;
+  font-size: 0.875rem;
+  line-height: 1.7;
+}
+.prose-help h1 {
+  font-family: 'Space Grotesk', system-ui, sans-serif;
+  font-weight: 700;
+  font-size: 1.5rem;
+  color: #ffffff;
+  margin-top: 2rem;
+  margin-bottom: 0.75rem;
+  letter-spacing: -0.02em;
+}
+.prose-help h2 {
+  font-family: 'Space Grotesk', system-ui, sans-serif;
+  font-weight: 700;
+  font-size: 1.2rem;
+  color: #ffffff;
+  margin-top: 1.75rem;
+  margin-bottom: 0.5rem;
+  letter-spacing: -0.01em;
+}
+.prose-help h3 {
+  font-family: 'Space Grotesk', system-ui, sans-serif;
+  font-weight: 600;
+  font-size: 1rem;
+  color: #e5e5e5;
+  margin-top: 1.5rem;
+  margin-bottom: 0.5rem;
+}
+.prose-help p {
+  margin-bottom: 1rem;
+}
+.prose-help a {
+  color: #FF3B00;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.prose-help a:hover {
+  color: #ff6633;
+}
+.prose-help strong {
+  color: #ffffff;
+  font-weight: 600;
+}
+.prose-help ul, .prose-help ol {
+  padding-left: 1.5rem;
+  margin-bottom: 1rem;
+}
+.prose-help ul {
+  list-style-type: disc;
+}
+.prose-help ol {
+  list-style-type: decimal;
+}
+.prose-help li {
+  margin-bottom: 0.35rem;
+}
+.prose-help li::marker {
+  color: #525252;
+}
+.prose-help blockquote {
+  border-left: 3px solid #FF3B00;
+  padding-left: 1rem;
+  margin: 1rem 0;
+  color: #a3a3a3;
+  font-style: italic;
+}
+.prose-help code {
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 4px;
+  padding: 0.15rem 0.4rem;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.8rem;
+  color: #FF3B00;
+}
+.prose-help pre {
+  background: #0a0a0a;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 0.75rem;
+  padding: 1rem 1.25rem;
+  overflow-x: auto;
+  margin: 1rem 0;
+}
+.prose-help pre code {
+  background: transparent;
+  border: none;
+  padding: 0;
+  color: #d4d4d4;
+  font-size: 0.8rem;
+}
+.prose-help img {
+  border-radius: 0.75rem;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  max-width: 100%;
+  margin: 1rem 0;
+}
+.prose-help hr {
+  border: none;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  margin: 2rem 0;
+}
+.prose-help table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 1rem 0;
+  font-size: 0.8rem;
+}
+.prose-help th {
+  text-align: left;
+  padding: 0.5rem 0.75rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+  color: #ffffff;
+  font-weight: 600;
+}
+.prose-help td {
+  padding: 0.5rem 0.75rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+.prose-help input[type="checkbox"] {
+  accent-color: #FF3B00;
+  margin-right: 0.5rem;
+}
