@@ -35,9 +35,9 @@ const MATURITY_LABEL: Record<Maturity, string> = {
 };
 
 const MATURITY_STYLE: Record<Maturity, string> = {
-  basic: 'bg-amber-500/10 text-amber-400 border-amber-900/40',
-  intermediate: 'bg-blue-500/10 text-blue-400 border-blue-900/40',
-  advanced: 'bg-emerald-500/10 text-emerald-400 border-emerald-900/40',
+  basic: 'bg-accent/5 text-accent/50 border-accent/15',
+  intermediate: 'bg-accent/[0.08] text-accent/70 border-accent/25',
+  advanced: 'bg-accent/10 text-accent border-accent/40',
 };
 
 const TONE_LABELS: Record<string, string> = {
