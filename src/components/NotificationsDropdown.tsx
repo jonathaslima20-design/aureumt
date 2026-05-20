@@ -89,7 +89,7 @@ export function NotificationsDropdown() {
         className="relative w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-neutral-500 hover:text-neutral-200 hover:bg-[#141414] transition-colors"
       >
         <Bell size={15} strokeWidth={1.8} />
-        <span className="font-display font-medium">Notificacoes</span>
+        <span className="font-display font-medium">Notificações</span>
         {unreadCount > 0 && (
           <span className="absolute left-7 top-1.5 w-4 h-4 bg-red-500 text-white text-[9px] font-bold rounded-full flex items-center justify-center">
             {unreadCount > 9 ? '9+' : unreadCount}
