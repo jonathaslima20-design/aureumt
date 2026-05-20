@@ -324,14 +324,24 @@ function TemplateCard({
   );
 }
 
-function Avatar({ template, size, featured }: { template: AgentTemplate; size: number; featured?: boolean }) {
+function Avatar({ template, size }: { template: AgentTemplate; size: number; featured?: boolean }) {
+  const wrapperSize = size + 6;
+  const wrapperStyle: React.CSSProperties = {
+    width: wrapperSize,
+    height: wrapperSize,
+    boxShadow: '0 0 10px 2px rgba(255,59,0,0.12)',
+  };
+
   if (template.profile_image_url) {
     return (
-      <div className={`shrink-0 rounded-full ${featured ? 'template-avatar-glow' : ''}`} style={{ width: size, height: size }}>
+      <div
+        className="rounded-full flex items-center justify-center shrink-0 border-2 border-[#FF3B00]/50"
+        style={wrapperStyle}
+      >
         <img
           src={template.profile_image_url}
           alt={template.title}
-          className="rounded-full object-cover border border-accent/15 group-hover:border-accent/30 transition-colors"
+          className="rounded-full object-cover"
           style={{ width: size, height: size }}
         />
       </div>
@@ -339,15 +349,20 @@ function Avatar({ template, size, featured }: { template: AgentTemplate; size: n
   }
   return (
     <div
-      className={`rounded-full flex items-center justify-center shrink-0 border border-accent/15 group-hover:border-accent/30 transition-colors ${featured ? 'template-avatar-glow' : ''}`}
-      style={{
-        width: size,
-        height: size,
-        fontSize: size * 0.45,
-        background: 'radial-gradient(circle at 30% 30%, rgba(255,59,0,0.10), rgba(20,20,20,1) 70%)',
-      }}
+      className="rounded-full flex items-center justify-center shrink-0 border-2 border-[#FF3B00]/50"
+      style={wrapperStyle}
     >
-      {template.icon || <Bot size={size * 0.4} className="text-neutral-400" />}
+      <div
+        className="rounded-full flex items-center justify-center"
+        style={{
+          width: size,
+          height: size,
+          fontSize: size * 0.45,
+          background: 'radial-gradient(circle at 30% 30%, rgba(255,59,0,0.10), rgba(20,20,20,1) 70%)',
+        }}
+      >
+        {template.icon || <Bot size={size * 0.4} className="text-neutral-400" />}
+      </div>
     </div>
   );
 }
