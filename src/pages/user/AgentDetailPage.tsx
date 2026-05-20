@@ -31,11 +31,12 @@ type Props = {
   onDelete: (inst: Instance) => void;
   instances: Instance[];
   readiness: Readiness;
+  openTestOnLoad?: boolean;
 };
 
-export function AgentDetailPage({ instance, onBack, onUpdate, onDelete, instances, readiness }: Props) {
+export function AgentDetailPage({ instance, onBack, onUpdate, onDelete, instances, readiness, openTestOnLoad }: Props) {
   const [tab, setTab] = useState<Tab>('profile');
-  const [showTest, setShowTest] = useState(false);
+  const [showTest, setShowTest] = useState(openTestOnLoad ?? false);
 
   const tabs: { key: Tab; label: string }[] = [
     { key: 'profile', label: 'Perfil' },

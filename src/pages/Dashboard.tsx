@@ -40,6 +40,7 @@ export function Dashboard({ onNavAdmin }: { onNavAdmin: () => void }) {
   });
 
   const [selectedAgent, setSelectedAgent] = useState<Instance | null>(null);
+  const [openTestOnLoad, setOpenTestOnLoad] = useState(false);
   const [selectedChatInstance, setSelectedChatInstance] = useState<Instance | null>(null);
 
   useEffect(() => {
@@ -152,7 +153,7 @@ export function Dashboard({ onNavAdmin }: { onNavAdmin: () => void }) {
           return (
             <AgentDetailPage
               instance={selectedAgent}
-              onBack={() => setSelectedAgent(null)}
+              onBack={() => { setSelectedAgent(null); setOpenTestOnLoad(false); }}
               onUpdate={fetchInstances}
               onDelete={(inst) => setConfirmDelete(inst)}
               instances={instances}
@@ -162,6 +163,7 @@ export function Dashboard({ onNavAdmin }: { onNavAdmin: () => void }) {
                 exampleCount: exampleCounts[selectedAgent.id] ?? 0,
                 hasConnection: (connectionCounts[selectedAgent.id] ?? 0) > 0,
               }}
+              openTestOnLoad={openTestOnLoad}
             />
           );
         }
@@ -170,7 +172,7 @@ export function Dashboard({ onNavAdmin }: { onNavAdmin: () => void }) {
             instances={instances}
             onCreateAgent={handleCreateAgent}
             onSelectAgent={(inst) => setSelectedAgent(inst)}
-            onTestAgent={(inst) => { setSelectedChatInstance(inst); setPage('chat'); }}
+            onTestAgent={(inst) => { setSelectedAgent(inst); setOpenTestOnLoad(true); }}
             onInstanceUpdate={(updated) => setInstances((prev) => prev.map((i) => i.id === updated.id ? updated : i))}
             linkedBaseCounts={linkedBaseCounts}
             personaMap={personaMap}
