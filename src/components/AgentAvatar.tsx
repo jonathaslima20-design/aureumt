@@ -16,26 +16,50 @@ function initials(name: string): string {
 }
 
 export function AgentAvatar({ name, url, color = '#3b82f6', size = 32, ring = false, className = '' }: Props) {
-  const style: React.CSSProperties = {
+  const innerStyle: React.CSSProperties = {
     width: size,
     height: size,
     background: url ? undefined : `linear-gradient(135deg, ${color}, ${color}cc)`,
     fontSize: Math.max(10, Math.floor(size * 0.38)),
-    ...(ring ? {
-      boxShadow: '0 0 0 2px rgba(255,59,0,0.4), 0 0 12px 2px rgba(255,59,0,0.1)',
-    } : {}),
+  };
+
+  if (!ring) {
+    return (
+      <div
+        className={`rounded-full flex items-center justify-center text-white font-semibold shrink-0 overflow-hidden border border-white/10 ${className}`}
+        style={innerStyle}
+      >
+        {url ? (
+          <img src={url} alt={name} className="w-full h-full object-cover" />
+        ) : (
+          <span className="leading-none select-none">{initials(name)}</span>
+        )}
+      </div>
+    );
+  }
+
+  const wrapperSize = size + 6;
+  const wrapperStyle: React.CSSProperties = {
+    width: wrapperSize,
+    height: wrapperSize,
+    boxShadow: '0 0 10px 2px rgba(255,59,0,0.12)',
   };
 
   return (
     <div
-      className={`rounded-full flex items-center justify-center text-white font-semibold shrink-0 overflow-hidden ${ring ? 'border-0' : 'border border-white/10'} ${className}`}
-      style={style}
+      className={`rounded-full flex items-center justify-center shrink-0 border-2 border-[#FF3B00]/50 ${className}`}
+      style={wrapperStyle}
     >
-      {url ? (
-        <img src={url} alt={name} className="w-full h-full object-cover" />
-      ) : (
-        <span className="leading-none select-none">{initials(name)}</span>
-      )}
+      <div
+        className="rounded-full flex items-center justify-center text-white font-semibold overflow-hidden"
+        style={innerStyle}
+      >
+        {url ? (
+          <img src={url} alt={name} className="w-full h-full object-cover" />
+        ) : (
+          <span className="leading-none select-none">{initials(name)}</span>
+        )}
+      </div>
     </div>
   );
 }
