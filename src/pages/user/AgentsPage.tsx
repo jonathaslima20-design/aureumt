@@ -167,7 +167,7 @@ function AgentCard({
       {/* Header: Avatar + Name + Status */}
       <div className="flex items-start gap-4">
         <div className="relative shrink-0">
-          <AgentAvatar name={name} url={instance.avatar_url} color={instance.color} size={56} />
+          <AgentAvatar name={name} url={instance.avatar_url} color={instance.color} size={56} ring />
           <span
             className={`absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 rounded-full border-[2.5px] border-[#0d0d0d] ${
               isActive ? 'bg-emerald-400' : 'bg-neutral-600'

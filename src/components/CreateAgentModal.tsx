@@ -278,7 +278,7 @@ export function CreateAgentModal({ userId, onClose, onCreated }: Props) {
               className="relative group cursor-pointer shrink-0"
               onClick={() => document.getElementById(`avatar-modal-${userId}`)?.click()}
             >
-              <AgentAvatar name={agentName} url={avatarUrl} color={color} size={64} />
+              <AgentAvatar name={agentName} url={avatarUrl} color={color} size={64} ring />
               <div className="absolute inset-0 rounded-full bg-black/60 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
                 {uploading
                   ? <Loader2 size={14} className="animate-spin text-white" />

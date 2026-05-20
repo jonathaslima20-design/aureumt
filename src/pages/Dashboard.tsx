@@ -348,6 +348,7 @@ function InstancePicker({
               url={inst.avatar_url || undefined}
               color={inst.color || '#3b82f6'}
               size={36}
+              ring
             />
             <div className="min-w-0">
               <div className="text-sm text-white font-medium truncate">

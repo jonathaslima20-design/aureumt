@@ -251,7 +251,7 @@ function ProfileTab({ instance, onUpdate }: { instance: Instance; onUpdate: () =
       {/* Avatar card */}
       <div className="bg-[#141414] border border-[#242424] rounded-2xl p-4 sm:p-6">
         <div className="flex items-center gap-3 sm:gap-5">
-          <AgentAvatar name={displayName} url={avatarUrl} color={color} size={64} />
+          <AgentAvatar name={displayName} url={avatarUrl} color={color} size={64} ring />
           <div className="flex-1 min-w-0 space-y-2">
             <div className="text-base sm:text-lg text-white font-medium truncate">{displayName || 'Sem nome'}</div>
             {personaName && personaName !== displayName && (
@@ -1287,6 +1287,7 @@ function AgentTestModal({ instance, onClose }: { instance: Instance; onClose: ()
           url={instance.avatar_url}
           color={instance.color}
           size={36}
+          ring
         />
         <div className="flex-1 min-w-0">
           <div className="text-sm text-white font-medium truncate">
