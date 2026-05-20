@@ -82,7 +82,7 @@ export function Sidebar({
               }`}
             >
               <Icon size={15} strokeWidth={1.6} className={active ? 'text-accent' : ''} />
-              <span className="font-display font-medium">{it.label}</span>
+              <span className="font-mono font-medium tracking-wide">{it.label}</span>
             </button>
           );
         })}
