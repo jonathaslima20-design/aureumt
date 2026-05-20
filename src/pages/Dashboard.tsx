@@ -16,6 +16,7 @@ import { TemplateGalleryPage } from './user/TemplateGalleryPage';
 import { AgentTrainingPage } from './user/AgentTrainingPage';
 import { ProfilePage } from './user/ProfilePage';
 import { HelpCenterPage } from './user/HelpCenterPage';
+import { IntegrationsPage } from './user/IntegrationsPage';
 import { fetchUserPlanLimits, canCreateAgent, PlanLimits } from '../lib/planLimits';
 
 const STORAGE_KEY = 'auratalk:lastPage';
@@ -36,7 +37,7 @@ export function Dashboard({ onNavAdmin }: { onNavAdmin: () => void }) {
 
   const [page, setPage] = useState<PageKey>(() => {
     const saved = localStorage.getItem(STORAGE_KEY) as PageKey | null;
-    const valid: PageKey[] = ['overview', 'agents', 'connections', 'knowledge', 'training', 'chat', 'help', 'profile'];
+    const valid: PageKey[] = ['overview', 'agents', 'connections', 'knowledge', 'training', 'chat', 'integrations', 'help', 'profile'];
     return saved && valid.includes(saved) ? saved : 'overview';
   });
 
@@ -233,6 +234,9 @@ export function Dashboard({ onNavAdmin }: { onNavAdmin: () => void }) {
             onBack={instances.length > 1 ? () => setSelectedChatInstance(null) : undefined}
           />
         );
+
+      case 'integrations':
+        return <IntegrationsPage />;
 
       case 'help':
         return <HelpCenterPage />;
