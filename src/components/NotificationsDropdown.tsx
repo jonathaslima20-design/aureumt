@@ -89,7 +89,7 @@ export function NotificationsDropdown() {
         className="relative w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-neutral-500 hover:text-neutral-200 hover:bg-[#141414] transition-colors"
       >
         <Bell size={15} strokeWidth={1.8} />
-        <span>Notificacoes</span>
+        <span className="font-display font-medium">Notificacoes</span>
         {unreadCount > 0 && (
           <span className="absolute left-7 top-1.5 w-4 h-4 bg-red-500 text-white text-[9px] font-bold rounded-full flex items-center justify-center">
             {unreadCount > 9 ? '9+' : unreadCount}
@@ -100,7 +100,7 @@ export function NotificationsDropdown() {
       {open && (
         <div className="absolute bottom-full left-0 mb-2 w-80 bg-[#141414] border border-[#242424] rounded-xl shadow-2xl z-50 overflow-hidden">
           <div className="flex items-center justify-between px-4 py-3 border-b border-[#1c1c1c]">
-            <span className="text-xs text-white font-medium">Notificacoes</span>
+            <span className="text-xs text-white font-display font-medium">Notificacoes</span>
             {unreadCount > 0 && (
               <button
                 onClick={markAllRead}
