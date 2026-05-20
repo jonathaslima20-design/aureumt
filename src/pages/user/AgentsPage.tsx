@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Plus, Play, Pause, ChevronRight, Database, Link2, Power, Sparkles } from 'lucide-react';
+import { Plus, Play, Pause, ChevronRight, Database, Link2, Power, Sparkles, MessageSquare } from 'lucide-react';
 import { supabase, Instance } from '../../lib/supabase';
 import { AgentAvatar } from '../../components/AgentAvatar';
 
@@ -224,7 +224,7 @@ function AgentCard({
         )}
       </div>
 
-      {/* Footer: Status + Toggle */}
+      {/* Footer: Status + Actions */}
       <div className="flex items-center justify-between pt-1">
         <div className="flex items-center gap-2">
           {isActive ? (
@@ -237,21 +237,32 @@ function AgentCard({
           </span>
         </div>
 
-        <div
-          role="switch"
-          aria-checked={isActive}
-          aria-label={isActive ? 'Desativar agente' : 'Ativar agente'}
-          onClick={handleToggle}
-          className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-medium cursor-pointer transition-all ${
-            toggling ? 'opacity-50 pointer-events-none' : ''
-          } ${
-            isActive
-              ? 'bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20'
-              : 'bg-neutral-800/50 text-neutral-400 hover:bg-neutral-700/50'
-          }`}
-        >
-          <Power size={11} />
-          {isActive ? 'Ligado' : 'Desligado'}
+        <div className="flex items-center gap-2">
+          <button
+            onClick={(e) => { e.stopPropagation(); onClick(); }}
+            className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-medium border border-accent/30 bg-accent/10 text-accent hover:bg-accent/20 transition-all"
+            title="Testar agente no chat"
+          >
+            <MessageSquare size={11} />
+            Testar
+          </button>
+
+          <div
+            role="switch"
+            aria-checked={isActive}
+            aria-label={isActive ? 'Desativar agente' : 'Ativar agente'}
+            onClick={handleToggle}
+            className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-medium cursor-pointer transition-all ${
+              toggling ? 'opacity-50 pointer-events-none' : ''
+            } ${
+              isActive
+                ? 'bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20'
+                : 'bg-neutral-800/50 text-neutral-400 hover:bg-neutral-700/50'
+            }`}
+          >
+            <Power size={11} />
+            {isActive ? 'Ligado' : 'Desligado'}
+          </div>
         </div>
       </div>
     </button>
