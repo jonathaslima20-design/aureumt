@@ -10,10 +10,9 @@ import { OverviewPage } from './user/OverviewPage';
 import { AgentsPage } from './user/AgentsPage';
 import { AgentDetailPage } from './user/AgentDetailPage';
 import { ConnectionsPage } from './user/ConnectionsPage';
-import { KnowledgePage } from './user/KnowledgePage';
 import { ChatPage } from './user/ChatPage';
 import { TemplateGalleryPage } from './user/TemplateGalleryPage';
-import { AgentTrainingPage } from './user/AgentTrainingPage';
+import { IntelligencePage } from './user/IntelligencePage';
 import { ProfilePage } from './user/ProfilePage';
 import { HelpCenterPage } from './user/HelpCenterPage';
 import { IntegrationsPage } from './user/IntegrationsPage';
@@ -37,7 +36,7 @@ export function Dashboard({ onNavAdmin }: { onNavAdmin: () => void }) {
 
   const [page, setPage] = useState<PageKey>(() => {
     const saved = localStorage.getItem(STORAGE_KEY) as PageKey | null;
-    const valid: PageKey[] = ['overview', 'agents', 'connections', 'knowledge', 'training', 'chat', 'integrations', 'help', 'profile'];
+    const valid: PageKey[] = ['overview', 'agents', 'connections', 'intelligence', 'chat', 'integrations', 'help', 'profile'];
     return saved && valid.includes(saved) ? saved : 'overview';
   });
 
@@ -206,11 +205,8 @@ export function Dashboard({ onNavAdmin }: { onNavAdmin: () => void }) {
           />
         );
 
-      case 'knowledge':
-        return <KnowledgePage />;
-
-      case 'training':
-        return <AgentTrainingPage instances={instances} />;
+      case 'intelligence':
+        return <IntelligencePage instances={instances} />;
 
       case 'chat':
         if (instances.length === 0) return <EmptyAgentsPrompt onCreate={handleCreateAgent} />;

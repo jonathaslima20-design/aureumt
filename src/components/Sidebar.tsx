@@ -1,19 +1,18 @@
 import { useState, useEffect } from 'react';
-import { LayoutDashboard, Link2, MessagesSquare, LogOut, Shield, Menu, X, Bot, Database, GraduationCap, Puzzle, LifeBuoy } from 'lucide-react';
+import { LayoutDashboard, Link2, MessagesSquare, LogOut, Shield, Menu, X, Bot, Brain, Puzzle, LifeBuoy } from 'lucide-react';
 import { Logo } from './Logo';
 import { NotificationsDropdown } from './NotificationsDropdown';
 import { useAuth } from '../context/AuthContext';
 import { supabase } from '../lib/supabase';
 
-export type PageKey = 'overview' | 'agents' | 'connections' | 'knowledge' | 'training' | 'chat' | 'integrations' | 'help' | 'profile';
+export type PageKey = 'overview' | 'agents' | 'connections' | 'intelligence' | 'chat' | 'integrations' | 'help' | 'profile';
 
 const ITEMS: { key: PageKey; label: string; icon: typeof LayoutDashboard }[] = [
   { key: 'overview', label: 'Visão Geral', icon: LayoutDashboard },
   { key: 'chat', label: 'Chat', icon: MessagesSquare },
   { key: 'agents', label: 'Agentes', icon: Bot },
   { key: 'connections', label: 'Conexões', icon: Link2 },
-  { key: 'knowledge', label: 'Conhecimento', icon: Database },
-  { key: 'training', label: 'Treinamento', icon: GraduationCap },
+  { key: 'intelligence', label: 'Inteligência', icon: Brain },
   { key: 'integrations', label: 'Integrações', icon: Puzzle },
   { key: 'help', label: 'Central de Ajuda', icon: LifeBuoy },
 ];
