@@ -42,35 +42,40 @@
         <feMergeNode in="SourceGraphic"/>
       </feMerge>
     </filter>
+    <clipPath id="roundedClip">
+      <rect width="64" height="64" rx="8" ry="8"/>
+    </clipPath>
   </defs>
 
-  <rect width="64" height="64" fill="#000000"/>
-  <circle cx="32" cy="32" r="31.6" fill="url(#bgGlow)"/>
+  <g clip-path="url(#roundedClip)">
+    <rect width="64" height="64" rx="8" ry="8" fill="#000000"/>
+    <circle cx="32" cy="32" r="31.6" fill="url(#bgGlow)"/>
 
-  <circle cx="32" cy="32" r="21.7"
-          fill="none"
-          stroke="#ff3b00"
-          stroke-width="6.3"
-          stroke-opacity="0.88"
-          filter="url(#outerGlow)"/>
+    <circle cx="32" cy="32" r="21.7"
+            fill="none"
+            stroke="#ff3b00"
+            stroke-width="6.3"
+            stroke-opacity="0.88"
+            filter="url(#outerGlow)"/>
 
-  <circle cx="32" cy="32" r="21.7"
-          fill="none"
-          stroke="url(#ringFill)"
-          stroke-width="4.7"
-          filter="url(#hotEdge)"/>
+    <circle cx="32" cy="32" r="21.7"
+            fill="none"
+            stroke="url(#ringFill)"
+            stroke-width="4.7"
+            filter="url(#hotEdge)"/>
 
-  <circle cx="32" cy="32" r="17.9" fill="url(#innerDark)"/>
+    <circle cx="32" cy="32" r="17.9" fill="url(#innerDark)"/>
 
-  <circle cx="32" cy="32" r="24.7"
-          fill="none"
-          stroke="#ffd36a"
-          stroke-width="1.1"
-          stroke-opacity="0.95"/>
+    <circle cx="32" cy="32" r="24.7"
+            fill="none"
+            stroke="#ffd36a"
+            stroke-width="1.1"
+            stroke-opacity="0.95"/>
 
-  <circle cx="32" cy="32" r="19.1"
-          fill="none"
-          stroke="#ff7a17"
-          stroke-width="0.7"
-          stroke-opacity="0.7"/>
+    <circle cx="32" cy="32" r="19.1"
+            fill="none"
+            stroke="#ff7a17"
+            stroke-width="0.7"
+            stroke-opacity="0.7"/>
+  </g>
 </svg>
