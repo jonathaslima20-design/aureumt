@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { LayoutDashboard, Link2, MessagesSquare, LogOut, Shield, Menu, X, Bot, Brain, Puzzle, LifeBuoy } from 'lucide-react';
+import { BarChart3, Link2, MessagesSquare, LogOut, Shield, Menu, X, Bot, Brain, Puzzle, LifeBuoy } from 'lucide-react';
 import { Logo } from './Logo';
 import { NotificationsDropdown } from './NotificationsDropdown';
 import { useAuth } from '../context/AuthContext';
@@ -7,8 +7,8 @@ import { supabase } from '../lib/supabase';
 
 export type PageKey = 'overview' | 'agents' | 'connections' | 'intelligence' | 'chat' | 'integrations' | 'help' | 'profile';
 
-const ITEMS: { key: PageKey; label: string; icon: typeof LayoutDashboard }[] = [
-  { key: 'overview', label: 'Visão Geral', icon: LayoutDashboard },
+const ITEMS: { key: PageKey; label: string; icon: typeof BarChart3 }[] = [
+  { key: 'overview', label: 'Analytics', icon: BarChart3 },
   { key: 'chat', label: 'Chat', icon: MessagesSquare },
   { key: 'agents', label: 'Agentes', icon: Bot },
   { key: 'connections', label: 'Conexões', icon: Link2 },

@@ -6,7 +6,7 @@ import { useAuth } from '../context/AuthContext';
 import { CreateAgentModal } from '../components/CreateAgentModal';
 import { PlansModal } from '../components/PlansModal';
 import { AgentAvatar } from '../components/AgentAvatar';
-import { OverviewPage } from './user/OverviewPage';
+import { AnalyticsPage } from './user/AnalyticsPage';
 import { AgentsPage } from './user/AgentsPage';
 import { AgentDetailPage } from './user/AgentDetailPage';
 import { ConnectionsPage } from './user/ConnectionsPage';
@@ -149,7 +149,7 @@ export function Dashboard({ onNavAdmin }: { onNavAdmin: () => void }) {
   const renderPage = () => {
     switch (page) {
       case 'overview':
-        return <OverviewPage instance={instances[0] || null} />;
+        return <AnalyticsPage instances={instances} />;
 
       case 'agents':
         if (selectedAgent) {
