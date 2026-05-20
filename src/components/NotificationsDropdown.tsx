@@ -100,7 +100,7 @@ export function NotificationsDropdown() {
       {open && (
         <div className="absolute bottom-full left-0 mb-2 w-80 bg-[#141414] border border-[#242424] rounded-xl shadow-2xl z-50 overflow-hidden">
           <div className="flex items-center justify-between px-4 py-3 border-b border-[#1c1c1c]">
-            <span className="text-xs text-white font-display font-medium">Notificacoes</span>
+            <span className="text-xs text-white font-display font-medium">Notificações</span>
             {unreadCount > 0 && (
               <button
                 onClick={markAllRead}
