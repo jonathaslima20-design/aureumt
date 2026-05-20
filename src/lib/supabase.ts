@@ -456,3 +456,44 @@ export type SharedExample = {
   ideal_response: string;
   created_at: string;
 };
+
+export type ContactStage = {
+  id: string;
+  user_id: string;
+  name: string;
+  color: string;
+  sort_order: number;
+  is_default: boolean;
+  created_at: string;
+};
+
+export type Contact = {
+  id: string;
+  user_id: string;
+  customer_number: string;
+  display_name: string;
+  email: string | null;
+  company: string | null;
+  phone_secondary: string | null;
+  stage_id: string | null;
+  source: string;
+  custom_fields: Record<string, string>;
+  created_at: string;
+  updated_at: string;
+};
+
+export type ContactAgent = {
+  id: string;
+  contact_id: string;
+  instance_id: string;
+  first_interaction_at: string;
+  last_interaction_at: string;
+  message_count: number;
+};
+
+export type CRMContact = Contact & {
+  stage: ContactStage | null;
+  labels: ContactLabel[];
+  agents: (ContactAgent & { instance_name: string; color: string })[];
+  memory: CustomerMemory | null;
+};
