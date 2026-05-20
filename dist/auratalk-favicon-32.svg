@@ -1,0 +1,76 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32" role="img" aria-label="AuraTalk favicon">
+  <defs>
+    <radialGradient id="bgGlow" cx="50%" cy="50%" r="56%">
+      <stop offset="0%" stop-color="#0b0402"/>
+      <stop offset="42%" stop-color="#160300"/>
+      <stop offset="66%" stop-color="#ff2a00" stop-opacity="0.82"/>
+      <stop offset="83%" stop-color="#ff3b00" stop-opacity="0.36"/>
+      <stop offset="100%" stop-color="#000000" stop-opacity="0"/>
+    </radialGradient>
+
+    <radialGradient id="innerDark" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#000000"/>
+      <stop offset="70%" stop-color="#070100"/>
+      <stop offset="100%" stop-color="#210300"/>
+    </radialGradient>
+
+    <linearGradient id="ringFill" x1="16" y1="4" x2="16" y2="28" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#ffb236"/>
+      <stop offset="24%" stop-color="#ff5a00"/>
+      <stop offset="52%" stop-color="#ff2600"/>
+      <stop offset="78%" stop-color="#ff4b00"/>
+      <stop offset="100%" stop-color="#ffd15a"/>
+    </linearGradient>
+
+    <filter id="outerGlow" x="-70%" y="-70%" width="240%" height="240%">
+      <feGaussianBlur stdDeviation="2.7" result="blur1"/>
+      <feColorMatrix in="blur1" type="matrix"
+        values="1 0 0 0 1
+                0 0.22 0 0 0.16
+                0 0 0.04 0 0
+                0 0 0 1 0" result="orangeGlow"/>
+      <feMerge>
+        <feMergeNode in="orangeGlow"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+
+    <filter id="hotEdge" x="-40%" y="-40%" width="180%" height="180%">
+      <feGaussianBlur stdDeviation="0.35" result="soft"/>
+      <feMerge>
+        <feMergeNode in="soft"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+
+  <rect width="32" height="32" fill="#000000"/>
+  <circle cx="16" cy="16" r="15.8" fill="url(#bgGlow)"/>
+
+  <circle cx="16" cy="16" r="10.85"
+          fill="none"
+          stroke="#ff3b00"
+          stroke-width="3.15"
+          stroke-opacity="0.88"
+          filter="url(#outerGlow)"/>
+
+  <circle cx="16" cy="16" r="10.85"
+          fill="none"
+          stroke="url(#ringFill)"
+          stroke-width="2.35"
+          filter="url(#hotEdge)"/>
+
+  <circle cx="16" cy="16" r="8.95" fill="url(#innerDark)"/>
+
+  <circle cx="16" cy="16" r="12.35"
+          fill="none"
+          stroke="#ffd36a"
+          stroke-width="0.55"
+          stroke-opacity="0.95"/>
+
+  <circle cx="16" cy="16" r="9.55"
+          fill="none"
+          stroke="#ff7a17"
+          stroke-width="0.35"
+          stroke-opacity="0.7"/>
+</svg>
