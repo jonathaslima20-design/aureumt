@@ -149,7 +149,7 @@ function detectPhase(message: string, previousPhase: string, intent: string): st
 }
 
 async function callGemini(apiKey: string, systemInstruction: string, history: { role: string; text: string }[], temperature = 0.85) {
-  const models = ["gemini-2.5-flash", "gemini-2.0-flash", "gemini-1.5-flash"];
+  const models = ["gemini-2.5-flash", "gemini-2.0-flash", "gemini-1.5-flash-latest"];
   const rawContents = history.map((h) => ({ role: h.role === "assistant" ? "model" : "user", parts: [{ text: h.text }] }));
   const contents: { role: string; parts: { text: string }[] }[] = [];
   for (const item of rawContents) {
@@ -165,6 +165,7 @@ async function callGemini(apiKey: string, systemInstruction: string, history: { 
     contents,
     generationConfig: { temperature, maxOutputTokens: 800, topP: 0.95, topK: 40 },
   };
+  const FALLBACK_MSG = "Opa, deu uma travada aqui. Pode repetir?";
   let lastError = "";
   for (const model of models) {
     for (let attempt = 0; attempt < 2; attempt++) {
@@ -176,6 +177,7 @@ async function callGemini(apiKey: string, systemInstruction: string, history: { 
           const retryAfter = parseInt(res.headers.get("Retry-After") || "5", 10);
           const waitMs = Math.min((retryAfter || 5) * 1000, 8000);
           if (attempt === 0) { await new Promise((r) => setTimeout(r, waitMs)); continue; }
+          lastError = `[${model}] 429 rate_limit`;
           break;
         }
         if (!res.ok) { lastError = `[${model}] HTTP ${res.status}`; break; }
@@ -185,6 +187,7 @@ async function callGemini(apiKey: string, systemInstruction: string, history: { 
           const tokens = data?.usageMetadata?.totalTokenCount || 0;
           return { text: text.trim(), tokens, error: "" };
         }
+        lastError = `[${model}] empty response`;
         break;
       } catch (e) {
         lastError = e instanceof Error ? e.message : String(e);
@@ -192,7 +195,8 @@ async function callGemini(apiKey: string, systemInstruction: string, history: { 
       }
     }
   }
-  return { text: "Opa, deu uma travada aqui. Pode repetir?", tokens: 0, error: lastError };
+  if (lastError) console.error("[callGemini] All models failed:", lastError);
+  return { text: FALLBACK_MSG, tokens: 0, error: lastError };
 }
 
 async function sendPresence(creds: Creds, instanceName: string, number: string, durationMs: number) {
@@ -829,7 +833,12 @@ Deno.serve(async (req) => {
       if (classification.intent === "reclamacao") temperature = 0.7;
 
       // ── Gemini call ─────────────────────────────────────────────────────
-      const { text: reply, tokens } = await callGemini(creds.gemini, systemInstruction, ordered, temperature);
+      const { text: rawReply, tokens } = await callGemini(creds.gemini, systemInstruction, ordered, temperature);
+
+      // Guard: never send internal error patterns to the user
+      const ERROR_PATTERN = /^\[[\w\-\.]+\]\s*(HTTP \d{3}|error|empty|timeout|rate_limit)/i;
+      const reply = ERROR_PATTERN.test(rawReply) ? "Opa, deu uma travada aqui. Pode repetir?" : rawReply;
+      if (reply !== rawReply) console.error("[webhook] Blocked error leak to user:", rawReply);
 
       // ── Sanitize WhatsApp formatting ────────────────────────────────────
       const sanitize = (t: string): string => {
