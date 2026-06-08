@@ -131,7 +131,7 @@ Deno.serve(async (req: Request) => {
 
       if (queryEmbedding) {
         const { data: ragChunks } = await admin.rpc("match_knowledge_chunks", {
-          query_embedding: JSON.stringify(queryEmbedding),
+          query_embedding: queryEmbedding,
           base_ids: kbIds,
           match_threshold: 0.4,
           match_count: 10,
