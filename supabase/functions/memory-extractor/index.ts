@@ -14,7 +14,7 @@ async function loadGeminiKey(admin: ReturnType<typeof createClient>, userId: str
 }
 
 async function callGemini(apiKey: string, prompt: string): Promise<string> {
-  const models = ["gemini-2.0-flash", "gemini-1.5-flash"];
+  const models = ["gemini-2.5-flash", "gemini-2.0-flash"];
   for (const model of models) {
     try {
       const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;

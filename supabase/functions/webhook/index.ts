@@ -149,7 +149,7 @@ function detectPhase(message: string, previousPhase: string, intent: string): st
 }
 
 async function callGemini(apiKey: string, systemInstruction: string, history: { role: string; text: string }[], temperature = 0.85) {
-  const models = ["gemini-2.5-flash", "gemini-2.0-flash", "gemini-1.5-flash-latest"];
+  const models = ["gemini-2.5-flash", "gemini-2.0-flash"];
   const rawContents = history.map((h) => ({ role: h.role === "assistant" ? "model" : "user", parts: [{ text: h.text }] }));
   const contents: { role: string; parts: { text: string }[] }[] = [];
   for (const item of rawContents) {

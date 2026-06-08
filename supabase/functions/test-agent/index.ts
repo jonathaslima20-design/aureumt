@@ -317,7 +317,7 @@ Deno.serve(async (req: Request) => {
     }
 
     // ── Call Gemini (same params and fallback as webhook) ───────────────────
-    const models = ["gemini-2.5-flash", "gemini-2.0-flash", "gemini-1.5-flash"];
+    const models = ["gemini-2.5-flash", "gemini-2.0-flash"];
     const body = {
       systemInstruction: { parts: [{ text: cappedInstruction }] },
       contents,
