@@ -1294,7 +1294,10 @@ function AgentTestModal({ instance, onClose }: { instance: Instance; onClose: ()
           <div className="text-sm text-white font-medium truncate">
             {instance.display_name || instance.instance_name}
           </div>
-          <div className="text-[11px] text-amber-400 font-medium uppercase tracking-wider">Modo Teste</div>
+          <div className="flex items-center gap-1.5">
+            <span className="w-2 h-2 rounded-full bg-emerald-400 shadow-[0_0_6px_#34d399] animate-pulse" />
+            <span className="text-[11px] text-emerald-400 font-medium">Online</span>
+          </div>
         </div>
         <button
           onClick={() => setMessages([])}
